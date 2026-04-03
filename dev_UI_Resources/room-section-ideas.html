@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Room – UI Ideas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root {
+  --primary: #4C8C00;
+  --primary-container: #D9E9B4;
+  --icon-bg: #EEF6E7;
+  --primary-pressed: #3E7000;
+  --primary-dark: #2D5400;
+  --bg: #F4F5F4;
+  --surface: #FFFFFF;
+  --on-surface: #1A1A1A;
+  --surface-variant: #E1E5DE;
+  --slate400: #94A3B8;
+  --slate600: #64748B;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #DCE4DC;
+  padding: 32px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+h2 {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(0,0,0,0.35);
+  margin-bottom: -30px; align-self: flex-start;
+  margin-left: calc(50% - 175px);
+}
+
+.card { width: 350px; }
+
+/* ============ IDEA 1: Split Glow Card ============ */
+.idea1 {
+  background: linear-gradient(135deg, #2D5400 0%, #4C8C00 60%, #6DB800 100%);
+  border-radius: 22px;
+  padding: 22px 20px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgba(76,140,0,0.35), 0 2px 8px rgba(0,0,0,0.1);
+}
+.idea1::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.idea1::after {
+  content: '';
+  position: absolute; bottom: -50px; left: 20px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.i1-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.i1-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+}
+.i1-icon .material-icons-round { color: white; font-size: 26px; }
+.i1-title { font-size: 18px; font-weight: 800; color: white; }
+.i1-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+.i1-tags { display: flex; gap: 7px; }
+.i1-tag {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.9);
+  font-size: 11px; font-weight: 600;
+  padding: 5px 11px; border-radius: 20px;
+  display: flex; align-items: center; gap: 4px;
+}
+.i1-tag .material-icons-round { font-size: 13px; }
+.i1-arrow {
+  position: absolute; right: 20px; top: 50%;
+  transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+}
+.i1-arrow .material-icons-round { color: white; font-size: 20px; }
+
+/* ============ IDEA 2: Layered Ticket Card ============ */
+.idea2-wrap { position: relative; padding-bottom: 12px; }
+.idea2-shadow {
+  position: absolute; bottom: 0; left: 10px; right: 10px;
+  height: 100%; background: var(--primary-container);
+  border-radius: 20px; opacity: 0.5;
+}
+.idea2-shadow2 {
+  position: absolute; bottom: 6px; left: 5px; right: 5px;
+  height: 100%; background: var(--primary-container);
+  border-radius: 20px; opacity: 0.7;
+}
+.idea2 {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  border: 1.5px solid var(--surface-variant);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+.i2-stripe {
+  height: 6px;
+  background: repeating-linear-gradient(90deg, var(--primary) 0px, var(--primary) 12px, var(--primary-container) 12px, var(--primary-container) 24px);
+}
+.i2-body { padding: 18px 18px 16px; display: flex; align-items: center; gap: 14px; }
+.i2-icon {
+  width: 52px; height: 52px; border-radius: 16px;
+  background: var(--icon-bg);
+  border: 1.5px solid var(--primary-container);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.i2-icon .material-icons-round { color: var(--primary); font-size: 28px; }
+.i2-text { flex: 1; }
+.i2-title { font-size: 17px; font-weight: 800; color: var(--on-surface); margin-bottom: 3px; }
+.i2-sub { font-size: 12px; color: var(--slate600); }
+.i2-badge {
+  background: var(--primary);
+  color: white;
+  font-size: 10px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+  display: inline-block;
+}
+.i2-arrow .material-icons-round { color: var(--primary); font-size: 22px; }
+.i2-footer {
+  padding: 10px 18px 14px;
+  border-top: 1px dashed var(--surface-variant);
+  display: flex; gap: 16px;
+}
+.i2-stat { display: flex; align-items: center; gap: 5px; }
+.i2-stat .material-icons-round { font-size: 14px; color: var(--slate400); }
+.i2-stat span { font-size: 11px; color: var(--slate600); font-weight: 500; }
+
+/* ============ IDEA 3: Split Two-Action Panel ============ */
+.idea3 {
+  display: grid; grid-template-columns: 1fr 1px 1fr;
+  background: var(--surface);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1.5px solid var(--surface-variant);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+}
+.i3-divider { background: var(--surface-variant); }
+.i3-side {
+  padding: 22px 18px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.i3-side.primary { background: var(--primary); }
+.i3-side.primary::after {
+  content: '';
+  position: absolute; bottom: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.i3-icon-box {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.i3-side.primary .i3-icon-box { background: rgba(255,255,255,0.2); }
+.i3-side.secondary .i3-icon-box { background: var(--icon-bg); }
+.i3-icon-box .material-icons-round { font-size: 22px; }
+.i3-side.primary .i3-icon-box .material-icons-round { color: white; }
+.i3-side.secondary .i3-icon-box .material-icons-round { color: var(--primary); }
+.i3-t { font-size: 14px; font-weight: 800; }
+.i3-side.primary .i3-t { color: white; }
+.i3-side.secondary .i3-t { color: var(--on-surface); }
+.i3-s { font-size: 11px; }
+.i3-side.primary .i3-s { color: rgba(255,255,255,0.72); }
+.i3-side.secondary .i3-s { color: var(--slate600); }
+.i3-side.primary .i3-arrow { margin-top: 4px; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600; display:flex; align-items:center; gap:3px; }
+.i3-side.primary .i3-arrow .material-icons-round { font-size: 16px; color: rgba(255,255,255,0.7); }
+.i3-side.secondary .i3-arrow { margin-top: 4px; color: var(--primary); font-size: 13px; font-weight: 600; display:flex; align-items:center; gap:3px; }
+.i3-side.secondary .i3-arrow .material-icons-round { font-size: 16px; color: var(--primary); }
+
+/* ============ IDEA 4: Minimal List Row ============ */
+.idea4 {
+  background: var(--surface);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1.5px solid var(--surface-variant);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.i4-header {
+  padding: 14px 18px 10px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.i4-header-title { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--slate600); }
+.i4-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 18px;
+  cursor: pointer; border-top: 1px solid var(--surface-variant);
+  transition: background 0.15s;
+}
+.i4-row:hover { background: var(--bg); }
+.i4-row-icon {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.i4-row-icon.green { background: var(--primary); }
+.i4-row-icon.light { background: var(--icon-bg); }
+.i4-row-icon .material-icons-round { font-size: 22px; }
+.i4-row-icon.green .material-icons-round { color: white; }
+.i4-row-icon.light .material-icons-round { color: var(--primary); }
+.i4-row-text { flex: 1; }
+.i4-row-title { font-size: 14px; font-weight: 700; color: var(--on-surface); }
+.i4-row-sub { font-size: 11px; color: var(--slate600); margin-top: 1px; }
+.i4-chip {
+  font-size: 10px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+}
+.i4-chip.new { background: var(--primary-container); color: var(--primary-dark); }
+.i4-row .material-icons-round.arr { font-size: 18px; color: var(--slate400); }
+
+/* ============ IDEA 5: Glassmorphism Card ============ */
+.idea5-bg {
+  background: linear-gradient(145deg, #3E7000, #6DB800);
+  border-radius: 24px;
+  padding: 3px;
+  box-shadow: 0 16px 40px rgba(76,140,0,0.4);
+}
+.idea5 {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px);
+  border-radius: 22px;
+  padding: 22px 20px;
+  cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.idea5::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: rgba(255,255,255,0.4);
+}
+.i5-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.i5-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(255,255,255,0.65);
+  margin-bottom: 6px;
+}
+.i5-title { font-size: 22px; font-weight: 800; color: white; line-height: 1.2; }
+.i5-icon {
+  width: 50px; height: 50px; border-radius: 16px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+}
+.i5-icon .material-icons-round { color: white; font-size: 28px; }
+.i5-bottom { display: flex; align-items: center; justify-content: space-between; }
+.i5-tags { display: flex; gap: 8px; }
+.i5-tag {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.88);
+  font-size: 11px; font-weight: 600;
+  padding: 6px 12px; border-radius: 20px;
+}
+.i5-cta {
+  background: white;
+  color: var(--primary-dark);
+  font-size: 13px; font-weight: 800;
+  font-family: 'DM Sans', sans-serif;
+  padding: 10px 18px; border-radius: 20px;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.i5-cta .material-icons-round { font-size: 16px; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+.card { animation: fadeUp 0.4s ease both; }
+.card:nth-child(2) { animation-delay: 0.06s; }
+.card:nth-child(3) { animation-delay: 0.12s; }
+.card:nth-child(4) { animation-delay: 0.18s; }
+.card:nth-child(5) { animation-delay: 0.24s; }
+.card:nth-child(6) { animation-delay: 0.30s; }
+.card:nth-child(7) { animation-delay: 0.36s; }
+</style>
+</head>
+<body>
+
+<h2>Idea 1 — Dark Gradient Hero</h2>
+<div class="card">
+  <div class="idea1">
+    <div class="i1-top">
+      <div class="i1-icon"><span class="material-icons-round">add</span></div>
+      <div>
+        <div class="i1-title">Create New Room</div>
+        <div class="i1-sub">Start a custom live session</div>
+      </div>
+    </div>
+    <div class="i1-tags">
+      <div class="i1-tag"><span class="material-icons-round">people</span> Multiplayer</div>
+      <div class="i1-tag"><span class="material-icons-round">bolt</span> Instant</div>
+      <div class="i1-tag"><span class="material-icons-round">park</span> Eco</div>
+    </div>
+    <div class="i1-arrow"><span class="material-icons-round">arrow_forward</span></div>
+  </div>
+</div>
+
+<h2>Idea 2 — Ticket-Style Layered Card</h2>
+<div class="card">
+  <div class="idea2-wrap">
+    <div class="idea2-shadow"></div>
+    <div class="idea2-shadow2"></div>
+    <div class="idea2">
+      <div class="i2-stripe"></div>
+      <div class="i2-body">
+        <div class="i2-icon"><span class="material-icons-round">confirmation_number</span></div>
+        <div class="i2-text">
+          <div class="i2-title">Create New Room</div>
+          <div class="i2-sub">Start a custom live bingo session</div>
+          <div class="i2-badge">🌿 Eco Session</div>
+        </div>
+        <div class="i2-arrow"><span class="material-icons-round">chevron_right</span></div>
+      </div>
+      <div class="i2-footer">
+        <div class="i2-stat"><span class="material-icons-round">people</span><span>Up to 100 players</span></div>
+        <div class="i2-stat"><span class="material-icons-round">timer</span><span>~5 min setup</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>Idea 3 — Split Two-Action Panel</h2>
+<div class="card">
+  <div class="idea3">
+    <div class="i3-side primary">
+      <div class="i3-icon-box"><span class="material-icons-round">add</span></div>
+      <div class="i3-t">Create Room</div>
+      <div class="i3-s">Start a fresh session</div>
+      <div class="i3-arrow"><span class="material-icons-round">arrow_forward</span> Go</div>
+    </div>
+    <div class="i3-divider"></div>
+    <div class="i3-side secondary">
+      <div class="i3-icon-box"><span class="material-icons-round">login</span></div>
+      <div class="i3-t">Join Room</div>
+      <div class="i3-s">Enter with a code</div>
+      <div class="i3-arrow"><span class="material-icons-round">arrow_forward</span> Join</div>
+    </div>
+  </div>
+</div>
+
+<h2>Idea 4 — Minimal Action List</h2>
+<div class="card">
+  <div class="idea4">
+    <div class="i4-header">
+      <span class="i4-header-title">Start Playing</span>
+    </div>
+    <div class="i4-row">
+      <div class="i4-row-icon green"><span class="material-icons-round">add</span></div>
+      <div class="i4-row-text">
+        <div class="i4-row-title">Create New Room</div>
+        <div class="i4-row-sub">Start a custom live session</div>
+      </div>
+      <span class="i4-chip new">New</span>
+      <span class="material-icons-round arr">chevron_right</span>
+    </div>
+    <div class="i4-row">
+      <div class="i4-row-icon light"><span class="material-icons-round">login</span></div>
+      <div class="i4-row-text">
+        <div class="i4-row-title">Join with Code</div>
+        <div class="i4-row-sub">Enter a room code to join</div>
+      </div>
+      <span class="material-icons-round arr">chevron_right</span>
+    </div>
+    <div class="i4-row">
+      <div class="i4-row-icon light"><span class="material-icons-round">history</span></div>
+      <div class="i4-row-text">
+        <div class="i4-row-title">Resume Session</div>
+        <div class="i4-row-sub">Continue where you left off</div>
+      </div>
+      <span class="material-icons-round arr">chevron_right</span>
+    </div>
+  </div>
+</div>
+
+<h2>Idea 5 — Glassmorphism with CTA</h2>
+<div class="card">
+  <div class="idea5-bg">
+    <div class="idea5">
+      <div class="i5-top">
+        <div>
+          <div class="i5-label">Live Session</div>
+          <div class="i5-title">Create<br>New Room</div>
+        </div>
+        <div class="i5-icon"><span class="material-icons-round">videocam</span></div>
+      </div>
+      <div class="i5-bottom">
+        <div class="i5-tags">
+          <div class="i5-tag">🌿 Eco</div>
+          <div class="i5-tag">⚡ Live</div>
+        </div>
+        <button class="i5-cta"><span class="material-icons-round">add</span> Start</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

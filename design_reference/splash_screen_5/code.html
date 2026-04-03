@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Eco Bingo - Live Play</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4C8C00",
+                        "background-light": "#F4F5F4",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-[#F4F5F4] font-sans text-slate-900;
+                min-height: 100dvh;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        .ios-shadow {
+            box-shadow: 0 0.5px 0 rgba(0,0,0,0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col">
+<header class="sticky top-0 z-10 bg-[#F4F5F4]/80 backdrop-blur-md ios-shadow">
+<div class="h-14 flex items-center justify-center px-4">
+<h1 class="text-[17px] font-semibold tracking-tight">Live Play</h1>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center justify-center px-8 text-center">
+<div class="mb-8 relative">
+<div class="w-48 h-48 bg-primary/5 rounded-full flex items-center justify-center relative overflow-hidden">
+<span class="material-symbols-outlined text-primary/20 text-[140px] absolute -bottom-4">
+                    shopping_basket
+                </span>
+<span class="material-symbols-outlined text-primary text-[80px] z-10">
+                    eco
+                </span>
+</div>
+<span class="material-symbols-outlined text-primary/40 absolute -top-2 -right-2 text-3xl">energy_savings_leaf</span>
+<span class="material-symbols-outlined text-primary/30 absolute bottom-4 -left-4 text-2xl rotate-45">energy_savings_leaf</span>
+</div>
+<h2 class="text-[24px] font-bold leading-tight mb-2">No Bingo Sheets Yet</h2>
+<p class="text-[17px] font-medium text-slate-500 leading-snug mb-10 max-w-[280px]">
+            Start by scanning a sheet or entering numbers manually.
+        </p>
+<div class="w-full space-y-3 max-w-xs">
+<button class="w-full h-[48px] bg-primary text-white rounded-[12px] font-semibold text-[17px] active:opacity-80 transition-opacity">
+                Scan Sheet
+            </button>
+<button class="w-full h-[48px] bg-transparent border-2 border-primary text-primary rounded-[12px] font-semibold text-[17px] active:bg-primary/5 transition-colors">
+                Manual Entry
+            </button>
+</div>
+<p class="mt-8 text-[13px] text-slate-400 font-normal">
+            You can add multiple sheets and play live.
+        </p>
+</main>
+<nav class="bg-white border-t border-slate-200 pb-safe pb-4 pt-2">
+<div class="flex justify-around items-center h-12">
+<div class="flex flex-col items-center gap-1 opacity-40">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 opacity-40">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+<span class="text-[10px] font-medium">Scan</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined filled">play_circle</span>
+<span class="text-[10px] font-semibold">Live Play</span>
+</div>
+<div class="flex flex-col items-center gap-1 opacity-40">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</div>
+</div>
+</nav>
+
+</body></html>

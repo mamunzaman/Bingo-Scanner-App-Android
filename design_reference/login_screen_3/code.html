@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bingo App - Register Error State</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#478a00",
+                        "error": "#ef4444",
+                        "background-light": "#f7f8f5",
+                        "background-dark": "#19230f",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                        "inter": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100dvh;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-inter text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<div class="fixed top-0 left-0 w-full h-11 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md z-50 flex items-end justify-between px-8 pb-2">
+<span class="text-[15px] font-semibold tracking-tight">9:41</span>
+<div class="flex gap-1.5 items-center mb-0.5">
+<span class="material-symbols-outlined text-[18px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[18px]">wifi</span>
+<span class="material-symbols-outlined text-[20px]">battery_full</span>
+</div>
+</div>
+<main class="flex-1 flex flex-col px-6 pt-24 pb-12 max-w-md mx-auto w-full">
+<div class="flex justify-center mb-8">
+<div class="bg-primary/10 dark:bg-primary/20 p-5 rounded-full">
+<span class="material-symbols-outlined text-primary text-5xl">eco</span>
+</div>
+</div>
+<header class="text-center mb-8">
+<h1 class="text-slate-900 dark:text-white text-[32px] font-bold leading-tight tracking-tight mb-2 font-inter">Create Account</h1>
+<p class="text-slate-600 dark:text-slate-400 text-base font-normal font-inter">Join the community for a greener planet.</p>
+</header>
+<div class="space-y-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1 font-inter">Full Name</label>
+<div class="relative">
+<input class="form-input flex w-full h-14 rounded-xl text-slate-900 dark:text-white border-2 border-error bg-white dark:bg-slate-800/50 focus:border-error focus:ring-1 focus:ring-error transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal font-inter" placeholder="Enter your full name" type="text" value=""/>
+</div>
+<p class="text-error text-xs font-medium ml-1 font-inter">Full name is required</p>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1 font-inter">Email Address</label>
+<div class="relative">
+<input class="form-input flex w-full h-14 rounded-xl text-slate-900 dark:text-white border-2 border-error bg-white dark:bg-slate-800/50 focus:border-error focus:ring-1 focus:ring-error transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal font-inter" placeholder="nature.lover@example.com" type="email" value="nature.lover@"/>
+</div>
+<p class="text-error text-xs font-medium ml-1 font-inter">Email address is invalid</p>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold ml-1 font-inter">Password</label>
+<div class="relative flex items-center">
+<input class="form-input flex w-full h-14 rounded-xl text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4 text-base font-normal pr-12 font-inter" placeholder="Create a password" type="password"/>
+<button class="absolute right-4 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-2 mt-2">
+<label class="flex items-start gap-3 cursor-pointer group">
+<div class="relative flex items-center h-5">
+<input class="w-5 h-5 rounded border-2 border-error bg-error/10 text-primary focus:ring-offset-0 focus:ring-transparent transition-all" type="checkbox"/>
+</div>
+<span class="text-sm text-slate-600 dark:text-slate-400 font-inter leading-snug">
+                        I agree to the <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>
+</span>
+</label>
+<p class="text-error text-xs font-medium ml-8 font-inter">Please agree to terms</p>
+</div>
+<button class="w-full h-14 bg-primary/60 text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/10 cursor-not-allowed flex items-center justify-center gap-2 mt-4 font-inter" disabled="">
+<span>Sign Up</span>
+<span class="material-symbols-outlined">person_add</span>
+</button>
+</div>
+<div class="mt-auto pt-8 text-center safe-bottom">
+<p class="text-slate-600 dark:text-slate-400 text-sm font-inter">
+                Already have an account? 
+                <a class="text-primary font-bold hover:underline decoration-2 underline-offset-4 ml-1 font-inter" href="#">Login</a>
+</p>
+</div>
+<div class="fixed bottom-0 left-0 w-full h-32 -z-10 opacity-10 pointer-events-none overflow-hidden">
+<svg class="w-full h-full fill-primary" preserveAspectRatio="none" viewBox="0 0 100 100">
+<path d="M0 100 C 20 0 50 0 100 100 Z"></path>
+</svg>
+</div>
+</main>
+
+</body></html>

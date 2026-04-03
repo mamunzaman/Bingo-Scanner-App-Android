@@ -1,0 +1,256 @@
+package com.example.mamunbingoapp.data
+
+import com.example.mamunbingoapp.ui.model.BingoCellUi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
+
+data class TicketDetailData(
+    val sheetName: String,
+    val playedAtMillis: Long,
+    val cells: List<BingoCellUi>,
+    val calledNumbers: List<Int>,
+    val losNumber: String? = null,
+    val serialNumber: String? = null,
+)
+
+object HistoryRepository {
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var _activeTicketId: String? = null
+
+    fun setActiveTicketId(ticketId: String) { _activeTicketId = ticketId }
+    fun getActiveTicketId(): String? = _activeTicketId
+
+    private val _demoSessionsFlow = MutableStateFlow<List<HistorySession>>(emptyList())
+    private val _demoTicketCells = mutableMapOf<String, List<BingoCellUi>>()
+
+    private val _sessionsFlow = MutableStateFlow<List<HistorySession>>(emptyList())
+    val sessionsFlow: StateFlow<List<HistorySession>> = _sessionsFlow.asStateFlow()
+
+    init {
+        scope.launch {
+            combine(
+                SettingsRepository.showDemoDataFlow.distinctUntilChanged(),
+                _demoSessionsFlow,
+                TicketRepository.ticketsFlow()
+            ) { showDemo, demo, db ->
+                if (showDemo) demo + db else db
+            }.collect { _sessionsFlow.value = it }
+        }
+    }
+
+    fun getLatestTicketId(): String? = _sessionsFlow.value.firstOrNull()?.id
+
+    suspend fun getTicketCells(ticketId: String): List<BingoCellUi>? =
+        getTicketData(ticketId)?.cells?.takeIf { it.size == 25 }
+
+    fun getAll(): List<HistorySession> = _sessionsFlow.value
+
+    suspend fun getAllTicketsForPicker(roomId: String? = null): List<com.example.mamunbingoapp.ui.model.TicketUiModel> =
+        withContext(Dispatchers.Default) {
+            val ticketToRoom = RoomRepository.ticketToRoomFlow().first()
+            _sessionsFlow.value.map { session ->
+                val assignedRoomId = ticketToRoom[session.id]
+                com.example.mamunbingoapp.ui.model.TicketUiModel(
+                    id = session.id,
+                    sessionId = session.id,
+                    title = session.effectiveSheetName().ifBlank { "Unnamed" },
+                    createdAt = session.effectivePlayedAtMillis(),
+                    isInRoom = roomId != null && assignedRoomId == roomId,
+                    assignedRoomId = assignedRoomId
+                )
+            }
+        }
+
+    fun ticketsForPickerFlow(roomId: String?): Flow<List<com.example.mamunbingoapp.ui.model.TicketUiModel>> =
+        combine(_sessionsFlow, RoomRepository.ticketToRoomFlow()) { sessions, ticketToRoom ->
+            sessions.map { session ->
+                val assignedRoomId = ticketToRoom[session.id]
+                com.example.mamunbingoapp.ui.model.TicketUiModel(
+                    id = session.id,
+                    sessionId = session.id,
+                    title = session.effectiveSheetName().ifBlank { "Unnamed" },
+                    createdAt = session.effectivePlayedAtMillis(),
+                    isInRoom = roomId != null && assignedRoomId == roomId,
+                    assignedRoomId = assignedRoomId
+                )
+            }
+        }
+
+    suspend fun getById(id: String): HistorySession? = withContext(Dispatchers.Default) {
+        TicketRepository.getSessionById(id) ?: _demoSessionsFlow.value.find { it.id == id }
+    }
+
+    fun observeSession(sessionId: String): kotlinx.coroutines.flow.Flow<HistorySession?> =
+        sessionsFlow.map { list -> list.find { it.id == sessionId } }
+
+    suspend fun getSessionIdForTicket(ticketId: String): String? = withContext(Dispatchers.Default) {
+        TicketRepository.getSessionById(ticketId)?.id
+            ?: getById(ticketId)?.id
+            ?: _demoSessionsFlow.value.firstOrNull { it.sheetsPlayed.any { s -> s.ticketId == ticketId } }?.id
+    }
+
+    fun getLiveSessions(): List<HistorySession> = _sessionsFlow.value.filter { !it.isCompleted }
+
+    suspend fun getSessionById(id: String): HistorySession? = getById(id)
+
+    fun removeFromLive(sessionId: String) {
+        val list = _demoSessionsFlow.value.toMutableList()
+        val idx = list.indexOfFirst { it.id == sessionId }
+        if (idx >= 0) {
+            list[idx] = list[idx].copy(isCompleted = true)
+            _demoSessionsFlow.value = list
+        }
+    }
+
+    fun addToLive(sessionId: String) {
+        val list = _demoSessionsFlow.value.toMutableList()
+        val idx = list.indexOfFirst { it.id == sessionId }
+        if (idx >= 0) {
+            list[idx] = list[idx].copy(isCompleted = false)
+            _demoSessionsFlow.value = list
+        }
+    }
+
+    fun deleteSession(sessionId: String) {
+        val demo = _demoSessionsFlow.value.find { it.id == sessionId }
+        if (demo != null) {
+            demo.sheetsPlayed.forEach { _demoTicketCells.remove(it.ticketId) }
+            _demoTicketCells.remove(sessionId)
+            _demoSessionsFlow.value = _demoSessionsFlow.value.filter { it.id != sessionId }
+        } else {
+            scope.launch { TicketRepository.deleteTicket(sessionId) }
+        }
+        RoomRepository.unassignTicket(sessionId)
+    }
+
+    fun softDeleteSession(sessionId: String) {
+        scope.launch { softDeleteSessionSync(sessionId) }
+    }
+
+    suspend fun softDeleteSessionSync(sessionId: String) = withContext(Dispatchers.IO) {
+        val demo = _demoSessionsFlow.value.find { it.id == sessionId }
+        if (demo != null) {
+            demo.sheetsPlayed.forEach { _demoTicketCells.remove(it.ticketId) }
+            _demoTicketCells.remove(sessionId)
+            _demoSessionsFlow.value = _demoSessionsFlow.value.filter { it.id != sessionId }
+        } else {
+            TicketRepository.softDeleteTicket(sessionId)
+        }
+        RoomRepository.unassignTicket(sessionId)
+    }
+
+    fun restoreSession(sessionId: String) {
+        scope.launch { TicketRepository.restoreTicket(sessionId) }
+    }
+
+    suspend fun getTicketData(ticketId: String): TicketDetailData? = withContext(Dispatchers.Default) {
+        val fromDb = TicketRepository.getTicketData(ticketId)
+        if (fromDb != null) return@withContext fromDb.copy(
+            cells = fromDb.cells.map { it.copy(isEditable = false, isSelected = false) }
+        )
+        val toDisplayCells: (List<BingoCellUi>) -> List<BingoCellUi> = { list ->
+            (list.ifEmpty { List(25) { BingoCellUi(null, false, false, false, false) } })
+                .map { it.copy(isEditable = false, isSelected = false) }
+        }
+        val demo = _demoSessionsFlow.value
+        val sessionById = demo.find { it.id == ticketId }
+        if (sessionById != null) {
+            val cells = toDisplayCells(_demoTicketCells[ticketId] ?: emptyList())
+            return@withContext TicketDetailData(
+                sheetName = sessionById.effectiveSheetName(),
+                playedAtMillis = sessionById.effectivePlayedAtMillis(),
+                cells = cells,
+                calledNumbers = sessionById.calledNumbersFull,
+                losNumber = sessionById.losNumber,
+                serialNumber = sessionById.serialNumber,
+            )
+        }
+        for (session in demo) {
+            val sheet = session.sheetsPlayed.find { it.ticketId == ticketId } ?: continue
+            val cells = toDisplayCells(_demoTicketCells[ticketId] ?: emptyList())
+            return@withContext TicketDetailData(
+                sheetName = sheet.title,
+                playedAtMillis = session.effectivePlayedAtMillis(),
+                cells = cells,
+                calledNumbers = session.calledNumbersFull,
+                losNumber = session.losNumber,
+                serialNumber = session.serialNumber,
+            )
+        }
+        return@withContext null
+    }
+
+    fun seedDemoData() {
+        _demoSessionsFlow.value = DemoDataFactory.createDemoSessions()
+        _demoTicketCells.clear()
+        _demoTicketCells.putAll(DemoDataFactory.createDemoTicketCells())
+    }
+
+    fun clearDemoCaches() {
+        _demoSessionsFlow.value = emptyList()
+        _demoTicketCells.clear()
+    }
+
+    suspend fun duplicateSession(sessionId: String): String? = withContext(Dispatchers.Default) {
+        try {
+            val demo = _demoSessionsFlow.value.find { it.id == sessionId }
+            if (demo != null) {
+                val newSessionId = UUID.randomUUID().toString()
+                val oldToNewTicketIds = demo.sheetsPlayed.map { it.ticketId to UUID.randomUUID().toString() }
+                val newSheetsPlayed = demo.sheetsPlayed.mapIndexed { index, sheet ->
+                    val newTicketId = oldToNewTicketIds[index].second
+                    SheetPlayed(
+                        ticketId = newTicketId,
+                        title = sheet.title,
+                        subtitle = sheet.subtitle,
+                        markedCount = sheet.markedCount,
+                        totalCount = sheet.totalCount
+                    )
+                }
+                val newTitle = demo.title.removeSuffix(" (Copy)") + " (Copy)"
+                val duplicated = HistorySession(
+                    id = newSessionId,
+                    title = newTitle,
+                    isCompleted = demo.isCompleted,
+                    sheetsCount = demo.sheetsCount,
+                    calledCount = demo.calledCount,
+                    calledNumbersPreview = demo.calledNumbersPreview,
+                    calledNumbersFull = demo.calledNumbersFull,
+                    sheetsPlayed = newSheetsPlayed,
+                    sheetName = demo.sheetName,
+                    playedAtMillis = System.currentTimeMillis(),
+                    ocrSource = demo.ocrSource,
+                    ocrConfidence = demo.ocrConfidence,
+                    originalOcrNumbers = demo.originalOcrNumbers,
+                    losNumber = demo.losNumber,
+                    serialNumber = demo.serialNumber,
+                )
+                oldToNewTicketIds.forEach { (oldId, newId) ->
+                    _demoTicketCells[newId] = (_demoTicketCells[oldId] ?: emptyList()).map { it.copy() }
+                }
+                _demoTicketCells[sessionId]?.let { cells ->
+                    _demoTicketCells[newSessionId] = cells.map { it.copy() }
+                }
+                _demoSessionsFlow.value = listOf(duplicated) + _demoSessionsFlow.value
+                newSessionId
+            } else {
+                TicketRepository.duplicateTicket(sessionId)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("HistoryRepository", "duplicateSession failed", e)
+            null
+        }
+    }
+}

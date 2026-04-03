@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+:root {
+  --primary: #4C8C00;
+  --onPrimary: #ffffff;
+  --surface: #ffffff;
+  --onSurface: #1a1a1a;
+  --surfaceVariant: #f0f1ee;
+  --onSurfaceVariant: #64748b;
+  --outlineVariant: #e2e8f0;
+  --error: #ef4444;
+  --warning: #f59e0b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0e0e0e;
+  font-family: -apple-system, 'Google Sans', 'Roboto', sans-serif;
+  padding: 36px 20px;
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.col { display: flex; flex-direction: column; gap: 12px; width: 300px; }
+.lbl { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #333; }
+
+/* ─── BASE CARD ─── */
+.ticket-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+.card-main { padding: 14px 16px 10px; }
+.card-title { font-size: 17px; font-weight: 800; color: #1a1a1a; }
+.card-date { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+.card-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.active-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: #f0fde4; border: 1px solid #bbf7d0;
+  border-radius: 20px; padding: 4px 10px;
+  font-size: 12px; font-weight: 700; color: #4C8C00;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #4C8C00; }
+.join-btn {
+  background: #4C8C00; color: #fff;
+  border-radius: 12px; padding: 9px 18px;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+.join-btn svg { width: 13px; height: 13px; fill: #fff; }
+
+.room-row {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 12px; color: #64748b;
+}
+.room-row svg { width: 14px; height: 14px; stroke: #94a3b8; fill: none; flex-shrink: 0; }
+
+/* ─── FOOTER ─── */
+.card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fef2f2; padding: 9px 14px;
+  border-top: 1px solid #fee2e2;
+}
+.footer-count { font-size: 12px; color: #64748b; }
+.footer-count strong { color: #1a1a1a; }
+.trash-btn {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.trash-btn svg { width: 16px; height: 16px; stroke: #ef4444; fill: none; }
+
+/* progress bar */
+.progress-wrap { height: 4px; background: #fee2e2; }
+.progress-fill { height: 100%; background: #4C8C00; border-radius: 0 4px 4px 0; }
+
+
+/* ══════════════════════════════════════
+   V1 — Inline alert banner below room row
+   "4/5 row complete" yellow warning band
+══════════════════════════════════════ */
+
+.v1-alert {
+  margin: 8px 14px 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex; align-items: flex-start; gap: 9px;
+}
+.v1-alert-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: #fef3c7;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.v1-alert-icon svg { width: 14px; height: 14px; stroke: #d97706; fill: none; }
+.v1-alert-body { flex: 1; }
+.v1-alert-title { font-size: 12px; font-weight: 800; color: #92400e; }
+.v1-alert-sub { font-size: 11px; color: #a16207; margin-top: 1px; line-height: 1.4; }
+
+/* mini bingo grid preview */
+.mini-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 2px; margin-top: 7px;
+}
+.mini-cell {
+  width: 100%; aspect-ratio: 1;
+  border-radius: 3px; background: #e5e7eb;
+}
+.mini-cell.marked { background: #4C8C00; }
+.mini-cell.alert-row { background: #fbbf24; }
+.mini-cell.free { background: #4C8C00; opacity: 0.5; }
+
+
+/* ══════════════════════════════════════
+   V2 — Floating notification chip
+   Pops above footer, pill style
+══════════════════════════════════════ */
+
+.v2-notif-wrap { position: relative; }
+
+.v2-notif {
+  margin: 8px 12px 4px;
+  background: #1a1a1a;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.v2-notif-pulse {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: rgba(245,158,11,0.20);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.v2-notif-pulse::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border-radius: 13px;
+  border: 2px solid rgba(245,158,11,0.30);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.12); }
+}
+.v2-notif-pulse svg { width: 16px; height: 16px; stroke: #fbbf24; fill: none; }
+.v2-notif-body { flex: 1; }
+.v2-notif-title { font-size: 12px; font-weight: 800; color: #f0f0f0; }
+.v2-notif-sub { font-size: 10px; color: #888; margin-top: 1px; }
+.v2-notif-badge {
+  background: #fbbf24; color: #1a1a1a;
+  font-size: 10px; font-weight: 800;
+  border-radius: 20px; padding: 3px 8px; flex-shrink: 0;
+}
+
+/* V2 row indicators */
+.v2-row-indicators {
+  display: flex; gap: 5px;
+  padding: 0 14px 10px;
+}
+.v2-indicator {
+  display: flex; align-items: center; gap: 5px;
+  background: #f8f9fa; border: 1px solid #e2e8f0;
+  border-radius: 20px; padding: 4px 9px;
+  font-size: 11px; font-weight: 600; color: #64748b;
+}
+.v2-indicator.near {
+  background: #fffbeb; border-color: #fde68a; color: #d97706;
+}
+.v2-indicator.near .ind-dot { background: #fbbf24; }
+.v2-indicator .ind-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #cbd5e1;
+}
+</style>
+</head>
+<body>
+
+<!-- ════ V1: Inline alert banner ════ -->
+<div class="col">
+  <div class="lbl">V1 · Inline Warning Banner</div>
+
+  <div class="ticket-card">
+    <div class="card-main">
+      <div class="card-title">New Design</div>
+      <div class="card-date">Added Feb 21, 2026 at 5:38 PM</div>
+      <div class="card-row">
+        <div class="active-badge"><div class="dot"></div> Active</div>
+        <div class="join-btn">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Join
+        </div>
+      </div>
+      <div class="room-row">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Added to Friday Night Bingo
+      </div>
+    </div>
+
+    <!-- ★ ALERT SECTION ★ -->
+    <div class="v1-alert">
+      <div class="v1-alert-icon">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="v1-alert-body">
+        <div class="v1-alert-title">⚡ Row nearly complete!</div>
+        <div class="v1-alert-sub">4/5 diagonal marked — one number away from Bingo</div>
+        <!-- mini grid -->
+        <div class="mini-grid">
+          <div class="mini-cell marked"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell alert-row"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell marked"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell alert-row"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell free"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell alert-row"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell marked"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell alert-row"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell marked"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <span class="footer-count">How many called: <strong>8 / 25</strong></span>
+      <div class="trash-btn">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:32%;"></div></div>
+  </div>
+</div>
+
+
+<!-- ════ V2: Dark floating chip + indicator pills ════ -->
+<div class="col">
+  <div class="lbl">V2 · Dark Chip + Line Indicators</div>
+
+  <div class="ticket-card">
+    <div class="card-main">
+      <div class="card-title">New Design</div>
+      <div class="card-date">Added Feb 21, 2026 at 5:38 PM</div>
+      <div class="card-row">
+        <div class="active-badge"><div class="dot"></div> Active</div>
+        <div class="join-btn">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Join
+        </div>
+      </div>
+      <div class="room-row">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Added to Friday Night Bingo
+      </div>
+    </div>
+
+    <!-- ★ ALERT SECTION ★ -->
+    <!-- Line indicator pills -->
+    <div class="v2-row-indicators">
+      <div class="v2-indicator near">
+        <div class="ind-dot"></div>
+        Diagonal 4/5
+      </div>
+      <div class="v2-indicator near">
+        <div class="ind-dot"></div>
+        Row 3 · 4/5
+      </div>
+      <div class="v2-indicator">
+        <div class="ind-dot"></div>
+        Col 2 · 3/5
+      </div>
+    </div>
+
+    <!-- Dark notification chip -->
+    <div class="v2-notif">
+      <div class="v2-notif-pulse">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div class="v2-notif-body">
+        <div class="v2-notif-title">Almost Bingo!</div>
+        <div class="v2-notif-sub">Diagonal · need 1 more number</div>
+      </div>
+      <div class="v2-notif-badge">4/5</div>
+    </div>
+
+    <div style="height:8px;"></div>
+
+    <div class="card-footer">
+      <span class="footer-count">How many called: <strong>8 / 25</strong></span>
+      <div class="trash-btn">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:32%;"></div></div>
+  </div>
+</div>
+
+</body>
+</html>

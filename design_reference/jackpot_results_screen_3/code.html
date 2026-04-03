@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Live Play Session - Eco Bingo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4C8C00",
+                        "primary-dark": "#3D7000",
+                        "surface-variant": "#F4F5F4",
+                        "background-light": "#FFFFFF",
+                        "background-dark": "#121212",
+                        "success-container": "#E7F3E5",
+                        "error": "#B3261E",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "card": "16px",
+                        "cell": "8px",
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply font-sans antialiased bg-white text-slate-900 overflow-hidden;
+            }
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .bingo-cell-matched {
+            @apply bg-primary border-[2px] border-primary-dark text-white;
+        }
+        .bingo-cell-unmatched {
+            @apply bg-surface-variant text-slate-900;
+        }
+        .bingo-number-text {
+            @apply font-semibold tracking-tight;
+            font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            line-height: 1;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col bg-white">
+<div class="fixed inset-0 bg-black/40 z-40"></div>
+<div class="fixed inset-0 z-[70] flex items-center justify-center px-8">
+<div class="bg-white rounded-[28px] w-full max-w-sm p-6 shadow-2xl">
+<h3 class="text-2xl font-normal text-slate-900 mb-4 leading-tight">Exit Live Session?</h3>
+<p class="text-slate-600 text-sm leading-relaxed mb-6">
+                Are you sure you want to exit this live session? Your current progress will be saved.
+            </p>
+<div class="flex justify-end gap-2">
+<button class="px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 rounded-full transition-colors">Cancel</button>
+<button class="px-3 py-2 text-sm font-semibold text-error hover:bg-red-50 rounded-full transition-colors">Exit</button>
+</div>
+</div>
+</div>
+<header class="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-900">arrow_back_ios</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-slate-400">Live Play</h1>
+</div>
+<div class="flex bg-slate-100 p-1 rounded-full opacity-50">
+<button class="px-4 py-1.5 text-xs font-bold rounded-full bg-white shadow-sm text-primary">Today</button>
+<button class="px-4 py-1.5 text-xs font-semibold text-slate-500">New</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto pb-24 opacity-50 pointer-events-none">
+<div class="p-4">
+<div class="bg-primary/50 rounded-card p-6 text-white flex flex-col items-center">
+<div class="text-7xl font-semibold mb-1 leading-none tracking-tight">32</div>
+<p class="text-white/80 text-sm font-medium mb-6">Last called: 10 sec ago</p>
+</div>
+</div>
+<div class="px-4 mb-4">
+<div class="flex bg-slate-100 p-1 rounded-xl w-full">
+<button class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold text-slate-500">
+<span class="material-symbols-outlined text-sm">grid_view</span> Cards
+                </button>
+<button class="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-primary">
+<span class="material-symbols-outlined text-sm">list_alt</span> List
+                </button>
+</div>
+</div>
+<div class="px-4 mb-8">
+<div class="flex flex-col gap-3">
+<div class="bg-surface-variant rounded-card p-3 flex items-center gap-4 border border-slate-100">
+<div class="grid grid-cols-5 gap-0.5 p-1 bg-white rounded-md border border-slate-200 shrink-0">
+<div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div>
+<div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div>
+<div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div>
+<div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div>
+<div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-slate-100 rounded-[1px]"></div><div class="w-1.5 h-1.5 bg-primary rounded-[1px]"></div>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-slate-900">Sheet 1 - Anna's</h4>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-[11px] font-medium text-slate-500">Marked: 12/25</span>
+<span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+<span class="text-[11px] font-bold text-primary">1 Line</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-lg">chevron_right</span>
+</div>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[32px] shadow-[0_-8px_30px_rgb(0,0,0,0.12)] flex flex-col h-[88dvh] filter blur-[2px]">
+<div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-2"></div>
+<div class="px-6 py-4 flex items-center justify-between">
+<h2 class="text-xl font-bold text-slate-900 tracking-tight">Sheet 1 - Anna's Ticket</h2>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</div>
+</div>
+<div class="px-6 mb-6">
+<div class="bg-success-container border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-xs font-bold text-primary-dark uppercase tracking-wider">Bingo Status</span>
+<span class="text-lg font-bold text-primary-dark">1 Line</span>
+</div>
+<div class="h-8 w-[1px] bg-primary/20"></div>
+<div class="flex flex-col text-right">
+<span class="text-xs font-bold text-primary-dark uppercase tracking-wider">Next match</span>
+<span class="text-lg font-bold text-primary-dark">2 away</span>
+</div>
+</div>
+</div>
+<div class="px-6 flex-1 flex items-start justify-center overflow-y-auto no-scrollbar">
+<div class="bg-white p-2 rounded-card border border-slate-100 shadow-sm w-full max-w-sm mb-4">
+<div class="grid grid-cols-5 gap-2 aspect-square">
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-matched bingo-number-text">07</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">12</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">25</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">41</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">62</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">03</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-matched bingo-number-text">14</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">30</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">48</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">71</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">09</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">21</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-matched bingo-number-text">32</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">55</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">68</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">11</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">28</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">37</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">51</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">79</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">05</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">24</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">33</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">59</div>
+<div class="aspect-square rounded-cell flex items-center justify-center bingo-cell-unmatched bingo-number-text">75</div>
+</div>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-3 pb-10">
+<button class="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">add_circle</span>
+                Add Match Manually
+            </button>
+<button class="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">share</span>
+                Share Progress
+            </button>
+<button class="w-full py-3 text-error font-bold rounded-xl flex items-center justify-center gap-2">
+                Exit Live Session
+            </button>
+</div>
+</div>
+
+</body></html>

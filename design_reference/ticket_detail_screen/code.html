@@ -1,0 +1,203 @@
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ticket Detail - Enhanced Border Style</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4C8C00",
+                        "primary-dark": "#3D7000",
+                        "background-light": "#f7f8f5",
+                        "background-dark": "#19230f",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: 'Inter', sans-serif;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+        }
+        .BingoGrid5x5 {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+        .BingoCell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .BingoNumberText {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;font-size: 1.125rem;
+            line-height: 1;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+        .BingoCell-unselected {
+            background-color: #f3f4f6;
+            border: 1.5px solid #79747E;color: #1A1A1A;
+        }
+        .dark .BingoCell-unselected {
+            background-color: #1f2937;
+            border: 1.5px solid #938F99;color: #f7f8f5;
+        }
+        .BingoCell-selected {
+            background-color: #4C8C00;
+            border: 2px solid #2D5400;color: #ffffff;
+        }
+        .dark .BingoCell-selected {
+            background-color: #4C8C00;
+            border: 2px solid #1E3800;
+            color: #ffffff;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#151810] dark:text-[#f7f8f5] min-h-screen">
+<div class="sticky top-0 z-50 bg-white dark:bg-background-dark px-4 h-16 flex items-center border-b border-gray-100 dark:border-white/10">
+<div class="flex items-center w-full relative">
+<button class="absolute left-0 p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-gray-900 dark:text-white text-[24px]">chevron_left</span>
+</button>
+<h1 class="mx-auto text-[17px] font-semibold tracking-tight text-gray-900 dark:text-white">Ticket Detail</h1>
+</div>
+</div>
+<main class="p-4 space-y-4 max-w-md mx-auto">
+<div class="bg-[#fef9c3] dark:bg-yellow-900/30 border border-[#facc15]/30 p-4 rounded-xl flex items-center gap-3">
+<div class="bg-[#facc15] text-white p-1 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-sm leading-none fill-1">check_circle</span>
+</div>
+<div>
+<p class="text-sm font-bold text-yellow-800 dark:text-yellow-200">Ticket Active</p>
+<p class="text-xs text-yellow-700/80 dark:text-yellow-300/60 leading-tight">This ticket is entered in the upcoming Eco-Draw.</p>
+</div>
+</div>
+<div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+<div class="bg-[#4C8C00]/10 dark:bg-[#4C8C00]/20 p-4 flex justify-between items-end border-b border-gray-100 dark:border-white/10">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold uppercase tracking-wider text-[#4C8C00] opacity-80 leading-tight">Nature Lottery</span>
+<span class="text-xl font-black text-[#4C8C00] italic leading-none">BINGO</span>
+</div>
+<div class="text-right">
+<span class="text-[10px] font-medium text-gray-400 block uppercase tracking-wider leading-tight">Series</span>
+<span class="text-sm font-bold leading-none">ECO-2023</span>
+</div>
+</div>
+<div class="p-4">
+<div class="BingoGrid5x5 mb-6">
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">04</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">18</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">32</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">47</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">62</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">12</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">25</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">38</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">54</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">69</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">08</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">21</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">42</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">51</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">73</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">01</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">29</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">44</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">59</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">66</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">15</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">22</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">35</span></div>
+<div class="BingoCell BingoCell-unselected"><span class="BingoNumberText">48</span></div>
+<div class="BingoCell BingoCell-selected"><span class="BingoNumberText">71</span></div>
+</div>
+<div class="flex items-center gap-3 p-3 bg-[#4C8C00]/5 dark:bg-[#4C8C00]/10 rounded-lg">
+<div class="bg-[#4C8C00]/20 p-2 rounded-full">
+<span class="material-symbols-outlined text-[#4C8C00]">forest</span>
+</div>
+<div>
+<p class="text-xs font-semibold text-[#4C8C00]">Environmental Impact</p>
+<p class="text-sm font-bold text-[#151810] dark:text-white">1 Tree Planted in the Amazon</p>
+</div>
+</div>
+</div>
+<div class="h-4 bg-[#4C8C00]/5 dark:bg-[#4C8C00]/20 flex items-center px-4 relative overflow-hidden">
+<div class="absolute left-[-8px] top-1 h-2 w-2 rounded-full bg-background-light dark:bg-background-dark"></div>
+<div class="absolute right-[-8px] top-1 h-2 w-2 rounded-full bg-background-light dark:bg-background-dark"></div>
+<div class="w-full border-t border-dashed border-[#4C8C00]/20"></div>
+</div>
+</div>
+<div class="bg-white dark:bg-zinc-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-white/10 space-y-4">
+<h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.15em]">Ticket Information</h3>
+<div class="flex justify-between items-center py-2 border-b border-gray-50 dark:border-white/5">
+<span class="text-gray-500 dark:text-gray-400">Draw Date</span>
+<span class="font-semibold">Oct 27, 2023 • 20:00</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-gray-50 dark:border-white/5">
+<span class="text-gray-500 dark:text-gray-400">Ticket ID</span>
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold uppercase">Lot-882-991-002</span>
+<button class="text-[#4C8C00] hover:opacity-70"><span class="material-symbols-outlined text-lg">content_copy</span></button>
+</div>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-gray-50 dark:border-white/5">
+<span class="text-gray-500 dark:text-gray-400">Purchase Price</span>
+<span class="font-semibold">$5.00</span>
+</div>
+<div class="flex justify-between items-center py-2">
+<span class="text-gray-500 dark:text-gray-400">Status</span>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+                    Confirmed
+                </span>
+</div>
+</div>
+<div class="pt-4 flex flex-col gap-3 pb-8">
+<button class="w-full bg-[#4C8C00] hover:bg-[#3D7000] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#4C8C00]/20 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">share</span>
+                Share Ticket
+            </button>
+<button class="w-full bg-white dark:bg-zinc-900 text-[#4C8C00] border border-[#4C8C00]/20 font-bold py-4 rounded-xl transition-colors hover:bg-[#4C8C00]/5 shadow-sm">
+                View Receipt
+            </button>
+<p class="text-center text-[10px] text-gray-400 px-8 leading-relaxed">
+                By participating, you are contributing to our reforestation project. All draws are independently audited.
+            </p>
+</div>
+</main>
+
+</body></html>

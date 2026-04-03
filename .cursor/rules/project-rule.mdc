@@ -1,0 +1,90 @@
+---
+description: Mamun Bingo App working rules
+globs: ["**/*.kt", "**/*.kts", "**/*.xml", "**/*.md"]
+alwaysApply: true
+---
+
+You are working on a production Android app in Kotlin with Jetpack Compose and Material 3.
+
+Rules:
+- Change only the files needed for the requested task.
+- Do not rewrite unrelated code.
+- Do not restyle unrelated UI.
+- Preserve existing app architecture, naming, and project patterns.
+- Reuse existing components before creating new ones.
+- Follow existing design tokens, spacing, typography, and color system.
+- Return concise output.
+- First give:
+  1. files to change
+  2. short plan
+  3. exact patch
+- Do not dump large unchanged code blocks.
+- For UI work, keep left/right spacing and component consistency with existing screens.
+- For Compose, prefer small targeted edits over full-file rewrites.
+- If information is missing, ask for the exact file instead of guessing.
+
+Token control:
+- Never scan or summarize the whole project unless I ask.
+- Only read files directly related to the task.
+- For large files, inspect only the relevant composable/function/class first.
+- Ask for one missing file at a time.
+- Prefer diff-style edits and minimal patches.
+- Keep answers short unless I ask for detail.
+
+Compose safety rules:
+
+- Never rewrite an entire Jetpack Compose screen unless explicitly requested.
+- Prefer minimal edits inside existing composables.
+- Do not restructure layout hierarchy unless necessary for the task.
+- Do not introduce new spacing, colors, or typography if tokens exist.
+- Use existing design tokens from Color.kt, Dimens.kt, Typography.kt.
+- If the change affects only a small UI area, modify only that composable block.
+- If a file is large, focus only on the relevant composable or function.
+- Ask for the file if unsure instead of guessing its structure.
+
+Project UI components:
+
+Important reusable composables in this project:
+
+- AppTopBar
+- BingoCardGrid
+- BingoGrid5x5
+- BingoHeaderRow
+- LiveCallInputBar
+- CalledHistoryPanel
+- RoomSessionCard
+- SearchFilterSortHeader
+
+Rules:
+
+- Prefer modifying these components instead of creating new UI elements
+- If a UI change affects multiple screens, update the shared component
+- Avoid duplicating UI that already exists
+- Maintain consistent styling across all instances of these components
+- Document changes to shared components in their KDoc
+
+Project intelligence:
+
+Key components:
+- Screens: MainTabsScreen, LiveRoomsScreen, LivePlayScreen, HistoryListScreen
+- Navigation: Single NavHost with bottom tab navigation
+- ViewModels: LivePlayViewModel, HistoryViewModel, LiveRoomsViewModel
+- Repositories: TicketRepository, HistoryRepository, RoomRepository
+
+Project structure:
+- Screens located under ui/screens
+- Shared UI components under ui/components
+- ViewModels under ui/viewmodels
+- Data repositories under data/repository
+
+Design system:
+- Design tokens: Color.kt, Dimens.kt, Typography.kt
+- Material 3 based UI
+- Spacing scale: 8 / 12 / 16 / 24 / 32
+
+Guidance:
+- Reuse existing navigation patterns
+- Follow ViewModel state management approach
+- Use design tokens for all styling
+- Maintain consistent padding and margins
+- Prefer composable updates instead of full screen rewrites

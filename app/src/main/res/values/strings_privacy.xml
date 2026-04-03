@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="privacy_main_title">Datenschutzerklärung nach der DS-GVO</string>
+    <string name="privacy_intro">Wir erheben und verwenden Daten unserer Nutzer grundsätzlich nur, soweit dies zur Bereitstellung einer funktionsfähigen Webseite sowie unserer Inhalte erforderlich ist.</string>
+    <string name="privacy_section1_title">I. Name und Anschrift des Verantwortlichen</string>
+    <string name="privacy_section1">Der Verantwortliche im Sinne der Datenschutz-Grundverordnung (DS-GVO) und des Bundesdatenschutzgesetzes neu (BDSG neu) sowie sonstiger datenschutzrechtlicher Bestimmungen ist die:\n\nToto-Lotto Niedersachsen GmbH\nGeschäftsführung: Axel Holthaus (Sprecher) und Sven Osthoff\nAm TÜV 2 + 4\n30519 Hannover\nDeutschland\nTel.: 0511 8402-0 (Zentrale)\nE-Mail: info(at)lotto-niedersachsen.de</string>
+    <string name="privacy_section2_title">II. Datenschutzbeauftragter</string>
+    <string name="privacy_section2">Kontakt zum Datenschutzbeauftragten:\n\nDatenschutzbeauftragter\nAm TÜV 2 + 4\n30519 Hannover\nDeutschland\nE-Mail: datenschutz(at)lotto-niedersachsen.de</string>
+    <string name="privacy_section3_title">III. Allgemeines zur Datenverarbeitung</string>
+    <string name="privacy_section3">Wir erheben und verwenden Daten unserer Nutzer grundsätzlich nur, soweit dies zur Bereitstellung einer funktionsfähigen Webseite sowie unserer Inhalte erforderlich ist. Die von uns erhobenen Daten weisen hierbei keinerlei direkten Personenbezug auf, sondern werden von uns ausschließlich in pseudonymisierter oder anonymisierter Form verwendet.\n\nRechtsgrundlage: Art. 6 Abs. 1 lit. f) DS-GVO, sofern die Verarbeitung zur Wahrung eines berechtigten Interesses erforderlich ist.\n\nDaten werden gelöscht, sobald der Zweck der Speicherung entfällt.</string>
+    <string name="privacy_section4_title">IV. Hosting und Cloudflare</string>
+    <string name="privacy_section4">Die Website wird bei Vercel Inc. (USA) gehostet. Cloudflare (Web Application Firewall) wird für schnelle, sichere Auslieferung und Schutz vor Cyberangriffen eingesetzt. Durch „Data Localization Suite“ werden bei Cloudflare anfallende Daten ausschließlich innerhalb der EU verarbeitet.</string>
+    <string name="privacy_section5_title">V. Bereitstellung der Webseite und Logdaten</string>
+    <string name="privacy_section5">Bei jedem Aufruf werden automatisiert erhoben: Browsertyp/Version, Betriebssystem, IP-Adresse, Datum/Uhrzeit des Zugriffs, Verweis-Webseiten. Rechtsgrundlage: Art. 6 Abs. 1 lit. f) DS-GVO. Die Erhebung ist für die Auslieferung der Webseite erforderlich. Speicherdauer: 24 Stunden bis 180 Tage je nach Erhebungszweck.</string>
+    <string name="privacy_section6_title">VI. Cookies</string>
+    <string name="privacy_section6">Technisch notwendige Cookies (z.B. cflb, cfruid, cf_bm, ppms_privacy_) dienen der Lastverteilung, Bot-Erkennung und Datenschutz-Einstellungen. Analyse-Cookies (Piwik PRO) werden nur mit Einwilligung (Art. 6 Abs. 1 lit. a) DS-GVO) eingesetzt. Sie können Ihre Einstellungen jederzeit in den Privatsphäre-Einstellungen anpassen.</string>
+    <string name="privacy_section7_title">VII. Registrierung/Anmeldung</string>
+    <string name="privacy_section7">bingo-umweltlotterie.de speichert ausschließlich den Hashwert der E-Mail-Adresse in anonymisierter Form. E-Mail, Passwort und Spielscheindaten werden direkt vom Browser an die jeweilige Lotteriegesellschaft der BIN_GO!_-Kooperation übertragen. Eine Verarbeitung personenbezogener Daten auf bingo-umweltlotterie.de findet nicht statt.</string>
+    <string name="privacy_section8_title">VIII. E-Mail-Kontakt</string>
+    <string name="privacy_section8">Kontakt über die angezeigte E-Mail-Adresse erfolgt über das E-Mailprogramm des Nutzers an die jeweilige Lotteriegesellschaft. Eine Verarbeitung auf bingo-umweltlotterie.de findet nicht statt.</string>
+    <string name="privacy_section9_title">IX. Social Media</string>
+    <string name="privacy_section9">BIN_GO!_ ist auf YouTube, Facebook und Instagram vertreten. Es werden nur Verweise (Links) verwendet, keine Social Plugins. Die Verarbeitung durch die jeweiligen Plattformen obliegt den Anbietern.</string>
+    <string name="privacy_section10_title">X. Bot-/Spam-Schutz (Friendly Captcha)</string>
+    <string name="privacy_section10">Friendly Captcha (Friendly Captcha GmbH, Deutschland) schützt vor Bots und Spam. Es werden keine Cookies gesetzt. IP-Adressen werden nur gehasht gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. f) DS-GVO.</string>
+    <string name="privacy_section11_title">XI. Eye-Able Assistenzsoftware</string>
+    <string name="privacy_section11">Eye-Able (Web Inclusion GmbH) ermöglicht barrierereduzierten Zugang. Einstellungen werden nur lokal (Local Storage) gespeichert. Rechtsgrundlagen: Art. 6 Abs. 1 lit. f) und c) DS-GVO.</string>
+    <string name="privacy_section12_title">XII. Rechte der betroffenen Person</string>
+    <string name="privacy_section12">Sie haben u.a. folgende Rechte:\n• Auskunftsrecht (Art. 15 DS-GVO)\n• Recht auf Berichtigung (Art. 16 DS-GVO)\n• Recht auf Löschung (Art. 17 DS-GVO)\n• Recht auf Einschränkung der Verarbeitung (Art. 18 DS-GVO)\n• Recht auf Datenübertragbarkeit (Art. 20 DS-GVO)\n• Widerspruchsrecht (Art. 21 DS-GVO)\n• Recht auf Widerruf der Einwilligung (Art. 7 Abs. 3 DS-GVO)\n• Beschwerderecht bei der Aufsichtsbehörde\n\nNiedersachsen: Landesbeauftragter für den Datenschutz, Prinzenstraße 5, 30159 Hannover, Tel. +49 (0511) 120 45 00, E-Mail: poststelle@lfd.niedersachsen.de</string>
+    <string name="privacy_original_button">Originalseite öffnen</string>
+    <string name="privacy_stand">Stand: Januar 2025</string>
+</resources>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Live Navigation Hub - Eco Bingo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4C8C00",
+                        "primary-container": "#D9E9B4",
+                        "on-primary-container": "#131F00",
+                        "surface-variant": "#F4F5F4",
+                        "background": "#FFFFFF",
+                        "outline-variant": "#C2C8BC",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "card": "16px",
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply font-sans antialiased bg-[#FAFAF8] text-slate-900;
+            }
+        }.ios-elevated {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col">
+<header class="pt-12 pb-6 px-6 bg-white border-b border-slate-100">
+<h1 class="text-2xl font-bold tracking-tight text-slate-900">Live Navigation</h1>
+<p class="text-slate-500 text-sm mt-0.5 font-medium">Choose how to start your session</p>
+</header>
+<main class="flex-1 p-6 space-y-6">
+<button class="w-full text-left bg-primary-container hover:bg-[#D0E0AB] transition-colors rounded-card p-6 ios-elevated flex items-center justify-between group">
+<div class="flex flex-col gap-1">
+<span class="text-on-primary-container text-xl font-bold">Start / Resume Live</span>
+<span class="text-on-primary-container/70 text-sm font-medium">Today • Sheets: 3 • Called: 12</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-white/40 flex items-center justify-center group-active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-primary-container">chevron_right</span>
+</div>
+</button>
+<div class="grid grid-cols-2 gap-4">
+<button class="bg-white p-5 rounded-card ios-elevated border border-slate-50 flex flex-col items-start gap-3 active:scale-[0.98] transition-all">
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary font-semibold">qr_code_scanner</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-bold text-slate-900 text-[15px]">Scan Sheet</span>
+<span class="text-xs text-slate-500 font-medium leading-tight mt-0.5">Add a sheet using camera</span>
+</div>
+</button>
+<button class="bg-white p-5 rounded-card ios-elevated border border-slate-50 flex flex-col items-start gap-3 active:scale-[0.98] transition-all">
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary font-semibold">edit</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-bold text-slate-900 text-[15px]">Manual Entry</span>
+<span class="text-xs text-slate-500 font-medium leading-tight mt-0.5">Enter 5x5 grid manually</span>
+</div>
+</button>
+<button class="bg-white p-5 rounded-card ios-elevated border border-slate-50 flex flex-col items-start gap-3 active:scale-[0.98] transition-all">
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary font-semibold">history</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-bold text-slate-900 text-[15px]">History</span>
+<span class="text-xs text-slate-500 font-medium leading-tight mt-0.5">Previous live sessions</span>
+</div>
+</button>
+<button class="bg-white p-5 rounded-card ios-elevated border border-slate-50 flex flex-col items-start gap-3 active:scale-[0.98] transition-all">
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary font-semibold">play_circle</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-bold text-slate-900 text-[15px]">Go Live Play</span>
+<span class="text-xs text-slate-500 font-medium leading-tight mt-0.5">Open the live screen</span>
+</div>
+</button>
+</div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 pb-[env(safe-area-inset-bottom)] px-6 z-50">
+<div class="flex justify-between items-center h-16 max-w-md mx-auto">
+<button class="flex flex-col items-center justify-center gap-0.5 text-slate-400 w-16">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-0.5 text-slate-400 w-16">
+<span class="material-symbols-outlined text-[24px]">qr_code_scanner</span>
+<span class="text-[10px] font-medium">Scan</span>
+</button>
+<button class="relative flex flex-col items-center justify-center gap-0.5 text-primary w-16">
+<span class="material-symbols-outlined text-[24px] fill-[1]">emoji_events</span>
+<span class="text-[10px] font-bold">Live Play</span>
+<span class="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="flex flex-col items-center justify-center gap-0.5 text-slate-400 w-16">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</nav>
+
+</body></html>

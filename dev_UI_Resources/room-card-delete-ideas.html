@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Card – Delete Ideas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root {
+  --primary: #4C8C00;
+  --primary-container: #D9E9B4;
+  --icon-bg: #EEF6E7;
+  --primary-pressed: #3E7000;
+  --primary-dark: #2D5400;
+  --primary-border: #3C6B17;
+  --bg: #F4F5F4;
+  --surface: #FFFFFF;
+  --on-surface: #1A1A1A;
+  --surface-variant: #E1E5DE;
+  --surface-container: #F0F1EE;
+  --outline: #BDBDBD;
+  --slate100: #F1F5F9;
+  --slate200: #E2E8F0;
+  --slate400: #94A3B8;
+  --slate600: #64748B;
+  --secondary: #C62828;
+  --secondary-container: #F8DADA;
+  --error: #B00020;
+  --warning-container: #FEF9C3;
+  --warning-text: #92400E;
+  --warning: #F9A825;
+  --warning-dark: #B45309;
+  --success: #2E7D32;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #CDD5CE;
+  padding: 36px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: rgba(0,0,0,0.32);
+  align-self: flex-start;
+  margin-left: calc(50% - 175px);
+  margin-bottom: -30px;
+}
+
+.card { width: 350px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card { animation: fadeUp 0.45s cubic-bezier(.22,.68,0,1.2) both; }
+.card:nth-child(2)  { animation-delay: .04s }
+.card:nth-child(4)  { animation-delay: .10s }
+.card:nth-child(6)  { animation-delay: .16s }
+.card:nth-child(8)  { animation-delay: .22s }
+
+/* ════════════════════════════════════════
+   IDEA 1 — Swipe-Reveal Hint + Action Row
+   ════════════════════════════════════════ */
+.i1 {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.i1-main { padding: 16px 16px 14px; }
+.i1-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+.i1-name { font-size: 17px; font-weight: 800; color: var(--on-surface); }
+/* 3-dot menu triggers the delete */
+.i1-menu-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surface-container);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.i1-menu-btn .material-icons-round { font-size: 20px; color: var(--slate600); }
+.i1-status { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.i1-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.i1-status span { font-size: 12px; font-weight: 600; color: var(--slate600); }
+.i1-stats { display: flex; gap: 14px; margin-bottom: 12px; }
+.i1-stat { display: flex; align-items: center; gap: 5px; }
+.i1-stat .material-icons-round { font-size: 15px; color: var(--slate400); }
+.i1-stat span { font-size: 12px; color: var(--slate600); font-weight: 500; }
+.i1-prog { height: 4px; background: var(--surface-variant); border-radius: 4px; margin-bottom: 0; }
+.i1-prog-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+
+/* dropdown menu shown */
+.i1-dropdown {
+  position: absolute; right: 16px; top: 48px;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+  border: 1px solid var(--surface-variant);
+  overflow: hidden;
+  width: 180px;
+  z-index: 10;
+}
+.i1-dropdown-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; cursor: pointer;
+  font-size: 14px; font-weight: 600;
+}
+.i1-dropdown-item:hover { background: var(--surface-container); }
+.i1-dropdown-item .material-icons-round { font-size: 20px; }
+.i1-dropdown-item.edit { color: var(--on-surface); }
+.i1-dropdown-item.edit .material-icons-round { color: var(--slate600); }
+.i1-dropdown-item.delete { color: var(--secondary); }
+.i1-dropdown-item.delete .material-icons-round { color: var(--secondary); }
+.i1-dropdown-divider { height: 1px; background: var(--surface-variant); }
+
+/* action row */
+.i1-action-row {
+  display: flex;
+  border-top: 1px solid var(--surface-variant);
+}
+.i1-action-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 12px 0; border: none; background: none;
+  font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+.i1-action-btn.join { color: var(--primary); }
+.i1-action-btn.join .material-icons-round { font-size: 18px; color: var(--primary); }
+.i1-action-btn.delete { color: var(--secondary); border-left: 1px solid var(--surface-variant); }
+.i1-action-btn.delete .material-icons-round { font-size: 18px; color: var(--secondary); }
+
+/* status badge */
+.running-badge {
+  background: var(--warning-container); color: var(--warning-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px; border: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.running-badge .material-icons-round { font-size: 13px; color: var(--warning); }
+
+/* ════════════════════════════════════════
+   IDEA 2 — Left Accent + Icon Toolbar
+   ════════════════════════════════════════ */
+.i2 {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  display: flex; overflow: hidden;
+}
+.i2-bar { width: 5px; background: var(--primary); flex-shrink: 0; }
+.i2-body { flex: 1; padding: 15px 14px 14px; }
+.i2-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.i2-name { font-size: 16px; font-weight: 800; color: var(--on-surface); flex: 1; padding-right: 8px; }
+.i2-toolbar { display: flex; gap: 4px; align-items: center; }
+.i2-tool-btn {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.i2-tool-btn.edit-btn { background: var(--icon-bg); }
+.i2-tool-btn.edit-btn .material-icons-round { font-size: 18px; color: var(--primary); }
+.i2-tool-btn.del-btn { background: var(--secondary-container); }
+.i2-tool-btn.del-btn .material-icons-round { font-size: 18px; color: var(--secondary); }
+.i2-status { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.i2-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.i2-status span { font-size: 12px; font-weight: 600; color: var(--slate600); }
+.i2-bottom { display: flex; justify-content: space-between; align-items: center; }
+.i2-pills { display: flex; gap: 7px; flex-wrap: wrap; }
+.i2-pill {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface-container);
+  border: 1px solid var(--surface-variant);
+  border-radius: 20px; padding: 5px 10px;
+  font-size: 11px; font-weight: 600; color: var(--slate600);
+}
+.i2-pill .material-icons-round { font-size: 13px; color: var(--slate400); }
+.i2-pill.running-pill { background: var(--warning-container); border-color: #FDE047; color: var(--warning-text); }
+.i2-pill.running-pill .material-icons-round { color: var(--warning); }
+.i2-join {
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 9px 18px; border-radius: 20px; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.i2-join .material-icons-round { font-size: 16px; }
+.i2-prog { height: 4px; background: var(--surface-variant); border-radius: 4px; margin-top: 12px; }
+.i2-prog-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+
+/* ════════════════════════════════════════
+   IDEA 3 — Danger Zone Footer Strip
+   ════════════════════════════════════════ */
+.i3 {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.i3-stripe {
+  height: 5px;
+  background: repeating-linear-gradient(90deg, var(--primary) 0, var(--primary) 14px, var(--primary-container) 14px, var(--primary-container) 28px);
+}
+.i3-body { padding: 16px 16px 12px; }
+.i3-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.i3-name { font-size: 17px; font-weight: 800; color: var(--on-surface); }
+.i3-live {
+  display: flex; align-items: center; gap: 5px;
+  background: #DCFCE7; border-radius: 20px; padding: 4px 10px;
+}
+.i3-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.i3-live span { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
+
+.i3-status { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.i3-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.i3-status span { font-size: 12px; font-weight: 600; color: var(--slate600); }
+
+.i3-mid { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.i3-stats { display: flex; flex-direction: column; gap: 7px; }
+.i3-stat { display: flex; align-items: center; gap: 6px; }
+.i3-stat .material-icons-round { font-size: 16px; color: var(--slate400); }
+.i3-stat span { font-size: 12px; color: var(--slate600); font-weight: 500; }
+
+.i3-prog-col { flex: 1; }
+.i3-prog-label { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.i3-prog-label span { font-size: 10px; color: var(--slate600); font-weight: 600; }
+.i3-prog { height: 5px; background: var(--surface-variant); border-radius: 5px; }
+.i3-prog-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+.i3-join {
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 10px 18px; border-radius: 20px; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 5px; align-self: flex-end;
+}
+.i3-join .material-icons-round { font-size: 16px; }
+
+/* danger footer */
+.i3-danger {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--secondary-container);
+  padding: 11px 16px;
+  margin-top: 12px;
+  border-top: 1px solid #FBCACA;
+}
+.i3-danger-left { display: flex; align-items: center; gap: 8px; }
+.i3-danger-left .material-icons-round { font-size: 18px; color: var(--secondary); }
+.i3-danger-text { font-size: 12px; font-weight: 600; color: var(--secondary); }
+.i3-delete-btn {
+  background: var(--secondary); color: white;
+  font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  padding: 7px 14px; border-radius: 20px; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+}
+.i3-delete-btn .material-icons-round { font-size: 15px; }
+
+/* ════════════════════════════════════════
+   IDEA 4 — Mini Dashboard + Delete FAB
+   ════════════════════════════════════════ */
+.i4 {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  padding: 16px;
+  position: relative;
+}
+.i4-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.i4-name-col { flex: 1; }
+.i4-name { font-size: 17px; font-weight: 800; color: var(--on-surface); margin-bottom: 4px; }
+.i4-active-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #DCFCE7; border-radius: 20px; padding: 3px 10px;
+}
+.i4-active-chip .material-icons-round { font-size: 11px; color: var(--primary); }
+.i4-active-chip span { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
+.i4-actions-col { display: flex; gap: 6px; align-items: flex-start; }
+
+/* delete icon btn */
+.delete-icon-btn {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--secondary-container);
+  border: 1.5px solid #FBCACA;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.delete-icon-btn .material-icons-round { font-size: 19px; color: var(--secondary); }
+
+.join-btn-main {
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 8px 18px; border-radius: 10px; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.join-btn-main .material-icons-round { font-size: 16px; }
+
+.i4-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 14px 0 12px; }
+.i4-stat-box {
+  background: var(--surface-container);
+  border-radius: 12px; padding: 10px 8px;
+}
+.i4-stat-box .ico { font-size: 16px; color: var(--primary); display: block; margin-bottom: 3px; }
+.i4-stat-val { font-size: 17px; font-weight: 800; color: var(--on-surface); font-family: 'DM Mono', monospace; }
+.i4-stat-lbl { font-size: 10px; color: var(--slate600); font-weight: 500; margin-top: 1px; }
+
+.i4-prog-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.i4-prog-head span { font-size: 11px; color: var(--slate600); }
+.i4-prog-head strong { font-size: 11px; color: var(--on-surface); font-weight: 700; }
+.i4-prog { height: 6px; background: var(--surface-variant); border-radius: 6px; }
+.i4-prog-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+
+/* running pill bottom */
+.i4-footer { display: flex; justify-content: flex-end; margin-top: 12px; }
+.running-pill-warn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--warning-container); border-radius: 20px; padding: 5px 12px;
+  border: 1px solid #FDE047;
+}
+.running-pill-warn .material-icons-round { font-size: 14px; color: var(--warning); }
+.running-pill-warn span { font-size: 12px; font-weight: 700; color: var(--warning-text); }
+
+</style>
+</head>
+<body>
+
+<!-- ── IDEA 1 ── -->
+<div class="section-label">Idea 1 — Bottom Action Row + 3-dot Menu</div>
+<div class="card">
+  <div class="i1" style="position:relative;">
+    <div class="i1-main">
+      <div class="i1-top-row">
+        <div class="i1-name">Friday Night Bingo</div>
+        <button class="i1-menu-btn">
+          <span class="material-icons-round">more_vert</span>
+        </button>
+      </div>
+
+      <!-- dropdown (shown visually) -->
+      <div class="i1-dropdown">
+        <div class="i1-dropdown-item edit">
+          <span class="material-icons-round">edit</span> Edit Room
+        </div>
+        <div class="i1-dropdown-divider"></div>
+        <div class="i1-dropdown-item delete">
+          <span class="material-icons-round">delete</span> Delete Room
+        </div>
+      </div>
+
+      <div class="i1-status">
+        <div class="i1-dot"></div>
+        <span>Active</span>
+      </div>
+      <div class="i1-stats">
+        <div class="i1-stat">
+          <span class="material-icons-round">confirmation_number</span>
+          <span>3 Tickets</span>
+        </div>
+        <div class="i1-stat">
+          <span class="material-icons-round">format_list_numbered</span>
+          <span>6 / 25</span>
+        </div>
+        <div class="running-badge">
+          <span class="material-icons-round">play_circle</span> Running
+        </div>
+      </div>
+      <div class="i1-prog" style="margin-top:12px;"><div class="i1-prog-fill"></div></div>
+    </div>
+    <div class="i1-action-row">
+      <button class="i1-action-btn join">
+        <span class="material-icons-round">login</span> Join Room
+      </button>
+      <button class="i1-action-btn delete">
+        <span class="material-icons-round">delete</span> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── IDEA 2 ── -->
+<div class="section-label">Idea 2 — Left Accent Bar + Icon Toolbar</div>
+<div class="card">
+  <div class="i2">
+    <div class="i2-bar"></div>
+    <div class="i2-body">
+      <div class="i2-top">
+        <div class="i2-name">Friday Night Bingo</div>
+        <div class="i2-toolbar">
+          <button class="i2-tool-btn edit-btn">
+            <span class="material-icons-round">edit</span>
+          </button>
+          <button class="i2-tool-btn del-btn">
+            <span class="material-icons-round">delete</span>
+          </button>
+        </div>
+      </div>
+      <div class="i2-status">
+        <div class="i2-dot"></div>
+        <span>Active</span>
+      </div>
+      <div class="i2-bottom">
+        <div class="i2-pills">
+          <div class="i2-pill">
+            <span class="material-icons-round">confirmation_number</span>3 Tickets
+          </div>
+          <div class="i2-pill">
+            <span class="material-icons-round">format_list_numbered</span>6 / 25
+          </div>
+          <div class="i2-pill running-pill">
+            <span class="material-icons-round">play_circle</span>Running
+          </div>
+        </div>
+        <button class="i2-join">
+          <span class="material-icons-round">login</span> Join
+        </button>
+      </div>
+      <div class="i2-prog"><div class="i2-prog-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── IDEA 3 ── -->
+<div class="section-label">Idea 3 — Danger Zone Footer Strip</div>
+<div class="card">
+  <div class="i3">
+    <div class="i3-stripe"></div>
+    <div class="i3-body">
+      <div class="i3-head">
+        <div class="i3-name">Friday Night Bingo</div>
+        <div class="i3-live">
+          <div class="i3-live-dot"></div>
+          <span>Active</span>
+        </div>
+      </div>
+      <div class="i3-status" style="margin-top:4px;">
+        <div class="i3-dot"></div>
+        <span>Session running · 24 players joined</span>
+      </div>
+      <div class="i3-mid">
+        <div class="i3-stats">
+          <div class="i3-stat">
+            <span class="material-icons-round">confirmation_number</span>
+            <span>3 Tickets</span>
+          </div>
+          <div class="i3-stat">
+            <span class="material-icons-round">format_list_numbered</span>
+            <span>6 / 25 numbers</span>
+          </div>
+          <div class="i3-stat">
+            <span class="material-icons-round">play_circle</span>
+            <span style="color:var(--warning-dark);font-weight:600;">Running</span>
+          </div>
+        </div>
+        <button class="i3-join">
+          <span class="material-icons-round">login</span> Join
+        </button>
+      </div>
+    </div>
+    <!-- Danger Footer -->
+    <div class="i3-danger">
+      <div class="i3-danger-left">
+        <span class="material-icons-round">warning</span>
+        <span class="i3-danger-text">This will end the session</span>
+      </div>
+      <button class="i3-delete-btn">
+        <span class="material-icons-round">delete</span> Delete Room
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── IDEA 4 ── -->
+<div class="section-label">Idea 4 — Mini Dashboard + Paired Buttons</div>
+<div class="card">
+  <div class="i4">
+    <div class="i4-head">
+      <div class="i4-name-col">
+        <div class="i4-name">Friday Night Bingo</div>
+        <div class="i4-active-chip">
+          <span class="material-icons-round">fiber_manual_record</span>
+          <span>Active</span>
+        </div>
+      </div>
+      <div class="i4-actions-col">
+        <button class="delete-icon-btn">
+          <span class="material-icons-round">delete</span>
+        </button>
+        <button class="join-btn-main">
+          <span class="material-icons-round">login</span> Join
+        </button>
+      </div>
+    </div>
+    <div class="i4-grid">
+      <div class="i4-stat-box">
+        <span class="material-icons-round ico">confirmation_number</span>
+        <div class="i4-stat-val">3</div>
+        <div class="i4-stat-lbl">Tickets</div>
+      </div>
+      <div class="i4-stat-box">
+        <span class="material-icons-round ico">format_list_numbered</span>
+        <div class="i4-stat-val">6</div>
+        <div class="i4-stat-lbl">Called</div>
+      </div>
+      <div class="i4-stat-box">
+        <span class="material-icons-round ico">people</span>
+        <div class="i4-stat-val">24</div>
+        <div class="i4-stat-lbl">Players</div>
+      </div>
+    </div>
+    <div class="i4-prog-head">
+      <span>Numbers called</span>
+      <strong>6 / 25</strong>
+    </div>
+    <div class="i4-prog"><div class="i4-prog-fill"></div></div>
+    <div class="i4-footer">
+      <div class="running-pill-warn">
+        <span class="material-icons-round">play_circle</span>
+        <span>Running</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

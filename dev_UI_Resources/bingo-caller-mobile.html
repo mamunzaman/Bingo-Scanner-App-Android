@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bingo Caller</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --g-deep:   #1b5e20;
+  --g-main:   #2e7d32;
+  --g-mid:    #388e3c;
+  --g-light:  #4caf50;
+  --g-pale:   #a5d6a7;
+  --g-mist:   #e8f5e9;
+  --g-tint:   #f4faf4;
+  --white:    #ffffff;
+  --text:     #1a1a1a;
+  --muted:    #6b7280;
+  --divider:  #e5e7eb;
+  --shadow:   rgba(46,125,50,0.18);
+}
+
+html, body {
+  height: 100%;
+  background: var(--g-tint);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+.shell {
+  max-width: 390px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--g-tint);
+}
+
+/* ─── APP BAR ─── */
+.app-bar {
+  background: var(--white);
+  padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--divider);
+}
+.app-bar-left { display: flex; align-items: center; gap: 10px; }
+.app-logo {
+  width: 34px; height: 34px;
+  background: var(--g-main);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.app-logo .material-icons-round { font-size: 18px; color: #fff; }
+.app-bar-title { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+.app-bar-subtitle { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+.topbar-icon {
+  width: 38px; height: 38px;
+  background: var(--g-mist); border: none; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; color: var(--g-main);
+}
+.topbar-icon:active { background: var(--g-pale); transform: scale(0.9); }
+.topbar-icon .material-icons-round { font-size: 20px; }
+
+/* ─── STATUS CARD ─── */
+.status-card {
+  margin: 14px 16px 0;
+  background: var(--white);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.status-left { display: flex; flex-direction: column; gap: 7px; }
+.status-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+}
+.progress-row { display: flex; align-items: center; gap: 10px; }
+.progress-wrap {
+  width: 120px; height: 7px;
+  background: var(--divider); border-radius: 10px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--g-mid), var(--g-light));
+  border-radius: 10px; width: 0%;
+  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 6px rgba(76,175,80,0.4);
+}
+.progress-frac {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 700; color: var(--g-main);
+}
+.status-right { display: flex; gap: 8px; }
+.s-btn {
+  display: flex; align-items: center; gap: 4px;
+  border: none; border-radius: 22px; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 700; transition: all 0.15s;
+}
+.s-btn .material-icons-round { font-size: 16px; }
+.s-finish { background: var(--g-main); color: #fff; padding: 9px 16px; box-shadow: 0 2px 8px var(--shadow); }
+.s-finish:active { transform: scale(0.92); background: var(--g-deep); }
+.s-reset { background: var(--g-mist); color: var(--g-deep); padding: 9px 12px; }
+.s-reset:active { transform: scale(0.92); background: var(--g-pale); }
+
+/* ─── BIG GREEN CARD ─── */
+.green-card {
+  margin: 14px 16px 0;
+  background: var(--g-main);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 10px 36px var(--shadow);
+  display: flex; flex-direction: column;
+}
+
+/* Card header row */
+.gc-header {
+  padding: 14px 18px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.18); border-radius: 20px; padding: 5px 12px 5px 9px;
+}
+.live-dot {
+  width: 8px; height: 8px; background: #ff5252; border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,82,82,0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(255,82,82,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,82,82,0); }
+}
+.live-text { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; }
+.gc-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.7);
+}
+
+/* Number display — white card inset */
+.number-inset {
+  margin: 14px 14px 0;
+  background: rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 28px 20px 22px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; user-select: none;
+  position: relative; overflow: hidden;
+  transition: background 0.15s;
+}
+.number-inset:active { background: rgba(255,255,255,0.18); }
+
+.number-inset::before {
+  content: '';
+  position: absolute;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 68%);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+
+.big-num {
+  font-size: 104px; font-weight: 800; color: #fff;
+  line-height: 1; letter-spacing: -0.04em;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.big-num.pop { animation: numPop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes numPop {
+  0%   { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+  65%  { transform: scale(1.08) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.tap-hint {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 3px;
+}
+.tap-hint .material-icons-round { font-size: 13px; }
+
+.timer-chip {
+  display: none;
+  align-items: center; gap: 5px;
+  background: rgba(0,0,0,0.2); border-radius: 20px; padding: 5px 12px;
+}
+.timer-chip.show { display: flex; }
+.timer-chip .material-icons-round { font-size: 13px; color: rgba(255,255,255,0.6); }
+.timer-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.75);
+}
+.timer-text b { color: #fff; font-weight: 700; }
+
+/* ─── INPUT BAR — inside green card ─── */
+.input-bar {
+  margin: 14px 14px 14px;
+  background: var(--white);
+  border-radius: 18px;
+  display: flex; align-items: center;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.ib-icon-btn {
+  width: 54px; height: 58px; flex-shrink: 0;
+  background: transparent; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; color: var(--g-main);
+  border-right: 1px solid var(--divider);
+}
+.ib-icon-btn:active { background: var(--g-mist); transform: scale(0.9); }
+.ib-icon-btn .material-icons-round { font-size: 22px; }
+
+.ib-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px; font-weight: 700; color: var(--text);
+  padding: 0 14px; min-width: 0; height: 58px;
+  caret-color: var(--g-main);
+}
+.ib-input::placeholder { color: #ccc; font-weight: 400; font-size: 16px; }
+
+.ib-enter {
+  height: 58px; padding: 0 18px; flex-shrink: 0;
+  background: var(--g-main); border: none; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: all 0.15s;
+}
+.ib-enter .material-icons-round { font-size: 18px; }
+.ib-enter:active { background: var(--g-deep); transform: scale(0.97); }
+
+.ib-undo {
+  width: 54px; height: 58px; flex-shrink: 0;
+  background: transparent; border: none; border-left: 1px solid var(--divider);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; color: var(--muted);
+}
+.ib-undo:active { background: #fef2f2; color: #ef4444; transform: scale(0.9); }
+.ib-undo .material-icons-round { font-size: 22px; }
+
+/* ─── BOTTOM SECTION — white card ─── */
+.bottom-card {
+  margin: 14px 16px 24px;
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.bc-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+}
+.bc-stat { display: flex; flex-direction: column; gap: 2px; }
+.bc-stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.bc-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--g-main); }
+.bc-stat-sub { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+.bc-divider { height: 1px; background: var(--divider); margin: 0 18px; }
+
+.bc-chips { display: flex; gap: 8px; padding: 12px 18px; flex-wrap: wrap; justify-content: space-around; }
+.bc-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--g-mist); border: none; border-radius: 24px;
+  padding: 8px 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px; font-weight: 700; color: var(--g-deep);
+  cursor: pointer; transition: all 0.15s;
+}
+.bc-chip .material-icons-round { font-size: 15px; }
+.bc-chip:active { background: var(--g-pale); transform: scale(0.93); }
+.bc-chip.danger { background: #fef2f2; color: #dc2626; }
+.bc-chip.danger:active { background: #fee2e2; }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #1a1a1a; color: #fff;
+  font-size: 13px; font-weight: 600; padding: 11px 20px;
+  border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+  z-index: 999; opacity: 0; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px;
+  transition: transform 0.3s cubic-bezier(0.34,1.3,0.64,1), opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast .material-icons-round { font-size: 16px; color: var(--g-pale); }
+
+/* ─── FINISH OVERLAY ─── */
+.finish-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.finish-overlay.show { display: flex; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.finish-sheet {
+  background: var(--white); border-radius: 28px 28px 0 0;
+  padding: 20px 22px 44px; width: 100%; max-width: 390px;
+  animation: slideUp 0.35s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.sh-handle { width: 36px; height: 4px; background: var(--divider); border-radius: 2px; margin: 0 auto 22px; }
+.sh-icon {
+  width: 68px; height: 68px; background: var(--g-mist); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+}
+.sh-icon .material-icons-round { font-size: 38px; color: var(--g-main); }
+.sh-title { font-size: 22px; font-weight: 800; text-align: center; margin-bottom: 6px; }
+.sh-sub { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 26px; }
+.sh-btn {
+  width: 100%; padding: 16px; border-radius: 18px; border: none;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; margin-bottom: 10px; transition: all 0.15s;
+}
+.sh-btn .material-icons-round { font-size: 20px; }
+.sh-primary { background: var(--g-main); color: #fff; }
+.sh-primary:active { background: var(--g-deep); }
+.sh-secondary { background: var(--g-mist); color: var(--g-deep); }
+.sh-secondary:active { background: var(--g-pale); }
+</style>
+</head>
+<body>
+<div class="shell"> 
+
+  <!-- STATUS CARD -->
+  <div class="status-card">
+    <div class="status-left">
+      <span class="status-label">Round Progress</span>
+      <div class="progress-row">
+        <div class="progress-wrap">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-frac" id="fracText">0 / 75</span>
+      </div>
+    </div>
+    <div class="status-right">
+      <button class="s-btn s-finish" onclick="openFinish()">
+        <span class="material-icons-round">emoji_events</span>Finish
+      </button>
+      <button class="s-btn s-reset" onclick="resetGame()">
+        <span class="material-icons-round">restart_alt</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- BIG GREEN CARD -->
+  <div class="green-card">
+
+    <!-- Header -->
+    <div class="gc-header">
+      <div class="live-pill">
+        <div class="live-dot"></div>
+        <span class="live-text">Live</span>
+      </div>
+      <span class="gc-count" id="gcCount">0 / 75</span>
+    </div>
+
+    <!-- Number inset — tap to auto-call -->
+    <div class="number-inset" id="numStage" onclick="callRandom()">
+      <div class="big-num" id="bigNum">–</div>
+      <div class="tap-hint">
+        <span class="material-icons-round">touch_app</span>
+        Tap to auto-call
+      </div>
+      <div class="timer-chip" id="timerChip">
+        <span class="material-icons-round">schedule</span>
+        <span class="timer-text" id="timerText">–</span>
+      </div>
+    </div>
+
+    <!-- Input bar INSIDE green card -->
+    <div class="input-bar">
+      <button class="ib-icon-btn" onclick="callRandom()" title="Random">
+        <span class="material-icons-round">casino</span>
+      </button>
+      <input class="ib-input" id="numInput" type="number" min="1" max="75"
+             placeholder="Enter 1 – 75" inputmode="numeric">
+      <button class="ib-enter" onclick="callManual()">
+        <span class="material-icons-round">keyboard_return</span>
+        Call
+      </button>
+      <button class="ib-undo" onclick="undoLast()" title="Undo">
+        <span class="material-icons-round">undo</span>
+      </button>
+    </div>
+
+  </div><!-- /green-card -->
+
+  <!-- BOTTOM WHITE CARD — stats & actions -->
+  <div class="bottom-card">
+    <div class="bc-row">
+      <div class="bc-stat">
+        <span class="bc-stat-label">Last Called</span>
+        <span class="bc-stat-value" id="lastNum">–</span>
+        <span class="bc-stat-sub" id="lastSub">No numbers yet</span>
+      </div>
+      <div class="bc-stat" style="text-align:right">
+        <span class="bc-stat-label">Remaining</span>
+        <span class="bc-stat-value" id="remaining">75</span>
+        <span class="bc-stat-sub">numbers left</span>
+      </div>
+    </div>
+    <div class="bc-divider"></div>
+    <div class="bc-chips">
+      <button class="bc-chip" onclick="callRandom()">
+        <span class="material-icons-round">casino</span>Auto-Call
+      </button>
+      <button class="bc-chip" onclick="undoLast()">
+        <span class="material-icons-round">undo</span>Undo
+      </button>
+      <button class="bc-chip danger" onclick="resetGame()">
+        <span class="material-icons-round">restart_alt</span>Reset
+      </button>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="material-icons-round">info</span>
+  <span id="toastMsg">–</span>
+</div>
+
+<!-- FINISH OVERLAY -->
+<div class="finish-overlay" id="finishOverlay" onclick="closeFinish(event)">
+  <div class="finish-sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-icon"><span class="material-icons-round">emoji_events</span></div>
+    <div class="sh-title">Round Complete! 🎉</div>
+    <div class="sh-sub" id="shSub">You called 0 of 75 numbers.</div>
+    <button class="sh-btn sh-primary" onclick="resetGame(); closeFinish();">
+      <span class="material-icons-round">restart_alt</span>Start New Round
+    </button>
+    <button class="sh-btn sh-secondary" onclick="closeFinish()">
+      <span class="material-icons-round">close</span>Dismiss
+    </button>
+  </div>
+</div>
+
+<script>
+  let called = [];
+  let available = Array.from({length:75}, (_,i) => i+1);
+  let lastTime = null;
+  let timerInterval = null;
+
+  function showToast(msg, icon='info') {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.querySelector('.material-icons-round').textContent = icon;
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  function hap() { if (navigator.vibrate) navigator.vibrate(35); }
+
+  function updateTimer() {
+    if (!lastTime) return;
+    const sec = Math.floor((Date.now() - lastTime) / 1000);
+    const txt = sec < 60 ? sec + ' sec ago' : Math.floor(sec/60) + ' min ago';
+    const el = document.getElementById('timerText');
+    el.innerHTML = 'Last called <b>' + txt + '</b>';
+  }
+
+  function refreshUI() {
+    const count = called.length;
+    const cur = count > 0 ? called[count-1] : null;
+
+    // Big number
+    const bn = document.getElementById('bigNum');
+    bn.textContent = cur ?? '–';
+    bn.classList.remove('pop');
+    void bn.offsetWidth;
+    if (cur !== null) bn.classList.add('pop');
+
+    // Counts
+    document.getElementById('gcCount').textContent = count + ' / 75';
+    document.getElementById('fracText').textContent = count + ' / 75';
+    document.getElementById('progressFill').style.width = (count / 75 * 100) + '%';
+    document.getElementById('remaining').textContent = 75 - count;
+
+    // Last num
+    document.getElementById('lastNum').textContent = cur ?? '–';
+    document.getElementById('lastSub').textContent = cur !== null
+      ? 'Called #' + count
+      : 'No numbers yet';
+
+    // Timer chip
+    const chip = document.getElementById('timerChip');
+    if (cur !== null) { chip.classList.add('show'); updateTimer(); }
+    else chip.classList.remove('show');
+  }
+
+  function registerCall(n) {
+    called.push(n);
+    available = available.filter(x => x !== n);
+    lastTime = Date.now();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(updateTimer, 1000);
+    refreshUI();
+    hap();
+  }
+
+  function callRandom() {
+    if (!available.length) { showToast('All 75 numbers called!', 'done_all'); return; }
+    const n = available[Math.floor(Math.random() * available.length)];
+    registerCall(n);
+    showToast('Called: ' + n, 'volume_up');
+  }
+
+  function callManual() {
+    const inp = document.getElementById('numInput');
+    const v = parseInt(inp.value);
+    inp.value = '';
+    if (isNaN(v) || v < 1 || v > 75) { showToast('Enter a number 1–75', 'warning'); return; }
+    if (called.includes(v)) { showToast(v + ' already called!', 'replay'); return; }
+    registerCall(v);
+    showToast('Called: ' + v, 'volume_up');
+  }
+
+  function undoLast() {
+    if (!called.length) { showToast('Nothing to undo', 'info'); return; }
+    const last = called.pop();
+    available.push(last);
+    available.sort((a,b) => a - b);
+    lastTime = called.length > 0 ? Date.now() : null;
+    refreshUI();
+    showToast('Undid: ' + last, 'undo');
+    hap();
+  }
+
+  function resetGame() {
+    called = []; available = Array.from({length:75}, (_,i) => i+1);
+    lastTime = null; clearInterval(timerInterval);
+    document.getElementById('numInput').value = '';
+    refreshUI();
+    showToast('Round reset', 'restart_alt');
+  }
+
+  function openFinish() {
+    document.getElementById('shSub').textContent =
+      'You called ' + called.length + ' of 75 numbers.';
+    document.getElementById('finishOverlay').classList.add('show');
+  }
+
+  function closeFinish(e) {
+    if (!e || e.target === document.getElementById('finishOverlay'))
+      document.getElementById('finishOverlay').classList.remove('show');
+  }
+
+  document.getElementById('numInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') callManual();
+  });
+
+  refreshUI();
+</script>
+</body>
+</html>

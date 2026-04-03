@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_password_title">Passwort ändern</string>
+    <string name="change_password_current_label">Aktuelles Passwort</string>
+    <string name="change_password_current_placeholder">Aktuelles Passwort eingeben</string>
+    <string name="change_password_new_label">Neues Passwort</string>
+    <string name="change_password_new_placeholder">Neues Passwort eingeben</string>
+    <string name="change_password_confirm_label">Passwort bestätigen</string>
+    <string name="change_password_confirm_placeholder">Neues Passwort bestätigen</string>
+    <string name="change_password_strength">Passwortstärke: %1$s</string>
+    <string name="change_password_strength_strong">Stark</string>
+    <string name="change_password_button">Passwort aktualisieren</string>
+    <string name="terms_title">Nutzungsbedingungen</string>
+</resources>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Register - Eco Bingo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#478a00",
+                        "background-light": "#f7f8f5",
+                        "background-dark": "#19230f",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply font-sans;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen">
+<div class="flex flex-col min-h-screen max-w-[430px] mx-auto bg-white dark:bg-background-dark shadow-xl overflow-hidden relative">
+<header class="flex items-center px-6 pt-14 pb-2">
+<button class="flex items-center justify-center size-10 -ml-2 rounded-full text-slate-800 dark:text-white hover:bg-black/5 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+</button>
+</header>
+<main class="flex-1 px-8 pt-4 pb-12 flex flex-col">
+<div class="mb-8">
+<h1 class="text-[#151810] dark:text-white text-4xl font-bold leading-tight tracking-tight">Create Account</h1>
+<p class="text-[#4b5563] dark:text-slate-400 text-base mt-2">Join the green revolution and start playing Bingo for the planet.</p>
+</div>
+<form class="space-y-5">
+<div class="relative group">
+<label class="block mb-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Full Name</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary">person</span>
+<input class="w-full h-[56px] pl-12 pr-4 bg-transparent border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary dark:focus:border-primary focus:ring-0 transition-colors text-slate-900 dark:text-white placeholder:text-slate-400" placeholder="John Doe" type="text"/>
+</div>
+</div>
+<div class="relative group">
+<label class="block mb-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary">mail</span>
+<input class="w-full h-[56px] pl-12 pr-4 bg-transparent border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary dark:focus:border-primary focus:ring-0 transition-colors text-slate-900 dark:text-white placeholder:text-slate-400" placeholder="example@eco.com" type="email"/>
+</div>
+</div>
+<div class="relative group">
+<label class="block mb-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary">lock</span>
+<input class="w-full h-[56px] pl-12 pr-12 bg-transparent border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary dark:focus:border-primary focus:ring-0 transition-colors text-slate-900 dark:text-white placeholder:text-slate-400" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex items-start gap-3 pt-2">
+<div class="relative flex items-center mt-0.5">
+<input class="peer h-6 w-6 rounded border-2 border-slate-200 dark:border-slate-700 text-primary focus:ring-0 focus:ring-offset-0 transition-all cursor-pointer" id="terms" type="checkbox"/>
+<span class="material-symbols-outlined absolute pointer-events-none opacity-0 peer-checked:opacity-100 text-white text-[18px] left-0.5">check</span>
+</div>
+<label class="text-sm leading-relaxed text-slate-600 dark:text-slate-400 cursor-pointer" for="terms">
+                        I agree to the <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
+                    </label>
+</div>
+<div class="pt-4">
+<button class="w-full h-[56px] bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all" type="submit">
+                        Sign Up
+                        <span class="material-symbols-outlined">eco</span>
+</button>
+</div>
+</form>
+<div class="mt-auto pt-8 text-center">
+<p class="text-slate-600 dark:text-slate-400 text-sm">
+                    Already have an account? 
+                    <a class="text-primary font-bold hover:underline ml-1" href="#">Log In</a>
+</p>
+</div>
+</main>
+<div class="absolute bottom-0 right-0 opacity-10 pointer-events-none overflow-hidden">
+<span class="material-symbols-outlined text-[240px] translate-y-1/4 translate-x-1/4 text-primary">potted_plant</span>
+</div>
+<div class="w-32 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-2"></div>
+</div>
+
+</body></html>

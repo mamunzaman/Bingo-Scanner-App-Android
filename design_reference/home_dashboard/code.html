@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Eco Bingo Home Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#478a00",
+                        "primary-container": "#D9E9B4",
+                        "background-light": "#f7f8f5",
+                        "background-dark": "#19230f",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { 
+                @apply font-sans;
+                font-family: 'Inter', sans-serif;
+                min-height: max(884px, 100dvh);
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-sans">
+<header class="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center border-2 border-primary" data-alt="User profile picture of a smiling man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBdSGRNdWdKfCt4cefPSPMtwo7FtZN1p6mzdub2Vajs-kOQ8bp5VeYFonvyua91cT_qN3fVSXr0tKvy_gVKxXNQVyk8W5lyO5fFXhdPfAyLd09nCoT1iawtwPnkdA1ZMP-7p3vz8uYcM-YkbOAgrz4zhhLXDAkczl17CXzLeDHdvrOO9seiVPIhjvbrFBzYwqdQWjARlkHZrQnqMn1TUW4ao_Vt-H-b2YaDOujoiSdML4TpdXawohtmvTjvH92-t-DSTRgicRUI3xE')"></div>
+<div>
+<p class="text-xs text-slate-500 dark:text-slate-400">Welcome back,</p>
+<p class="text-sm font-bold">Alex Rivers</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-300">notifications</span>
+</button>
+</div>
+</header>
+<main class="pb-24">
+<section class="px-4 mt-2">
+<div class="relative overflow-hidden rounded-xl bg-primary-container p-6 shadow-sm border border-primary/10">
+<div class="absolute -right-8 -top-8 size-32 bg-primary/10 rounded-full blur-2xl"></div>
+<div class="relative z-10">
+<p class="text-primary font-semibold text-sm uppercase tracking-wider">Current Jackpot</p>
+<h1 class="text-4xl font-bold text-slate-900 mt-1 tracking-tight">$5,000,000</h1>
+<p class="text-slate-700 text-sm mt-2 max-w-[200px]">Next draw in 4h 22m. Every ticket helps the planet.</p>
+<button class="mt-6 flex items-center justify-center gap-2 w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/30 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+                        Scan Ticket
+                    </button>
+</div>
+<div class="absolute bottom-[-20px] right-[-20px] opacity-10 text-primary">
+<span class="material-symbols-outlined" style="font-size: 120px;">eco</span>
+</div>
+</div>
+</section>
+<section class="mt-8 px-4">
+<h2 class="text-lg font-bold mb-4">Quick Actions</h2>
+<div class="grid grid-cols-4 gap-2">
+<div class="flex flex-col items-center gap-2">
+<button class="size-14 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-primary border border-slate-100 dark:border-slate-700 active:bg-primary active:text-white transition-colors">
+<span class="material-symbols-outlined">center_focus_weak</span>
+</button>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Scan</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<button class="size-14 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-primary border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined">confirmation_number</span>
+</button>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Tickets</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<button class="size-14 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-primary border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined">emoji_events</span>
+</button>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Results</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<button class="size-14 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-primary border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined">help</span>
+</button>
+<span class="text-xs font-medium text-slate-600 dark:text-slate-400">Help</span>
+</div>
+</div>
+</section>
+<section class="mt-8">
+<div class="flex items-center justify-between px-4 mb-4">
+<h2 class="text-lg font-bold">Active Tickets</h2>
+<button class="text-primary text-sm font-semibold">View All</button>
+</div>
+<div class="flex gap-4 overflow-x-auto px-4 hide-scrollbar">
+<div class="min-w-[160px] bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase">Won</span>
+<span class="text-[10px] text-slate-400">#4829</span>
+</div>
+<p class="text-xl font-bold">$25.00</p>
+<p class="text-[10px] text-slate-500 mt-1">Draw: Oct 24</p>
+</div>
+<div class="min-w-[160px] bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Pending</span>
+<span class="text-[10px] text-slate-400">#5102</span>
+</div>
+<p class="text-xl font-bold">---</p>
+<p class="text-[10px] text-slate-500 mt-1">Draw: Today</p>
+</div>
+<div class="min-w-[160px] bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Lost</span>
+<span class="text-[10px] text-slate-400">#3991</span>
+</div>
+<p class="text-xl font-bold">$0.00</p>
+<p class="text-[10px] text-slate-500 mt-1">Draw: Oct 22</p>
+</div>
+</div>
+</section>
+<section class="mt-8 px-4">
+<div class="bg-emerald-900 text-white rounded-xl p-5 overflow-hidden relative">
+<div class="relative z-10">
+<h3 class="text-lg font-bold flex items-center gap-2">
+                        Your Green Impact 🌱
+                    </h3>
+<p class="text-emerald-100/80 text-sm mt-1 leading-relaxed">Your contributions have helped us plant <span class="text-white font-bold">120 trees</span> across local reforestation sites.</p>
+<div class="mt-4 w-full bg-emerald-800/50 rounded-full h-2">
+<div class="bg-primary h-2 rounded-full w-3/4"></div>
+</div>
+<p class="text-[10px] text-emerald-200 mt-2">30 more trees to reach your next milestone</p>
+</div>
+<div class="absolute -right-10 -bottom-10 opacity-20">
+<span class="material-symbols-outlined" style="font-size: 180px;">forest</span>
+</div>
+</div>
+</section>
+<section class="mt-8 px-4">
+<h2 class="text-lg font-bold mb-4">Eco News</h2>
+<div class="space-y-4">
+<div class="flex gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="size-20 rounded-lg bg-cover bg-center shrink-0" data-alt="Reforestation project showing young saplings in a field" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBvZqRKi_7-5MJZqJhWeGFiULBU3k3H4vTS34KX0CiFtJ4uoEUXcZRYU2BJLJqCce6TyADkbhteiD2SLJGncEWXa8-wME5Ge72ds4i5FcOw4DbR-3yvnJdKaxnOKQRxwQh2r_I6deHiqJWUQ5BxX6zYU7Cp1PihYltznbRWvASDQBaK78kU9R5hNxe7SoZn6anrVSnVyI6NBhXYHsCFGYbDhU5JXKXkJTHT6EhvRX_lepZmUSsld2Gc23E3ip8sTU6mSexuWpuWZJE')"></div>
+<div class="flex flex-col justify-center">
+<h4 class="font-bold text-sm leading-snug">New forest project starting in Amazon basin this week</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">2 hours ago • Sustainability</p>
+</div>
+</div>
+<div class="flex gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+<div class="size-20 rounded-lg bg-cover bg-center shrink-0" data-alt="Modern eco-friendly office building with plants" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBCtKfuvAt_FrobEe-2hI0mFL_s80pzeQLr7u9SzFlhN5U6YJtMWWjGVPiUtfHky-FusrBVG1TQ08fvGzyrcKOY-bzGwyPrMWu3H1E-fXip5IT9iWB7Xyj9-Vi4qU2ktC1bfvooOcoLSNUbd9xrsBEAPRFNMyyFhxX_O2A6Us9N1_5N2XD3Wft_im_7fFrDBki_6SntEqDWvjSLcrMtROn5xdM91fswNSS2tNkEkpayyd-NbeKmBxnnRxgEBz4LgbYS3aWmjQgHOpc')"></div>
+<div class="flex flex-col justify-center">
+<h4 class="font-bold text-sm leading-snug">Winner's story: How a $50 win helped a local charity</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Yesterday • Community</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 h-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 z-50">
+<button class="flex flex-col items-center gap-1 text-primary">
+<div class="bg-primary/10 px-5 py-1 rounded-full mb-1">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+</div>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+<span class="text-[10px] font-medium">Scan</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined">emoji_events</span>
+<span class="text-[10px] font-medium">Jackpot</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</nav>
+
+</body></html>

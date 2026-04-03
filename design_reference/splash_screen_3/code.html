@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Eco Bingo - Onboarding Scan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#4C8C00",
+              "background-light": "#F4F5F4",
+            },
+            fontFamily: {
+              "sans": ["Inter", "sans-serif"]
+            },
+          },
+        },
+      }
+    </script>
+<style type="text/tailwindcss">
+      @layer base {
+        body {
+          @apply bg-[#F4F5F4] font-sans text-slate-900;
+          min-height: 100dvh;
+        }
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col items-center justify-between p-6 overflow-hidden">
+<div class="h-12 w-full"></div>
+<div class="w-full max-w-sm flex-grow flex flex-col items-center justify-center">
+<div class="bg-white rounded-[24px] w-full aspect-square shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-center mb-10 overflow-hidden relative border border-gray-50">
+<div class="relative flex items-center justify-center w-full h-full">
+<div class="absolute inset-0 bg-primary/5 rounded-full scale-75 blur-3xl"></div>
+<div class="absolute transform -rotate-6 translate-x-4 translate-y-2 opacity-20">
+<span class="material-symbols-outlined text-[120px] text-primary">grid_on</span>
+</div>
+<div class="relative bg-white border-4 border-slate-800 rounded-[32px] w-32 h-64 shadow-xl flex flex-col overflow-hidden">
+<div class="h-4 w-12 bg-slate-800 mt-2 mx-auto rounded-full"></div>
+<div class="flex-grow flex items-center justify-center p-4">
+<div class="w-full h-32 border-2 border-dashed border-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-4xl">qr_code_scanner</span>
+</div>
+</div>
+<div class="absolute top-1/2 left-0 w-full h-0.5 bg-primary shadow-[0_0_8px_rgba(76,140,0,0.8)]"></div>
+</div>
+</div>
+</div>
+<div class="text-center px-4">
+<h2 class="text-[28px] font-bold leading-tight mb-4 tracking-tight">
+                Scan or Add Your Ticket
+            </h2>
+<p class="text-[17px] font-medium text-slate-500 leading-relaxed">
+                Easily scan your Bingo sheet or enter numbers manually.
+            </p>
+</div>
+</div>
+<div class="w-full max-w-sm flex items-center justify-between py-8">
+<div class="flex gap-2">
+<div class="w-2 h-2 rounded-full bg-slate-200"></div>
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-slate-200"></div>
+</div>
+<button class="text-primary font-bold text-lg px-2 active:opacity-60 transition-opacity">
+            Next
+        </button>
+</div>
+<div class="h-4 w-full"></div>
+
+</body></html>

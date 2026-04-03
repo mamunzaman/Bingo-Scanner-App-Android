@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Card – UI Ideas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root {
+  --primary: #4C8C00;
+  --primary-container: #D9E9B4;
+  --icon-bg: #EEF6E7;
+  --primary-dark: #2D5400;
+  --primary-border: #3C6B17;
+  --bg: #F4F5F4;
+  --surface: #FFFFFF;
+  --on-surface: #1A1A1A;
+  --surface-variant: #E1E5DE;
+  --surface-container: #F0F1EE;
+  --outline: #BDBDBD;
+  --slate100: #F1F5F9;
+  --slate200: #E2E8F0;
+  --slate400: #94A3B8;
+  --slate600: #64748B;
+  --warning: #F9A825;
+  --warning-container: #FEF9C3;
+  --warning-text: #92400E;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #D6DDD7;
+  padding: 36px 20px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+}
+.label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(0,0,0,0.32);
+  align-self: flex-start;
+  margin-left: calc(50% - 175px);
+  margin-bottom: -26px;
+}
+.card { width: 350px; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+.card { animation: fadeUp 0.4s ease both; }
+.card:nth-child(2) { animation-delay:.05s }
+.card:nth-child(3) { animation-delay:.10s }
+.card:nth-child(4) { animation-delay:.15s }
+.card:nth-child(5) { animation-delay:.20s }
+.card:nth-child(6) { animation-delay:.25s }
+.card:nth-child(7) { animation-delay:.30s }
+.card:nth-child(8) { animation-delay:.35s }
+.card:nth-child(9) { animation-delay:.40s }
+.card:nth-child(10) { animation-delay:.45s }
+.card:nth-child(11) { animation-delay:.50s }
+
+
+/* ─── IDEA 1: Left Accent Bar + Stat Pills ─── */
+.i1 {
+  background: var(--surface);
+  border-radius: 18px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+}
+.i1-bar { width: 5px; background: var(--primary); border-radius: 0; flex-shrink: 0; }
+.i1-body { flex: 1; padding: 16px 16px 14px; }
+.i1-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.i1-name { font-size: 17px; font-weight: 800; color: var(--on-surface); }
+.i1-join {
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  padding: 8px 18px; border-radius: 20px; border: none; cursor: pointer;
+}
+.i1-status { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.i1-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.i1-status span { font-size: 12px; font-weight: 600; color: var(--slate600); }
+.i1-pills { display: flex; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
+.pill {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface-container);
+  border: 1px solid var(--surface-variant);
+  border-radius: 20px; padding: 5px 10px;
+  font-size: 11px; font-weight: 600; color: var(--slate600);
+}
+.pill .material-icons-round { font-size: 13px; color: var(--slate400); }
+.pill-running { background: var(--warning-container); border-color: #FDE047; color: var(--warning-text); }
+.pill-running .material-icons-round { color: var(--warning); }
+.i1-prog { height: 4px; background: var(--surface-variant); border-radius: 4px; }
+.i1-prog-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+
+
+/* ─── IDEA 2: Horizontal Gradient Banner ─── */
+.i2 {
+  background: linear-gradient(120deg, var(--primary-dark) 0%, var(--primary) 100%);
+  border-radius: 20px;
+  padding: 18px 18px 16px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 10px 28px rgba(76,140,0,0.32);
+  cursor: pointer;
+}
+.i2::after {
+  content: '';
+  position: absolute; right: -18px; top: -18px;
+  width: 100px; height: 100px; border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+}
+.i2::before {
+  content: '';
+  position: absolute; left: 30px; bottom: -30px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.i2-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.i2-name { font-size: 18px; font-weight: 800; color: white; }
+.i2-badge {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.9);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+  display: flex; align-items: center; gap: 4px;
+}
+.i2-badge .material-icons-round { font-size: 12px; }
+.i2-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-bottom: 14px; display: flex; align-items: center; gap: 5px; }
+.i2-sub .material-icons-round { font-size: 13px; }
+.i2-bottom { display: flex; justify-content: space-between; align-items: center; }
+.i2-stats { display: flex; gap: 14px; }
+.i2-stat { display: flex; align-items: center; gap: 5px; }
+.i2-stat .material-icons-round { font-size: 15px; color: rgba(255,255,255,0.65); }
+.i2-stat span { font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 500; }
+.i2-join {
+  background: white; color: var(--primary-dark);
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 9px 20px; border-radius: 20px; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.i2-join .material-icons-round { font-size: 16px; }
+
+
+/* ─── IDEA 3: Glassmorphism on tinted bg ─── */
+.i3-wrap {
+  background: linear-gradient(135deg, #3E7000, #6DB800);
+  border-radius: 22px;
+  padding: 3px;
+  box-shadow: 0 12px 32px rgba(76,140,0,0.35);
+}
+.i3 {
+  background: rgba(255,255,255,0.13);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  padding: 18px;
+  cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.i3::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: rgba(255,255,255,0.35);
+}
+.i3-row1 { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+.i3-name { font-size: 18px; font-weight: 800; color: white; }
+.i3-live {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.18); border-radius: 20px;
+  padding: 5px 10px;
+}
+.i3-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #86EFAC; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.i3-live span { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); }
+.i3-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-bottom: 14px; }
+.i3-prog-wrap { margin-bottom: 14px; }
+.i3-prog-label { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.i3-prog-label span { font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 500; }
+.i3-prog-label strong { font-size: 11px; color: rgba(255,255,255,0.9); font-weight: 700; }
+.i3-prog { height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; }
+.i3-prog-fill { height: 100%; border-radius: 5px; background: rgba(255,255,255,0.85); width: 24%; }
+.i3-bottom { display: flex; justify-content: space-between; align-items: center; }
+.i3-pills { display: flex; gap: 7px; }
+.i3-pill {
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 20px; padding: 5px 10px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.85);
+  display: flex; align-items: center; gap: 4px;
+}
+.i3-pill .material-icons-round { font-size: 13px; }
+.i3-join {
+  background: white; color: var(--primary-dark);
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 9px 20px; border-radius: 20px; border: none; cursor: pointer;
+}
+
+
+/* ─── IDEA 4: Ticket-Tear Style ─── */
+.i4 {
+  background: var(--surface);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+}
+.i4-top-stripe {
+  height: 5px;
+  background: repeating-linear-gradient(90deg, var(--primary) 0, var(--primary) 14px, var(--primary-container) 14px, var(--primary-container) 28px);
+}
+.i4-main { padding: 16px 16px 12px; }
+.i4-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px; }
+.i4-name { font-size: 17px; font-weight: 800; color: var(--on-surface); }
+.i4-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--primary-container); color: var(--primary-dark);
+  padding: 4px 10px; border-radius: 20px;
+}
+.i4-status { display: flex; align-items: center; gap: 5px; margin-bottom: 12px; }
+.i4-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+.i4-status span { font-size: 12px; color: var(--slate600); font-weight: 500; }
+.i4-divider {
+  display: flex; align-items: center; margin: 0 -16px;
+  position: relative;
+}
+.i4-divider::before {
+  content: ''; flex: 1; height: 1px;
+  border-top: 1.5px dashed var(--surface-variant);
+}
+.i4-divider .notch-l {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #D6DDD7; flex-shrink: 0;
+  margin-left: -8px;
+}
+.i4-divider .notch-r {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #D6DDD7; flex-shrink: 0;
+  margin-right: -8px;
+}
+.i4-footer { padding: 12px 0 2px; display: flex; justify-content: space-between; align-items: center; }
+.i4-stats { display: flex; gap: 14px; }
+.i4-stat { display: flex; align-items: center; gap: 5px; }
+.i4-stat .material-icons-round { font-size: 14px; color: var(--slate400); }
+.i4-stat span { font-size: 11px; color: var(--slate600); font-weight: 500; }
+.i4-btns { display: flex; gap: 7px; align-items: center; }
+.i4-running {
+  background: var(--warning-container); color: var(--warning-text);
+  font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; border: none; cursor: pointer;
+}
+.i4-join {
+  background: var(--primary); color: white;
+  font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  padding: 7px 16px; border-radius: 20px; border: none; cursor: pointer;
+}
+.i4-prog { height: 4px; background: var(--surface-variant); border-radius: 4px; margin-top: 12px; }
+.i4-prog-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+
+
+/* ─── IDEA 5: Compact Info-Dense Row ─── */
+.i5 {
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.i5-main { display: flex; gap: 14px; align-items: center; padding: 14px 16px; }
+.i5-icon-col {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--icon-bg);
+  border: 1.5px solid var(--primary-container);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.i5-icon-col .material-icons-round { color: var(--primary); font-size: 26px; }
+.i5-info { flex: 1; min-width: 0; }
+.i5-name { font-size: 15px; font-weight: 800; color: var(--on-surface); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.i5-meta { display: flex; align-items: center; gap: 10px; }
+.i5-live { display: flex; align-items: center; gap: 4px; }
+.i5-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+.i5-live span { font-size: 11px; color: var(--primary); font-weight: 700; }
+.i5-sep { color: var(--outline); font-size: 12px; }
+.i5-meta-txt { font-size: 11px; color: var(--slate600); font-weight: 500; }
+.i5-join {
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 9px 18px; border-radius: 20px; border: none; cursor: pointer;
+  white-space: nowrap;
+}
+.i5-bottom {
+  display: flex; align-items: center; gap: 0;
+  border-top: 1px solid var(--surface-variant);
+}
+.i5-bottom-cell {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 9px 0;
+  font-size: 11px; font-weight: 600; color: var(--slate600);
+}
+.i5-bottom-cell .material-icons-round { font-size: 14px; color: var(--slate400); }
+.i5-bottom-cell + .i5-bottom-cell { border-left: 1px solid var(--surface-variant); }
+.i5-bottom-cell.running { color: var(--warning-text); }
+.i5-bottom-cell.running .material-icons-round { color: var(--warning); }
+
+
+/* ─── IDEA 6: Mini Dashboard Card ─── */
+.i6 {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--surface-variant);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+  padding: 16px;
+}
+.i6-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.i6-name-row { display: flex; align-items: center; gap: 8px; }
+.i6-name { font-size: 16px; font-weight: 800; color: var(--on-surface); }
+.i6-live-badge {
+  display: flex; align-items: center; gap: 4px;
+  background: #DCFCE7; border-radius: 20px; padding: 3px 9px;
+}
+.i6-live-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: pulse 1.5s infinite; }
+.i6-live-badge span { font-size: 10px; font-weight: 700; color: var(--primary-dark); }
+.i6-join {
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 800; font-family: 'DM Sans', sans-serif;
+  padding: 9px 20px; border-radius: 20px; border: none; cursor: pointer;
+}
+.i6-stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.i6-stat-box {
+  background: var(--surface-container);
+  border-radius: 12px; padding: 10px 10px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.i6-stat-box .ico { font-size: 16px; color: var(--primary); margin-bottom: 2px; }
+.i6-stat-val { font-size: 16px; font-weight: 800; color: var(--on-surface); font-family: 'DM Mono', monospace; }
+.i6-stat-label { font-size: 10px; color: var(--slate600); font-weight: 500; }
+.i6-prog-wrap {}
+.i6-prog-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.i6-prog-head span { font-size: 11px; color: var(--slate600); font-weight: 500; }
+.i6-prog-head strong { font-size: 11px; color: var(--on-surface); font-weight: 700; }
+.i6-prog { height: 6px; background: var(--surface-variant); border-radius: 6px; }
+.i6-prog-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--primary), #6DB800); width: 24%; }
+
+</style>
+</head>
+<body>
+
+<div class="label">Idea 1 — Left Accent Bar + Pills</div>
+<div class="card">
+  <div class="i1">
+    <div class="i1-bar"></div>
+    <div class="i1-body">
+      <div class="i1-top">
+        <div class="i1-name">Friday Night Bingo</div>
+        <button class="i1-join">Join</button>
+      </div>
+      <div class="i1-status">
+        <div class="i1-dot"></div>
+        <span>Active</span>
+      </div>
+      <div class="i1-pills">
+        <div class="pill"><span class="material-icons-round">confirmation_number</span>3 Tickets</div>
+        <div class="pill"><span class="material-icons-round">format_list_numbered</span>6 / 25</div>
+        <div class="pill pill-running"><span class="material-icons-round">play_circle</span>Running</div>
+      </div>
+      <div class="i1-prog"><div class="i1-prog-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="label">Idea 2 — Full Gradient Banner</div>
+<div class="card">
+  <div class="i2">
+    <div class="i2-top">
+      <div class="i2-name">Friday Night Bingo</div>
+      <div class="i2-badge"><span class="material-icons-round">fiber_manual_record</span> Running</div>
+    </div>
+    <div class="i2-sub"><span class="material-icons-round">radio_button_checked</span> Active · 3 tickets in play</div>
+    <div class="i2-bottom">
+      <div class="i2-stats">
+        <div class="i2-stat"><span class="material-icons-round">confirmation_number</span><span>3 Tickets</span></div>
+        <div class="i2-stat"><span class="material-icons-round">menu</span><span>6 / 25</span></div>
+      </div>
+      <button class="i2-join"><span class="material-icons-round">login</span> Join</button>
+    </div>
+  </div>
+</div>
+
+<div class="label">Idea 3 — Glassmorphism + Live Pulse</div>
+<div class="card">
+  <div class="i3-wrap">
+    <div class="i3">
+      <div class="i3-row1">
+        <div class="i3-name">Friday Night Bingo</div>
+        <div class="i3-live"><div class="i3-live-dot"></div><span>Live</span></div>
+      </div>
+      <div class="i3-sub">Active session · 3 tickets</div>
+      <div class="i3-prog-wrap">
+        <div class="i3-prog-label"><span>Progress</span><strong>6 / 25 numbers</strong></div>
+        <div class="i3-prog"><div class="i3-prog-fill"></div></div>
+      </div>
+      <div class="i3-bottom">
+        <div class="i3-pills">
+          <div class="i3-pill"><span class="material-icons-round">confirmation_number</span>3</div>
+          <div class="i3-pill"><span class="material-icons-round">people</span>24 joined</div>
+        </div>
+        <button class="i3-join">Join Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="label">Idea 4 — Ticket-Tear Card</div>
+<div class="card">
+  <div class="i4">
+    <div class="i4-top-stripe"></div>
+    <div class="i4-main">
+      <div class="i4-row">
+        <div class="i4-name">Friday Night Bingo</div>
+        <div class="i4-tag">Live Session</div>
+      </div>
+      <div class="i4-status"><div class="i4-dot"></div><span>Active</span></div>
+      <div class="i4-divider">
+        <div class="notch-l"></div>
+        <div style="flex:1;border-top:1.5px dashed var(--surface-variant)"></div>
+        <div class="notch-r"></div>
+      </div>
+      <div class="i4-footer">
+        <div class="i4-stats">
+          <div class="i4-stat"><span class="material-icons-round">confirmation_number</span><span>3 Tickets</span></div>
+          <div class="i4-stat"><span class="material-icons-round">format_list_numbered</span><span>6 / 25</span></div>
+        </div>
+        <div class="i4-btns">
+          <button class="i4-running">Running</button>
+          <button class="i4-join">Join</button>
+        </div>
+      </div>
+      <div class="i4-prog"><div class="i4-prog-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="label">Idea 5 — Compact Info-Dense Row</div>
+<div class="card">
+  <div class="i5">
+    <div class="i5-main">
+      <div class="i5-icon-col"><span class="material-icons-round">confirmation_number</span></div>
+      <div class="i5-info">
+        <div class="i5-name">Friday Night Bingo</div>
+        <div class="i5-meta">
+          <div class="i5-live"><div class="i5-live-dot"></div><span>Active</span></div>
+          <span class="i5-sep">·</span>
+          <span class="i5-meta-txt">3 Tickets</span>
+          <span class="i5-sep">·</span>
+          <span class="i5-meta-txt">6/25</span>
+        </div>
+      </div>
+      <button class="i5-join">Join</button>
+    </div>
+    <div class="i5-bottom">
+      <div class="i5-bottom-cell"><span class="material-icons-round">emoji_events</span>$500 Prize</div>
+      <div class="i5-bottom-cell running"><span class="material-icons-round">play_circle</span>Running</div>
+      <div class="i5-bottom-cell"><span class="material-icons-round">timer</span>~12 min left</div>
+    </div>
+  </div>
+</div>
+
+<div class="label">Idea 6 — Mini Dashboard Card</div>
+<div class="card">
+  <div class="i6">
+    <div class="i6-head">
+      <div class="i6-name-row">
+        <div class="i6-name">Friday Night Bingo</div>
+        <div class="i6-live-badge"><div class="i6-live-badge-dot"></div><span>Active</span></div>
+      </div>
+      <button class="i6-join">Join</button>
+    </div>
+    <div class="i6-stats-grid">
+      <div class="i6-stat-box">
+        <span class="material-icons-round ico">confirmation_number</span>
+        <div class="i6-stat-val">3</div>
+        <div class="i6-stat-label">Tickets</div>
+      </div>
+      <div class="i6-stat-box">
+        <span class="material-icons-round ico">format_list_numbered</span>
+        <div class="i6-stat-val">6</div>
+        <div class="i6-stat-label">Called</div>
+      </div>
+      <div class="i6-stat-box">
+        <span class="material-icons-round ico">people</span>
+        <div class="i6-stat-val">24</div>
+        <div class="i6-stat-label">Players</div>
+      </div>
+    </div>
+    <div class="i6-prog-wrap">
+      <div class="i6-prog-head"><span>Numbers called</span><strong>6 / 25</strong></div>
+      <div class="i6-prog"><div class="i6-prog-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

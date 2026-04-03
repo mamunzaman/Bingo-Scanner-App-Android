@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terms_main_title">Allgemeine Geschäftsbedingungen</string>
+    <string name="terms_intro">Diese Nutzungsbedingungen gelten für die Nutzung der BINGO! Umweltlotterie und der zugehörigen Dienste. Durch die Nutzung erklären Sie sich mit diesen Bedingungen einverstanden.</string>
+    <string name="terms_section1_title">I. Geltungsbereich</string>
+    <string name="terms_section1">Diese Bedingungen gelten für alle Angebote, Dienste und Spiele der BINGO! Umweltlotterie sowie für die zugehörigen Webseiten und Apps. Sie regeln das Vertragsverhältnis zwischen dem Nutzer und der verantwortlichen Lotteriegesellschaft.</string>
+    <string name="terms_section2_title">II. Teilnahme und Voraussetzungen</string>
+    <string name="terms_section2">Die Teilnahme an der Lotterie setzt die Volljährigkeit (18 Jahre) und den Wohnsitz in einem der teilnehmenden Bundesländer voraus. Die Nutzer müssen sich registrieren und ihre Angaben wahrheitsgemäß machen.</string>
+    <string name="terms_section3_title">III. Pflichten der Nutzer</string>
+    <string name="terms_section3">Nutzer sind verpflichtet, die Dienste nur bestimmungsgemäß zu nutzen, Zugangsdaten geheim zu halten und rechtzeitig Änderungen ihrer Kontaktdaten mitzuteilen.</string>
+    <string name="terms_section4_title">IV. Verbotene Nutzung / Missbrauch</string>
+    <string name="terms_section4">Verboten sind u.a.: manipulierte oder gefälschte Lose, automatisierte Zugriffe, umgehende Sicherheitsmaßnahmen sowie Nutzung zu illegalen Zwecken. Verstöße können zur Sperrung und rechtlichen Schritten führen.</string>
+    <string name="terms_section5_title">V. Haftungsausschluss</string>
+    <string name="terms_section5">Die Haftung ist auf Vorsatz und grobe Fahrlässigkeit beschränkt. Für mittelbare Schäden und entgangenen Gewinn wird nicht gehaftet, soweit gesetzlich zulässig.</string>
+    <string name="terms_section6_title">VI. Änderungen der Bedingungen</string>
+    <string name="terms_section6">Der Anbieter behält sich vor, diese Bedingungen zu ändern. Änderungen werden den Nutzern mitgeteilt. Die weitere Nutzung nach Bekanntgabe gilt als Zustimmung.</string>
+    <string name="terms_section7_title">VII. Kündigung / Beendigung</string>
+    <string name="terms_section7">Nutzer können ihr Konto jederzeit kündigen. Der Anbieter kann das Konto bei Verstößen gegen diese Bedingungen sperren oder beenden.</string>
+    <string name="terms_section8_title">VIII. Kontakt</string>
+    <string name="terms_section8">Bei Fragen wenden Sie sich an die jeweilige Lotteriegesellschaft Ihres Bundeslandes. Kontaktdaten finden Sie auf der Webseite der BINGO! Umweltlotterie.</string>
+    <string name="terms_original_button">Originalseite öffnen</string>
+</resources>

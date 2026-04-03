@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>History Detail - Eco Bingo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4C8C00",
+                        "primary-container": "#D9E9B4",
+                        "on-primary-container": "#131F00",
+                        "surface-variant": "#F4F5F4",
+                        "background": "#FFFFFF",
+                        "outline-variant": "#C2C8BC",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "card": "16px",
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply font-sans antialiased bg-[#FAFAF8] text-slate-900;
+            }
+        }
+        .ios-elevated {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .bingo-grid-mini {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1px;
+            background-color: #E2E8F0;
+            padding: 1px;
+            border-radius: 4px;
+        }
+        .bingo-cell-mini {
+            aspect-ratio: 1/1;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4px;
+            font-weight: bold;
+        }
+        .bingo-cell-mini.marked {
+            background-color: #4C8C00;
+            color: white;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col pb-32">
+<header class="pt-12 pb-4 px-6 bg-white border-b border-slate-100 flex items-center">
+<button class="mr-4">
+<span class="material-symbols-outlined text-slate-900">arrow_back_ios</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-slate-900">History Detail</h1>
+</header>
+<main class="flex-1 p-6 space-y-6">
+<div class="bg-white p-6 rounded-card ios-elevated border border-slate-50">
+<div class="flex flex-col gap-1">
+<h2 class="text-lg font-bold text-slate-900">Session: Oct 27, 2023</h2>
+<div class="flex gap-4 mt-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-lg">description</span>
+<span class="text-sm font-semibold text-slate-600">3 Sheets</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-lg">numbers</span>
+<span class="text-sm font-semibold text-slate-600">12 Numbers Called</span>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider px-1">Called Numbers</h3>
+<div class="grid grid-cols-5 gap-2">
+<div class="flex flex-col gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs mx-auto">B</div>
+<div class="flex flex-wrap gap-1 justify-center">
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">04</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">12</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs mx-auto">I</div>
+<div class="flex flex-wrap gap-1 justify-center">
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">18</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">29</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs mx-auto">N</div>
+<div class="flex flex-wrap gap-1 justify-center">
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">34</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">41</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">45</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs mx-auto">G</div>
+<div class="flex flex-wrap gap-1 justify-center">
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">52</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">58</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs mx-auto">O</div>
+<div class="flex flex-wrap gap-1 justify-center">
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">66</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">71</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-xs font-bold">79</span>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider px-1">Sheets Played</h3>
+<div class="space-y-3">
+<div class="bg-white p-4 rounded-card ios-elevated border border-slate-50 flex items-center gap-4 active:bg-slate-50">
+<div class="w-12 h-12 flex-shrink-0">
+<div class="bingo-grid-mini">
+<div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div>
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div>
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked">★</div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div>
+<div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div>
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-bold text-slate-900">Sheet 1 - Anna's</p>
+<p class="text-xs text-slate-500 font-medium">Marked: 12/25</p>
+</div>
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+<div class="bg-white p-4 rounded-card ios-elevated border border-slate-50 flex items-center gap-4 active:bg-slate-50">
+<div class="w-12 h-12 flex-shrink-0">
+<div class="bingo-grid-mini">
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div>
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div>
+<div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked">★</div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div>
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini"></div>
+<div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div><div class="bingo-cell-mini marked"></div><div class="bingo-cell-mini"></div>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-bold text-slate-900">Sheet 2 - Shared</p>
+<p class="text-xs text-slate-500 font-medium">Marked: 08/25</p>
+</div>
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+</div>
+</div>
+<div class="space-y-3 pt-2">
+<button class="w-full bg-primary text-white font-bold py-4 rounded-card ios-elevated active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">play_circle</span>
+                Add to Live Play
+            </button>
+<button class="w-full bg-white border-2 border-primary text-primary font-bold py-4 rounded-card active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">content_copy</span>
+                Duplicate Session
+            </button>
+</div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 pb-[env(safe-area-inset-bottom)] px-6 z-50">
+<div class="flex justify-between items-center h-16 max-w-md mx-auto">
+<button class="flex flex-col items-center justify-center gap-0.5 text-slate-400 w-16">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-0.5 text-slate-400 w-16">
+<span class="material-symbols-outlined text-[24px]">qr_code_scanner</span>
+<span class="text-[10px] font-medium">Scan</span>
+</button>
+<button class="relative flex flex-col items-center justify-center gap-0.5 text-primary w-16">
+<span class="material-symbols-outlined text-[24px] fill-[1]">emoji_events</span>
+<span class="text-[10px] font-bold">Live Play</span>
+<span class="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="flex flex-col items-center justify-center gap-0.5 text-slate-400 w-16">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</nav>
+
+</body></html>

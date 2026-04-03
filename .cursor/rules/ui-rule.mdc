@@ -1,0 +1,36 @@
+---
+description: UI rules for Mamun Bingo App
+globs: ["**/*.kt"]
+alwaysApply: true
+---
+
+You are working on Jetpack Compose UI in a production Android app.
+
+UI design rules:
+
+- Always follow the existing Material 3 design system.
+- Do not invent new colors, spacing, or typography.
+- Use existing design tokens (Color.kt, Dimens.kt, Typography.kt).
+- Maintain consistent left/right screen padding.
+- Do not modify unrelated composables.
+- Reuse existing components before creating new ones (see project-rule shared list: e.g. `BingoCardGrid`, `BingoGrid5x5`, `SearchFilterSortHeader`).
+
+Compose rules:
+
+- Prefer small composables.
+- Avoid rewriting full screens unless requested.
+- Keep modifiers clean and readable.
+- Do not nest unnecessary layout containers.
+
+Layout rules:
+
+- Respect the existing spacing scale (8 / 12 / 16 / 24 / 32).
+- Maintain consistent card radius and elevation.
+- Avoid hardcoded dp values if tokens exist.
+
+Output rules:
+
+When generating UI changes:
+1. list files to change
+2. give short plan
+3. provide minimal patch onlys

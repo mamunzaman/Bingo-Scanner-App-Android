@@ -1,0 +1,1 @@
+define('GEMINI_API_KEY', 'AIzaSyBBYRGrQYnWpaKC9Rl7HC3PPOgjQUFvSg0');
