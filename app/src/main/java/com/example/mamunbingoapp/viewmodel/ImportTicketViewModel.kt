@@ -2,6 +2,7 @@ package com.example.mamunbingoapp.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.history.HistoryOcrSource
@@ -14,6 +15,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val FINAL_UI_GRID_LOG = "ImportTicketFinalUi"
+
+/** Row-major 5×5 list used everywhere import/review/manual prefill reads [ScanResultUiState.Success.numbers]. */
+internal fun finalUiGridRowMajor(numbers: List<Int>): List<Int> {
+    val t = numbers.take(25)
+    return if (t.size < 25) t + List(25 - t.size) { 0 } else t
+}
+
+private fun logFinalUiGridHandoff(finalRowMajor: List<Int>) {
+    val displayedCount = finalRowMajor.count { it != 0 }
+    val distinctDisplayedCount = finalRowMajor.filter { it in 1..75 }.distinct().size
+    Log.d(
+        FINAL_UI_GRID_LOG,
+        "finalRowMajor=$finalRowMajor displayedCount=$displayedCount distinctDisplayedCount=$distinctDisplayedCount source=finalUiGrid",
+    )
+}
 
 sealed class ScanResultUiState {
     data object Idle : ScanResultUiState()
@@ -94,10 +112,18 @@ class ImportTicketViewModel : ViewModel() {
     }
 
     fun setScanResult(state: ScanResultUiState) {
-        if (state is ScanResultUiState.Success) {
-            setCandidateNumbers(state.numbers.filter { it != 0 })
+        val toSet = when (state) {
+            is ScanResultUiState.Success -> {
+                val grid = finalUiGridRowMajor(state.numbers)
+                logFinalUiGridHandoff(grid)
+                state.copy(numbers = grid)
+            }
+            else -> state
         }
-        _scanResult.value = state
+        if (toSet is ScanResultUiState.Success) {
+            setCandidateNumbers(toSet.numbers.filter { it != 0 })
+        }
+        _scanResult.value = toSet
     }
 
     fun setCandidateNumbers(values: List<Int>) {
@@ -121,13 +147,14 @@ class ImportTicketViewModel : ViewModel() {
     ) {
         if (numbers.isEmpty()) return
         _selectedImageUri.value = null
-        _scanResult.value = ScanResultUiState.Success(
-            numbers.take(25),
-            losNumber = losNumber?.takeIf { it.isNotBlank() },
-            serialNumber = serialNumber?.takeIf { it.isNotBlank() },
-            ocrSource = null,
+        setScanResult(
+            ScanResultUiState.Success(
+                numbers,
+                losNumber = losNumber?.takeIf { it.isNotBlank() },
+                serialNumber = serialNumber?.takeIf { it.isNotBlank() },
+                ocrSource = null,
+            ),
         )
-        setCandidateNumbers(numbers)
         _prefilledSource.value = source
         _prefilledConfidence.value = confidence
     }

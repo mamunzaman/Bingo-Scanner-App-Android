@@ -86,6 +86,7 @@ import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
+import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 
 private const val PREVIEW_TAG = "HistoryPhotoImport"
 
@@ -713,12 +714,13 @@ fun HistoryPhotoImportScreen(
     val isAnalyzingUi = scanResult is ScanResultUiState.Loading
     val successState = scanResult as? ScanResultUiState.Success
     val errorState = scanResult as? ScanResultUiState.Error
-    val detectedCountUi = successState?.numbers?.count { it != 0 } ?: 0
-    val hasAnyNumber = successState?.numbers?.any { it != 0 } == true
+    val finalUiGrid = successState?.let { finalUiGridRowMajor(it.numbers) }
+    val detectedCountUi = finalUiGrid?.count { it != 0 } ?: 0
+    val hasAnyNumber = finalUiGrid?.any { it != 0 } == true
     val tooFewForContinue = successState != null && hasAnyNumber && detectedCountUi < MinDetectedCellsToContinue
     val canContinueUi = hasAnyNumber && !tooFewForContinue
     val analysisSummaryUi = errorState?.message
-        ?: successState?.let { "${it.numbers.count { n -> n != 0 }} numbers detected" }
+        ?: successState?.let { "${finalUiGridRowMajor(it.numbers).count { n -> n != 0 }} numbers detected" }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var pendingLeaveAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val isLocked = isAnalyzingUi || (detectedCountUi > 0) || (selectedImageUri != null)

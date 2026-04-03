@@ -74,6 +74,7 @@ import com.example.mamunbingoapp.ui.components.ScanResultData
 import com.example.mamunbingoapp.ui.components.ScanResultQualityCard
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
+import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 
 @Composable
 fun ImportTicketScreen(
@@ -214,7 +215,7 @@ fun ImportTicketScreen(
                 )
                 Spacer(modifier = Modifier.height(Dimens.spacing16))
             }
-            if ((scanResult as? ScanResultUiState.Success)?.numbers?.size == 25) {
+            if ((scanResult as? ScanResultUiState.Success)?.let { finalUiGridRowMajor(it.numbers).count { n -> n != 0 } } == FULL_GRID_COUNT) {
                 Text(
                     text = "Perfect scan. All numbers detected.",
                     style = MaterialTheme.typography.bodySmall,
@@ -300,16 +301,16 @@ private fun primaryCtaLabel(scanResult: ScanResultUiState): String = when (scanR
     is ScanResultUiState.Idle,
     is ScanResultUiState.Loading,
     is ScanResultUiState.Error -> "Review Detected Ticket"
-    is ScanResultUiState.Success -> when (scanResult.numbers.size) {
+    is ScanResultUiState.Success -> when (finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
         0 -> "Review Detected Ticket"
-        25 -> "Review Ticket"
+        FULL_GRID_COUNT -> "Review Ticket"
         else -> "Review Detected Numbers"
     }
 }
 
 private fun secondaryActionLabel(scanResult: ScanResultUiState): String? = when (scanResult) {
     is ScanResultUiState.Error -> "Retry Scan"
-    is ScanResultUiState.Success -> when (scanResult.numbers.size) {
+    is ScanResultUiState.Success -> when (finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
         0 -> "Try Another Photo"
         else -> "Scan Again"
     }
@@ -319,7 +320,7 @@ private fun secondaryActionLabel(scanResult: ScanResultUiState): String? = when 
 private fun ctaHelperLine(scanResult: ScanResultUiState): Pair<String, Boolean>? = when (scanResult) {
     is ScanResultUiState.Loading -> Pair("Please wait while your ticket is being analyzed.", false)
     is ScanResultUiState.Error -> Pair("Scan failed. Try another photo or enter numbers manually.", false)
-    is ScanResultUiState.Success -> when (scanResult.numbers.size) {
+    is ScanResultUiState.Success -> when (val n = finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
         0 -> Pair("No readable numbers were found. Try another photo or enter numbers manually.", false)
         in 1..(FULL_GRID_COUNT - 1) -> Pair("Only some numbers were detected. Please review before continuing.", true)
         else -> null
@@ -329,7 +330,7 @@ private fun ctaHelperLine(scanResult: ScanResultUiState): Pair<String, Boolean>?
 
 private fun scanResultToCardData(scanResult: ScanResultUiState): ScanResultData = when (scanResult) {
     is ScanResultUiState.Success -> {
-        val count = scanResult.numbers.size
+        val count = finalUiGridRowMajor(scanResult.numbers).count { it != 0 }
         val statusText = when {
             count == FULL_GRID_COUNT -> "Full ticket detected"
             count in 1..(FULL_GRID_COUNT - 1) -> "Partial detection"
@@ -359,7 +360,7 @@ private fun qualityFromCount(count: Int): QualityLevel = when {
 
 private fun scanResultToQualityData(scanResult: ScanResultUiState): ScanQualityData = when (scanResult) {
     is ScanResultUiState.Success -> {
-        val level = qualityFromCount(scanResult.numbers.size)
+        val level = qualityFromCount(finalUiGridRowMajor(scanResult.numbers).count { it != 0 })
         val ok = level == QualityLevel.HIGH || level == QualityLevel.MEDIUM
         ScanQualityData(
             level = level,

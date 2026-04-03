@@ -34,3 +34,43 @@ captures/
 
 # Secrets
 google-services.json
+
+# Temp / misc
+*.tmp
+*.temp
+*.bak
+
+# Mac hidden
+.AppleDouble
+.LSOverride
+
+# Windows hidden
+ehthumbs.db
+Desktop.ini
+
+# Android Studio caches
+.idea/caches/
+.idea/libraries/
+
+# Gradle wrapper logs
+gradle-app.setting
+
+# Documents (not needed in repo)
+*.doc
+*.docx
+*.pdf
+
+# Text / notes
+*.txt
+
+# Temp / backup files
+~*
+*.bak
+*.tmp
+*.temp
+
+# Logs / outputs
+build_output.txt
+
+# API keys / sensitive
+API_Key_*.txt

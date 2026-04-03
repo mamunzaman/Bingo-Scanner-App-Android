@@ -36,6 +36,7 @@ import androidx.navigation.navArgument
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.viewmodel.MainTabsViewModel
+import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 import com.example.mamunbingoapp.ui.screens.ForgotPasswordScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryDetailScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryListScreen
@@ -858,7 +859,7 @@ fun NavGraph(
                     val scanResult by importVm.scanResult.collectAsState()
                     val success = scanResult as? com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success
                     val error = scanResult as? com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error
-                    val detectedCount = success?.numbers?.count { it != 0 } ?: 0
+                    val detectedCount = success?.numbers?.let { finalUiGridRowMajor(it).count { n -> n != 0 } } ?: 0
                     val canContinue = success?.numbers?.any { it != 0 } == true
                     HistoryPhotoImportScreen(
                         onBackClick = {

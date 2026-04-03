@@ -1,4 +1,4 @@
-package com.example.mamunbingoapp.scanner
+﻿package com.example.mamunbingoapp.scanner
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -52,15 +52,8 @@ object ImportTicketImageOcr {
     private const val GRID_NUMBER_AREA_TOP_FRAC = 0.06f
     private const val GRID_NUMBER_AREA_BOTTOM_FRAC = 0.94f
 
-    /** Left branding strip (fraction of grid-crop width) for dedicated LOS / Serial OCR. */
+    /** Left branding strip (fraction of full ticket width); grid OCR uses the region to the right. */
     private const val LEFT_STRIP_WIDTH_FRAC = 0.24f
-    private const val LOS_ZONE_Y0_FRAC = 0.05f
-    private const val LOS_ZONE_Y1_FRAC = 0.26f
-    private const val SERIAL_ZONE_Y0_FRAC = 0.56f
-    private const val SERIAL_ZONE_Y1_FRAC = 0.80f
-
-    private val losRegex = Regex("(?i)LOS\\s*[:#]\\s*([A-Z0-9\\-]{3,})")
-    private val serialRegex = Regex("(?i)(?:SERIAL|SER\\.?)\\s*[:#]\\s*([A-Z0-9\\-]{3,})")
 
     fun analyzeUri(context: Context, uri: Uri): HistoryImportOcrOutcome {
         val bitmap = loadBitmapDownsampled(context, uri, maxSide = 1600)
@@ -73,8 +66,6 @@ object ImportTicketImageOcr {
         val distinctValidCount: Int,
         val raw: String,
     )
-
-    private data class LeftStripMeta(val losDigits: String?, val serialDigits: String?)
 
     private data class CellGridResult(val rowMajor: List<Int>, val distinctCount: Int)
 
@@ -95,7 +86,6 @@ object ImportTicketImageOcr {
         }
         val rootForPipeline = bezel.bitmap
         val pass1 = gridCropForNumberRegion(rootForPipeline)
-        val stripMeta = ocrLeftStripMeta(pass1, recognizer)
         var pass2: Bitmap? = null
         var highlightGridBitmap: Bitmap? = null
         return try {
@@ -258,29 +248,24 @@ object ImportTicketImageOcr {
                         Log.d(
                             TAG,
                             "ocrFinal: finalStage=$finalStage consensusValidCells=$consensusVc " +
-                                "consensusValid25=$consensusV25 validCells=$v distinct=$chosenDistinct valid25=$v25 " +
-                                "losDetected=${!layoutOutcome.losNumber.isNullOrBlank()} " +
-                                "serialDetected=${!layoutOutcome.serialNumber.isNullOrBlank()}",
+                                "consensusValid25=$consensusV25 validCells=$v distinct=$chosenDistinct valid25=$v25",
                         )
-                        return layoutOutcome
+                        val weakOut = layoutOutcome.copy(losNumber = null, serialNumber = null)
+                        logFinalGridHandoff(weakOut)
+                        return weakOut
                     }
                 }
             }
 
-            val meta = extractTicketMeta(baseRaws.toString() + deskewRaws.toString() + perspectiveRaws.toString())
-            val merged = chosenOutcome.copy(
-                losNumber = meta.first ?: chosenOutcome.losNumber,
-                serialNumber = meta.second ?: chosenOutcome.serialNumber,
-            )
-            val out = mergeStripMeta(merged, stripMeta)
+            val out = chosenOutcome.copy(losNumber = null, serialNumber = null)
             val vc = strictValidColumnCellCount(out.numbersRowMajor)
             val v25 = isStrictValidRowMajorGrid(out.numbersRowMajor)
             Log.d(
                 TAG,
                 "ocrFinal: finalStage=$finalStage consensusValidCells=$consensusVc " +
-                    "consensusValid25=$consensusV25 validCells=$vc distinct=$chosenDistinct valid25=$v25 " +
-                    "losDetected=${!out.losNumber.isNullOrBlank()} serialDetected=${!out.serialNumber.isNullOrBlank()}",
+                    "consensusValid25=$consensusV25 validCells=$vc distinct=$chosenDistinct valid25=$v25",
             )
+            logFinalGridHandoff(out)
             out
         } finally {
             recognizer.close()
@@ -763,7 +748,6 @@ object ImportTicketImageOcr {
         val visionText = Tasks.await(recognizer.process(image))
         val raw = visionText.text
         val ocrItems = buildOcrItems(visionText)
-        val meta = extractTicketMeta(raw)
 
         val filtered = filterToCentralGridRegion(ocrItems, ow, oh)
         val parseItems = filtered.takeIf { it.isNotEmpty() }
@@ -781,8 +765,8 @@ object ImportTicketImageOcr {
                 return PipelineResult(
                     HistoryImportOcrOutcome(
                         numbersRowMajor = rowMajorFromGrid(spatialGrid),
-                        losNumber = meta.first,
-                        serialNumber = meta.second,
+                        losNumber = null,
+                        serialNumber = null,
                     ),
                     distinctValidCount,
                     raw,
@@ -792,8 +776,8 @@ object ImportTicketImageOcr {
                 return PipelineResult(
                     HistoryImportOcrOutcome(
                         numbersRowMajor = spatialRowMajor,
-                        losNumber = meta.first,
-                        serialNumber = meta.second,
+                        losNumber = null,
+                        serialNumber = null,
                     ),
                     distinctValidCount,
                     raw,
@@ -804,8 +788,8 @@ object ImportTicketImageOcr {
                 return PipelineResult(
                     HistoryImportOcrOutcome(
                         numbersRowMajor = columnMajorListToRowMajor(textParse.gridNumbers),
-                        losNumber = textParse.serialNumber ?: meta.first,
-                        serialNumber = meta.second,
+                        losNumber = null,
+                        serialNumber = null,
                     ),
                     distinctValidCount,
                     raw,
@@ -815,8 +799,8 @@ object ImportTicketImageOcr {
                 return PipelineResult(
                     HistoryImportOcrOutcome(
                         numbersRowMajor = spatialRowMajor,
-                        losNumber = meta.first,
-                        serialNumber = meta.second,
+                        losNumber = null,
+                        serialNumber = null,
                     ),
                     distinctValidCount,
                     raw,
@@ -832,8 +816,8 @@ object ImportTicketImageOcr {
             return PipelineResult(
                 HistoryImportOcrOutcome(
                     numbersRowMajor = partial.take(25),
-                    losNumber = meta.first,
-                    serialNumber = meta.second,
+                    losNumber = null,
+                    serialNumber = null,
                 ),
                 distinctValidCount,
                 raw,
@@ -884,17 +868,11 @@ object ImportTicketImageOcr {
             best = partial.take(25)
         }
 
-        val serialMeta = listOf(
-            relaxedParse.takeIf { it.isValid }?.serialNumber,
-            textParse.takeIf { it.isValid }?.serialNumber,
-            lineParse.takeIf { it.isValid }?.serialNumber,
-        ).firstOrNull { !it.isNullOrBlank() } ?: meta.second
-
         return PipelineResult(
             HistoryImportOcrOutcome(
                 numbersRowMajor = pad25(best),
-                losNumber = meta.first,
-                serialNumber = serialMeta,
+                losNumber = null,
+                serialNumber = null,
             ),
             distinctValidCount,
             raw,
@@ -963,38 +941,9 @@ object ImportTicketImageOcr {
         return yBottom.coerceIn(h / 22, h - h / 7)
     }
 
-    /** LOS/serial zones on a bitmap that is already the left column only ([ocrLeftStripMeta] assumes full ticket width). */
-    private fun ocrLeftStripMetaFromLeftColumn(stripColumn: Bitmap, recognizer: TextRecognizer): LeftStripMeta {
-        return runCatching {
-            val w = stripColumn.width
-            val h = stripColumn.height
-            if (w < 8 || h < 48) return LeftStripMeta(null, null)
-            val losTop = (h * LOS_ZONE_Y0_FRAC).toInt().coerceIn(0, h - 2)
-            val losBottom = (h * LOS_ZONE_Y1_FRAC).toInt().coerceIn(losTop + 1, h)
-            val serTop = (h * SERIAL_ZONE_Y0_FRAC).toInt().coerceIn(0, h - 2)
-            val serBottom = (h * SERIAL_ZONE_Y1_FRAC).toInt().coerceIn(serTop + 1, h)
-            val losCrop = cropBitmapRect(stripColumn, 0, losTop, w, losBottom - losTop) ?: return LeftStripMeta(null, null)
-            val serCrop = cropBitmapRect(stripColumn, 0, serTop, w, serBottom - serTop)
-            if (serCrop == null) {
-                if (losCrop !== stripColumn && !losCrop.isRecycled) losCrop.recycle()
-                return LeftStripMeta(null, null)
-            }
-            try {
-                val losText = runMlKitPlainText(losCrop, recognizer)
-                val serText = runMlKitPlainText(serCrop, recognizer)
-                LeftStripMeta(
-                    losDigits = normalizeStripDigitsLos(losText),
-                    serialDigits = normalizeStripDigitsSerial(serText),
-                )
-            } finally {
-                if (losCrop !== stripColumn && !losCrop.isRecycled) losCrop.recycle()
-                if (serCrop !== stripColumn && !serCrop.isRecycled) serCrop.recycle()
-            }
-        }.getOrElse { LeftStripMeta(null, null) }
-    }
-
     /**
-     * Layout-anchored weak path: blue BINGO band → numeric grid below + left strip; returns only if [isStrictValidRowMajorGrid].
+     * Layout-anchored weak path: blue BINGO band → numeric grid to the right of the branding strip;
+     * returns only if [isStrictValidRowMajorGrid] for per-cell OCR on the grid crop.
      */
     private fun tryWeakPathBingoHeaderLayout(pass1: Bitmap, recognizer: TextRecognizer): HistoryImportOcrOutcome? {
         val headerBottom = detectBlueBingoHeaderBottomY(pass1)
@@ -1009,14 +958,12 @@ object ImportTicketImageOcr {
         val gridW = w - stripW
         val gridH = h - gridTop
         var gridBmp: Bitmap? = null
-        var stripBmp: Bitmap? = null
         return try {
             if (gridW < 36 || gridH < 36) {
-                Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=0 losDetected=false serialDetected=false")
+                Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=0")
                 return null
             }
             gridBmp = Bitmap.createBitmap(pass1, stripW, gridTop, gridW, gridH)
-            stripBmp = Bitmap.createBitmap(pass1, 0, gridTop, stripW, gridH)
             val cell = cellGridFromRegion(
                 gridBmp,
                 recognizer,
@@ -1026,7 +973,6 @@ object ImportTicketImageOcr {
                 gridBmp.height,
                 minFilled = 8,
             )
-            val stripMeta = ocrLeftStripMetaFromLeftColumn(stripBmp, recognizer)
             val validCells = if (cell != null) {
                 cell.rowMajor.withIndex().count { (idx, v) ->
                     val c = idx % 5
@@ -1036,24 +982,15 @@ object ImportTicketImageOcr {
             } else {
                 0
             }
-            val losDet = stripMeta.losDigits != null
-            val serDet = stripMeta.serialDigits != null
-            Log.d(
-                TAG,
-                "bingoHeaderWeak: headerDetected=true gridValidCells=$validCells losDetected=$losDet serialDetected=$serDet",
-            )
+            Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=$validCells")
             if (cell == null) return null
             if (!isStrictValidRowMajorGrid(cell.rowMajor)) return null
-            mergeStripMeta(
-                HistoryImportOcrOutcome(numbersRowMajor = pad25(cell.rowMajor)),
-                stripMeta,
-            )
+            HistoryImportOcrOutcome(numbersRowMajor = pad25(cell.rowMajor), losNumber = null, serialNumber = null)
         } catch (_: Exception) {
-            Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=0 losDetected=false serialDetected=false")
+            Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=0")
             null
         } finally {
             gridBmp?.let { if (!it.isRecycled) it.recycle() }
-            stripBmp?.let { if (!it.isRecycled) it.recycle() }
         }
     }
 
@@ -1218,53 +1155,6 @@ object ImportTicketImageOcr {
         return (0..4).flatMap { r -> (0..4).map { c -> g[r][c] } }
     }
 
-    private fun extractTicketMeta(raw: String): Pair<String?, String?> {
-        val los = losRegex.find(raw)?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
-        val ser = serialRegex.find(raw)?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
-        return los to ser
-    }
-
-    /** Prefer dedicated left-strip digits when present; otherwise keep [out] LOS/serial. */
-    private fun mergeStripMeta(out: HistoryImportOcrOutcome, strip: LeftStripMeta): HistoryImportOcrOutcome =
-        out.copy(
-            losNumber = strip.losDigits ?: out.losNumber,
-            serialNumber = strip.serialDigits ?: out.serialNumber,
-        )
-
-    /**
-     * OCR fixed upper/lower zones on the left strip of the grid crop (LOS = 5 digits, Serial = 4 digits).
-     * On failure or short reads, returns null fields so regex/meta from the main pipeline apply.
-     */
-    private fun ocrLeftStripMeta(ticketCrop: Bitmap, recognizer: TextRecognizer): LeftStripMeta {
-        return runCatching {
-            val w = ticketCrop.width
-            val h = ticketCrop.height
-            if (w < 48 || h < 48) return LeftStripMeta(null, null)
-            val stripW = (w * LEFT_STRIP_WIDTH_FRAC).toInt().coerceIn(8, w)
-            val losTop = (h * LOS_ZONE_Y0_FRAC).toInt().coerceIn(0, h - 2)
-            val losBottom = (h * LOS_ZONE_Y1_FRAC).toInt().coerceIn(losTop + 1, h)
-            val serTop = (h * SERIAL_ZONE_Y0_FRAC).toInt().coerceIn(0, h - 2)
-            val serBottom = (h * SERIAL_ZONE_Y1_FRAC).toInt().coerceIn(serTop + 1, h)
-            val losCrop = cropBitmapRect(ticketCrop, 0, losTop, stripW, losBottom - losTop) ?: return LeftStripMeta(null, null)
-            val serCrop = cropBitmapRect(ticketCrop, 0, serTop, stripW, serBottom - serTop)
-            if (serCrop == null) {
-                if (losCrop !== ticketCrop && !losCrop.isRecycled) losCrop.recycle()
-                return LeftStripMeta(null, null)
-            }
-            try {
-                val losText = runMlKitPlainText(losCrop, recognizer)
-                val serText = runMlKitPlainText(serCrop, recognizer)
-                LeftStripMeta(
-                    losDigits = normalizeStripDigitsLos(losText),
-                    serialDigits = normalizeStripDigitsSerial(serText),
-                )
-            } finally {
-                if (losCrop !== ticketCrop && !losCrop.isRecycled) losCrop.recycle()
-                if (serCrop !== ticketCrop && !serCrop.isRecycled) serCrop.recycle()
-            }
-        }.getOrElse { LeftStripMeta(null, null) }
-    }
-
     private fun cropBitmapRect(src: Bitmap, x: Int, y: Int, reqW: Int, reqH: Int): Bitmap? {
         val w = src.width
         val h = src.height
@@ -1278,22 +1168,6 @@ object ImportTicketImageOcr {
         } catch (_: Exception) {
             null
         }
-    }
-
-    private fun runMlKitPlainText(crop: Bitmap, recognizer: TextRecognizer): String {
-        val image = InputImage.fromBitmap(crop, 0)
-        val visionText = Tasks.await(recognizer.process(image))
-        return visionText.text
-    }
-
-    private fun normalizeStripDigitsLos(raw: String): String? {
-        val d = raw.filter { it.isDigit() }
-        return if (d.length >= 5) d.take(5) else null
-    }
-
-    private fun normalizeStripDigitsSerial(raw: String): String? {
-        val d = raw.filter { it.isDigit() }
-        return if (d.length >= 4) d.take(4) else null
     }
 
     /**
@@ -1330,6 +1204,13 @@ object ImportTicketImageOcr {
 
     private fun pad25(rowMajor: List<Int>): List<Int> =
         if (rowMajor.size >= 25) rowMajor.take(25) else rowMajor + List(25 - rowMajor.size) { 0 }
+
+    private fun logFinalGridHandoff(outcome: HistoryImportOcrOutcome) {
+        val rm = pad25(outcome.numbersRowMajor)
+        val displayedCount = rm.count { it != 0 }
+        val distinctDisplayedCount = rm.filter { it in 1..75 }.distinct().size
+        Log.d(TAG, "finalRowMajor=$rm displayedCount=$displayedCount distinctDisplayedCount=$distinctDisplayedCount")
+    }
 
     /** Non-zero cells whose value lies in the expected B/I/N/G/O column (row-major). */
     private fun strictValidColumnCellCount(rowMajor: List<Int>): Int {

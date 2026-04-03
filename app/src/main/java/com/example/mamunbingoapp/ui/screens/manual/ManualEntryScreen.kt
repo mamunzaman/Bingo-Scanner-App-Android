@@ -462,8 +462,8 @@ fun ManualEntryScreen(
         }
 
         Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        modifier = Modifier.fillMaxSize()
+    ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -511,10 +511,10 @@ fun ManualEntryScreen(
                         "meSaveOnlyPressScale",
                         "meSaveOnlyPressAlpha"
                     )
-                    AppTopBar(
-                        title = "Manual Entry",
+        AppTopBar(
+            title = "Manual Entry",
                         modifier = Modifier.fillMaxWidth(),
-                        showBack = true,
+            showBack = true,
                         onBackClick = {
                             dismissSheetTitleEdit()
                             if (hasEnteredValues) {
@@ -572,7 +572,7 @@ fun ManualEntryScreen(
                                 }
                             }
                             Box(
-                                modifier = Modifier
+                        modifier = Modifier
                                     .sizeIn(
                                         minWidth = 48.dp,
                                         minHeight = 48.dp
@@ -630,15 +630,15 @@ fun ManualEntryScreen(
                         }
                     )
                     Box(
-                        modifier = Modifier
+                                modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
+                                    .fillMaxWidth()
                             .padding(bottom = keypadDockForLayout + bingoKeypadBreathingGap)
                             .then(outsideDismissFlexModifier)
                     ) {
                         BoxWithConstraints(
-                            modifier = Modifier
-                                .fillMaxSize()
+                                    modifier = Modifier
+                                        .fillMaxSize()
                                 .padding(horizontal = Dimens.screenHorizontalPadding)
                         ) {
                                 var cardHeightPx by remember { mutableIntStateOf(0) }
@@ -784,8 +784,8 @@ fun ManualEntryScreen(
                                         val scrollPlaceable =
                                             subcompose("bingo-scroll") {
                                                 Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
                                                         .verticalScroll(gridScrollState),
                                                     horizontalAlignment =
                                                         Alignment.CenterHorizontally
