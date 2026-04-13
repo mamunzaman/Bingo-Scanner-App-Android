@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
@@ -30,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
-import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.core.BingoWinChecker
@@ -97,14 +96,8 @@ fun LiveSheetDetailScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AppHeaderBackground(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.4f)
-                .align(Alignment.TopCenter)
-        )
-        Column(Modifier.fillMaxSize()) {
+    AppHeaderPageLayout(
+        topBar = {
             AppTopBar(
                 title = "Sheet Detail",
                 showBack = true,
@@ -120,13 +113,15 @@ fun LiveSheetDetailScreen(
                     }
                 }
             )
+        },
+        content = {
             LazyColumn(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
             contentPadding = PaddingValues(
                 start = Dimens.screenHorizontalPadding,
-                top = Dimens.spacing5,
+                top = Dimens.spacing8,
                 end = Dimens.screenHorizontalPadding,
                 bottom = Dimens.spacing16
             ),
@@ -171,8 +166,8 @@ fun LiveSheetDetailScreen(
                 LiveSheetDetailGridCard(cells = displayCells, sheetName = sheetName)
             }
         }
-    }
-    }
+        }
+    )
 }
 
 @Composable
@@ -189,7 +184,7 @@ private fun LiveSheetDetailGridCard(cells: List<BingoCellUi>?, sheetName: String
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape)
+            .border(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f), shape)
             .padding(Dimens.spacing16)
     ) {
         if (gridCells == null) {

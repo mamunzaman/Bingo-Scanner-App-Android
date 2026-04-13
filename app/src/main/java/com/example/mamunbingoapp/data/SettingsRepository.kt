@@ -7,10 +7,12 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings_prefs")
 private val SHOW_DEMO_DATA = booleanPreferencesKey("show_demo_data")
+private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
 
 object SettingsRepository {
     private var _context: Context? = null
@@ -23,6 +25,16 @@ object SettingsRepository {
 
     val showDemoDataFlow: Flow<Boolean>
         get() = store().data.map { it[SHOW_DEMO_DATA] ?: false }
+
+    val onboardingCompletedFlow: Flow<Boolean>
+        get() = store().data.map { it[ONBOARDING_COMPLETED] ?: false }
+
+    suspend fun getOnboardingCompleted(): Boolean =
+        store().data.first()[ONBOARDING_COMPLETED] ?: false
+
+    suspend fun setOnboardingCompleted(value: Boolean) {
+        store().edit { it[ONBOARDING_COMPLETED] = value }
+    }
 
     suspend fun setShowDemoData(value: Boolean) {
         store().edit { it[SHOW_DEMO_DATA] = value }

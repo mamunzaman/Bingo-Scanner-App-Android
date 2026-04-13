@@ -2,7 +2,6 @@ package com.example.mamunbingoapp.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -33,10 +32,9 @@ fun StatusPill(status: SheetStatus, modifier: Modifier = Modifier) {
     }
     Box(
         modifier = modifier
-            .heightIn(min = Dimens.buttonHeight)
-            .clip(RoundedCornerShape(Dimens.radiusSmall))
+            .clip(RoundedCornerShape(Dimens.radiusPill))
             .background(bg)
-            .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing8),
+            .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -62,10 +60,9 @@ fun RoomStatusPill(status: RoomStatus, modifier: Modifier = Modifier) {
     }
     Box(
         modifier = modifier
-            .heightIn(min = Dimens.buttonHeight)
-            .clip(RoundedCornerShape(Dimens.radiusSmall))
+            .clip(RoundedCornerShape(Dimens.radiusPill))
             .background(bg)
-            .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing8),
+            .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4),
         contentAlignment = Alignment.Center
     ) {
         Text(

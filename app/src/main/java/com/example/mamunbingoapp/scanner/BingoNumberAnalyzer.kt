@@ -268,10 +268,10 @@ object BingoNumberAnalyzer {
         if (!hadBlue) return null
         bandBottom = bandBottom.coerceIn((0.07f * h).toInt(), (0.42f * h).toInt())
 
-        val regionLeft = (0.11f * w).toInt()
-        val regionRight = (0.91f * w).toInt()
+        val regionLeft = (0.08f * w).toInt()
+        val regionRight = (0.92f * w).toInt()
         val regionTop = bandBottom + (0.015f * h).toInt()
-        val regionBottomMax = (0.78f * h).toInt()
+        val regionBottomMax = (0.75f * h).toInt()
         if (regionRight <= regionLeft + 40 || regionBottomMax <= regionTop + 40) return null
 
         val rh = regionBottomMax - regionTop
@@ -297,18 +297,20 @@ object BingoNumberAnalyzer {
         if (strengths.isEmpty()) return null
         val sortedS = strengths.sorted()
         val median = sortedS[sortedS.size / 2]
-        val thresh = median * 0.85f
+        val threshStart = median * 0.78f
+        val threshEnd = median * 0.86f
 
         var yStartIdx = 0
         for (i in 0 until ri) {
-            if (rowStrength[i] >= thresh) {
+            if (rowStrength[i] >= threshStart) {
                 yStartIdx = i
                 break
             }
         }
+        yStartIdx = max(0, yStartIdx - 1)
         var yEndIdx = ri - 1
         for (i in (0 until ri).reversed()) {
-            if (rowStrength[i] >= thresh) {
+            if (rowStrength[i] >= threshEnd) {
                 yEndIdx = i
                 break
             }
@@ -317,18 +319,27 @@ object BingoNumberAnalyzer {
 
         val refinedTop = regionTop + yStartIdx * step
         val refinedBottom = regionTop + (yEndIdx + 1) * step
-        val cropTop = (refinedTop - (0.03f * h).toInt()).coerceAtLeast(regionTop)
-        val cropBottom = (refinedBottom + (0.025f * h).toInt()).coerceAtMost(regionBottomMax)
-        val padX = max((0.02f * w).toInt(), 4)
-        val padY = max((0.02f * h).toInt(), 4)
+        val topMarginMin = max(0, bandBottom - (0.03f * h).toInt())
+        val cropTop = (refinedTop - (0.055f * h).toInt()).coerceAtLeast(topMarginMin)
+        val cropBottom = (refinedBottom + (0.016f * h).toInt()).coerceAtMost(regionBottomMax)
+        val padX = max((0.045f * w).toInt(), 6)
+        val padTopY = max((0.042f * h).toInt(), 6)
+        val padBottomY = max((0.014f * h).toInt(), 3)
 
         var left = regionLeft - padX
         var right = regionRight + padX
-        var top = cropTop - padY
-        var bottom = cropBottom + padY
+        var top = cropTop - padTopY
+        var bottom = cropBottom + padBottomY
         left = left.coerceIn(0, w - 2)
         right = right.coerceIn(left + 2, w)
         top = top.coerceIn(0, h - 2)
+        bottom = bottom.coerceIn(top + 2, h)
+
+        val maxTopInset = (0.17f * h).toInt()
+        val maxLeftInset = (0.13f * w).toInt()
+        if (top > maxTopInset) top = maxTopInset
+        if (left > maxLeftInset) left = maxLeftInset
+        right = right.coerceIn(left + 2, w)
         bottom = bottom.coerceIn(top + 2, h)
 
         val cw = right - left
@@ -338,7 +349,12 @@ object BingoNumberAnalyzer {
         if (cw < w * 0.22f || ch < h * 0.12f) return null
 
         return try {
-            Bitmap.createBitmap(src, left, top, cw, ch)
+            val out = Bitmap.createBitmap(src, left, top, cw, ch)
+            Log.d(
+                SCANNER_TAG,
+                "gridCrop analyzer src=${w}x${h} rect=[$left,$top][$right,$bottom] out=${cw}x${ch} regionBottomMax=$regionBottomMax",
+            )
+            out
         } catch (_: Exception) {
             null
         }

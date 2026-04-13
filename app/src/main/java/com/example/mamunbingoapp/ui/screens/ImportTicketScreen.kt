@@ -1,11 +1,27 @@
 package com.example.mamunbingoapp.ui.screens
 
+import android.app.Activity
+import android.content.ClipData
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color as AndroidColor
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,85 +36,393 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.yalantis.ucrop.UCrop
+import com.yalantis.ucrop.UCropActivity
+import com.yalantis.ucrop.model.AspectRatio
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.CardBorderGreen
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.EmptyHistoryCardBg
 import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.theme.Scrim
+import com.example.mamunbingoapp.theme.OnPrimary
 import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.theme.PrimaryContainer
+import com.example.mamunbingoapp.theme.PrimaryDark
 import com.example.mamunbingoapp.theme.Slate200
-import com.example.mamunbingoapp.theme.Slate400
-import com.example.mamunbingoapp.theme.AppTextStyles
+import com.example.mamunbingoapp.theme.Slate600
 import com.example.mamunbingoapp.theme.MamunBingoTheme
-import com.example.mamunbingoapp.theme.Success
 import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppBottomBar
-import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
-import com.example.mamunbingoapp.ui.components.QualityLevel
-import com.example.mamunbingoapp.ui.components.ScanQualityData
-import com.example.mamunbingoapp.ui.components.ScanResultData
-import com.example.mamunbingoapp.ui.components.ScanResultQualityCard
+import com.example.mamunbingoapp.ui.components.ImportTicketFailedScanContent
+import com.example.mamunbingoapp.viewmodel.GalleryManualTrim
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+
+/** Set on `main` before navigating to `historyPhotoImport`; destination removes it and starts OCR once. */
+const val PENDING_HISTORY_PHOTO_IMPORT_URI_KEY = "pendingHistoryPhotoImportUri"
+
+private fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+private const val IMPORT_GALLERY_UCROP_LOG = "ImportTicketGalleryUcrop"
+
+/** Gallery pending screen: post-uCrop edge trim sliders (hidden while uCrop freestyle handles framing). */
+private const val SHOW_POST_UCROP_GALLERY_TRIM_SLIDERS = false
+
+private fun copyGalleryPickToCacheSourceUri(context: Context, pickerUri: Uri): Uri? =
+    try {
+        val destFile = File.createTempFile("import_gallery_src_", ".jpg", context.cacheDir)
+        val ok = context.contentResolver.openInputStream(pickerUri)?.use { input ->
+            destFile.outputStream().use { output -> input.copyTo(output) }
+            true
+        } ?: false
+        if (!ok) {
+            destFile.delete()
+            null
+        } else {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                destFile,
+            )
+        }
+    } catch (e: Exception) {
+        Log.e(IMPORT_GALLERY_UCROP_LOG, "copy gallery pick", e)
+        null
+    }
+
+private fun deleteAppCacheContentUri(context: Context, uri: Uri) {
+    try {
+        if (uri.scheme == "content" && uri.authority == "${context.packageName}.fileprovider") {
+            context.contentResolver.delete(uri, null, null)
+        }
+    } catch (e: Exception) {
+        Log.w(IMPORT_GALLERY_UCROP_LOG, "delete cache uri", e)
+    }
+}
+
+private fun buildImportTicketUcropIntent(context: Context, sourceUri: Uri, destUri: Uri): Intent {
+    val toolbar = ContextCompat.getColor(context, R.color.ucrop_toolbar_green)
+    val statusBar = ContextCompat.getColor(context, R.color.ucrop_status_bar_green)
+    val toolbarContent = ContextCompat.getColor(context, R.color.ucrop_toolbar_content_light)
+    val canvasBg = ContextCompat.getColor(context, R.color.ucrop_canvas_background)
+    val cropFrameColor = ContextCompat.getColor(context, R.color.white)
+    val cropGridColor = AndroidColor.argb(175, 255, 255, 255)
+    val density = context.resources.displayMetrics.density
+    val frameStrokePx = (4f * density).toInt().coerceIn(4, 10)
+    val gridStrokePx = (2f * density).toInt().coerceIn(2, 5)
+    val options = UCrop.Options().apply {
+        setCompressionFormat(Bitmap.CompressFormat.JPEG)
+        setCompressionQuality(92)
+        setFreeStyleCropEnabled(true)
+        setAllowedGestures(UCropActivity.ALL, UCropActivity.ALL, UCropActivity.ALL)
+        setMaxScaleMultiplier(28f)
+        setImageToCropBoundsAnimDuration(280)
+        setHideBottomControls(false)
+        setShowCropFrame(true)
+        setShowCropGrid(true)
+        setCircleDimmedLayer(false)
+        setAspectRatioOptions(
+            0,
+            AspectRatio("3:4", 3f, 4f),
+            AspectRatio("4:3", 4f, 3f),
+            AspectRatio("1:1", 1f, 1f),
+            AspectRatio("9:16", 9f, 16f),
+            AspectRatio("16:9", 16f, 9f),
+        )
+        setDimmedLayerColor(AndroidColor.argb(200, 0, 0, 0))
+        setCropFrameColor(cropFrameColor)
+        setCropFrameStrokeWidth(frameStrokePx)
+        setCropGridColor(cropGridColor)
+        setCropGridStrokeWidth(gridStrokePx)
+        setToolbarTitle(context.getString(R.string.import_ticket_ucrop_title))
+        setToolbarColor(toolbar)
+        setStatusBarColor(statusBar)
+        setToolbarWidgetColor(toolbarContent)
+        setActiveControlsWidgetColor(toolbar)
+        setRootViewBackgroundColor(canvasBg)
+    }
+    val intent = UCrop.of(sourceUri, destUri)
+        .withOptions(options)
+        .withMaxResultSize(4096, 4096)
+        .getIntent(context)
+    Log.d(
+        IMPORT_GALLERY_UCROP_LOG,
+        "uCropConfig freestyle=true hideBottomControls=false gestures=ALL dynamicRatio=true rotateVisible=true",
+    )
+    Log.d(IMPORT_GALLERY_UCROP_LOG, "uCropVisuals dimmed=strong frame=strong grid=visible")
+    return intent
+}
+
+private fun prepareImportTicketUcropIntentForLaunch(
+    context: Context,
+    sourceUri: Uri,
+    destUri: Uri,
+): Intent {
+    val intent = buildImportTicketUcropIntent(context, sourceUri, destUri)
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+    val clip = ClipData.newUri(context.contentResolver, "source", sourceUri)
+    clip.addItem(ClipData.Item(destUri))
+    intent.clipData = clip
+    val resolved = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+    val targetPkg = resolved?.activityInfo?.packageName
+    if (targetPkg != null) {
+        try {
+            context.grantUriPermission(targetPkg, sourceUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            context.grantUriPermission(
+                targetPkg,
+                destUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        } catch (e: SecurityException) {
+            Log.w(IMPORT_GALLERY_UCROP_LOG, "grantUriPermission ucrop", e)
+        }
+    }
+    return intent
+}
+
+/**
+ * **Gallery only:** [PickVisualMedia] → copy to cache → [uCrop] (3:4) → [onCroppedImageReady].
+ * Picker cancel = no callback. uCrop cancel/error/copy/launch failure = idle, no fallback to original pick.
+ * Take Photo / GMS unchanged. Caller maps to [ImportTicketViewModel.setGalleryPendingEdit].
+ */
+@Composable
+fun rememberImportTicketGalleryImagePickLauncher(
+    onCroppedImageReady: (Uri) -> Unit,
+): () -> Unit {
+    val context = LocalContext.current
+    val appCtx = context.applicationContext
+    val onReady by rememberUpdatedState(onCroppedImageReady)
+    val scope = rememberCoroutineScope()
+    val pendingSourceCopyUri = remember { mutableStateOf<Uri?>(null) }
+    val pendingDestUri = remember { mutableStateOf<Uri?>(null) }
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val srcCopy = pendingSourceCopyUri.value
+        val dest = pendingDestUri.value
+        pendingSourceCopyUri.value = null
+        pendingDestUri.value = null
+        fun cleanupBoth() {
+            srcCopy?.let { deleteAppCacheContentUri(appCtx, it) }
+            dest?.let { deleteAppCacheContentUri(appCtx, it) }
+        }
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                val out = result.data?.let { UCrop.getOutput(it) }
+                if (out != null) {
+                    srcCopy?.let { deleteAppCacheContentUri(appCtx, it) }
+                    onReady(out)
+                } else {
+                    Log.e(IMPORT_GALLERY_UCROP_LOG, "uCrop RESULT_OK but no output URI")
+                    cleanupBoth()
+                }
+            }
+            Activity.RESULT_CANCELED -> cleanupBoth()
+            else -> {
+                val err = result.data?.let { UCrop.getError(it) }
+                Log.e(IMPORT_GALLERY_UCROP_LOG, "uCrop failed or dismissed", err)
+                cleanupBoth()
+            }
+        }
+    }
+    val pickLauncher = rememberLauncherForActivityResult(
+        contract = PickVisualMedia(),
+    ) { picked: Uri? ->
+        if (picked == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val sourceCopyUri = withContext(Dispatchers.IO) {
+                copyGalleryPickToCacheSourceUri(appCtx, picked)
+            }
+            if (sourceCopyUri == null) {
+                Log.e(IMPORT_GALLERY_UCROP_LOG, "copy pick to cache failed; staying idle")
+                return@launch
+            }
+            val destFile = try {
+                File.createTempFile("import_gallery_crop_", ".jpg", appCtx.cacheDir)
+            } catch (e: Exception) {
+                Log.e(IMPORT_GALLERY_UCROP_LOG, "temp dest file", e)
+                deleteAppCacheContentUri(appCtx, sourceCopyUri)
+                return@launch
+            }
+            val outputUri = FileProvider.getUriForFile(
+                appCtx,
+                "${appCtx.packageName}.fileprovider",
+                destFile,
+            )
+            pendingSourceCopyUri.value = sourceCopyUri
+            pendingDestUri.value = outputUri
+            try {
+                Toast.makeText(
+                    context,
+                    "Include full ticket (grid + left number + bottom number)",
+                    Toast.LENGTH_LONG,
+                ).show()
+                val cropIntent = prepareImportTicketUcropIntentForLaunch(appCtx, sourceCopyUri, outputUri)
+                cropLauncher.launch(cropIntent)
+            } catch (e: Exception) {
+                Log.e(IMPORT_GALLERY_UCROP_LOG, "launch uCrop", e)
+                pendingSourceCopyUri.value = null
+                pendingDestUri.value = null
+                deleteAppCacheContentUri(appCtx, sourceCopyUri)
+                deleteAppCacheContentUri(appCtx, outputUri)
+            }
+        }
+    }
+    return remember(pickLauncher, cropLauncher, scope) {
+        {
+            pickLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+        }
+    }
+}
+
+/**
+ * GMS document scanner: Import Ticket **Take photo**, Jackpot “Scan Sheet”, and scan-tab handoff — not used for Gallery.
+ */
+@Composable
+fun rememberImportTicketGmsDocumentScanLauncher(
+    onScanResultOk: (Uri?) -> Unit,
+    onActivityMissing: () -> Unit = {},
+    onScannerStartFailed: () -> Unit = {},
+): () -> Unit {
+    val context = LocalContext.current
+    val scannerOptions = remember {
+        GmsDocumentScannerOptions.Builder()
+            .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE)
+            .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+            .setPageLimit(1)
+            .build()
+    }
+    val scannerClient = remember { GmsDocumentScanning.getClient(scannerOptions) }
+    val scanDocument = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
+            val scannedPageUri = scanResult?.pages?.firstOrNull()?.imageUri
+            onScanResultOk(scannedPageUri)
+        }
+    }
+    return remember(scannerClient, context) {
+        {
+            val activity = context.findActivity()
+            if (activity == null) {
+                onActivityMissing()
+            } else {
+                scannerClient.getStartScanIntent(activity)
+                    .addOnSuccessListener { intentSender ->
+                        scanDocument.launch(IntentSenderRequest.Builder(intentSender).build())
+                    }
+                    .addOnFailureListener { e ->
+                        Log.d("ImportTicketGmsScan", "document scanner launch failed: ${e.message}")
+                        onScannerStartFailed()
+                    }
+            }
+        }
+    }
+}
 
 @Composable
 fun ImportTicketScreen(
     onBack: () -> Unit,
     onDiscardAndBack: () -> Unit,
     onTakePhoto: () -> Unit,
-    onPickFromGallery: () -> Unit,
     onReviewClicked: () -> Unit,
+    onSaveAndRoomClicked: () -> Unit = onReviewClicked,
     showBottomBar: Boolean = true,
     imageSource: String? = null,
     viewModel: ImportTicketViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val idleHint = stringResource(R.string.import_ticket_idle_hint)
     val selectedUri by viewModel.selectedImageUri.collectAsState()
+    val galleryPendingUri by viewModel.galleryPendingEditUri.collectAsState()
+    val displayUri = galleryPendingUri ?: selectedUri
     val scanResult by viewModel.scanResult.collectAsState()
-    val successNumbers = (scanResult as? ScanResultUiState.Success)?.numbers
-    val ctaEnabled = !successNumbers.isNullOrEmpty()
+    val pickImageFromGallery = rememberImportTicketGalleryImagePickLauncher { uri ->
+        viewModel.setGalleryPendingEdit(uri)
+    }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var pendingReplaceAction by remember { mutableStateOf<PendingReplace?>(null) }
-    var reviewClickedOnce by remember(selectedUri, scanResult) { mutableStateOf(false) }
-    val isDirty = selectedUri != null ||
-        scanResult is ScanResultUiState.Loading ||
-        scanResult is ScanResultUiState.Success ||
-        scanResult is ScanResultUiState.Error
+    val isDirty =
+        selectedUri != null ||
+            galleryPendingUri != null ||
+            scanResult is ScanResultUiState.Loading ||
+            scanResult is ScanResultUiState.Success ||
+            scanResult is ScanResultUiState.Error
     val isAnalyzing = scanResult is ScanResultUiState.Loading
+    val allowScroll = scanResult !is ScanResultUiState.Error
     val scrollState = rememberScrollState()
     var previousScanResult by remember { mutableStateOf<ScanResultUiState?>(null) }
     var userTouchedScroll by remember { mutableStateOf(false) }
@@ -114,15 +438,19 @@ fun ImportTicketScreen(
     }
     LaunchedEffect(scanResult) {
         val prev = previousScanResult
-        if ((scanResult is ScanResultUiState.Success || scanResult is ScanResultUiState.Error) && prev is ScanResultUiState.Loading && !userTouchedScroll) {
+        if (allowScroll &&
+            (scanResult is ScanResultUiState.Success || scanResult is ScanResultUiState.Error) &&
+            prev is ScanResultUiState.Loading &&
+            !userTouchedScroll
+        ) {
             programmaticScrollInProgress = true
             scrollState.animateScrollTo(scrollState.maxValue)
             programmaticScrollInProgress = false
         }
         previousScanResult = scanResult
     }
-    LaunchedEffect(selectedUri) {
-        if (selectedUri != null) {
+    LaunchedEffect(selectedUri, galleryPendingUri) {
+        if (selectedUri != null || galleryPendingUri != null) {
             userTouchedScroll = false
             if (!userTouchedScroll) {
                 programmaticScrollInProgress = true
@@ -133,132 +461,56 @@ fun ImportTicketScreen(
     }
 
     BackHandler(enabled = true) {
-        if (isDirty) showDiscardDialog = true else onBack()
+        when {
+            galleryPendingUri != null -> viewModel.cancelGalleryPendingEdit()
+            isDirty -> showDiscardDialog = true
+            else -> onBack()
+        }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Box(modifier = Modifier.statusBarsPadding()) {
             AppTopBar(
                 title = "Import Ticket",
                 showBack = true,
-                onBackClick = { if (isDirty) showDiscardDialog = true else onBack() }
+                onBackClick = {
+                    when {
+                        galleryPendingUri != null -> viewModel.cancelGalleryPendingEdit()
+                        isDirty -> showDiscardDialog = true
+                        else -> onBack()
+                    }
+                }
             )
         }
+        val contentPadding = Modifier
+            .padding(horizontal = Dimens.screenHorizontalPadding)
+            .padding(top = Dimens.spacing16, bottom = Dimens.spacing24)
+        val scrollModifier = if (allowScroll) Modifier.verticalScroll(scrollState) else Modifier
         Column(
             modifier = Modifier
                 .weight(1f)
-                .verticalScroll(scrollState)
-                .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing24, bottom = Dimens.spacing16)
+                .fillMaxWidth()
+                .then(scrollModifier)
+                .then(contentPadding)
         ) {
-            HeroBannerCard(
-                selectedImageUri = selectedUri,
-                isAnalyzing = scanResult is ScanResultUiState.Loading,
-                modifier = Modifier.fillMaxWidth()
+            ImportTicketMainContent(
+                selectedUri = displayUri,
+                galleryPendingEditUri = galleryPendingUri,
+                scanResult = scanResult,
+                isAnalyzing = isAnalyzing,
+                imageSource = imageSource,
+                idleHint = idleHint,
+                onTakePhoto = { if (isDirty) pendingReplaceAction = PendingReplace.TakePhoto else onTakePhoto() },
+                onPickFromGallery = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else pickImageFromGallery() },
+                onSecondaryOutlinedClick = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else pickImageFromGallery() },
+                onGalleryApply = { l, t, r, b -> viewModel.applyGalleryPendingEdit(context, l, t, r, b) },
+                onGalleryCancel = { viewModel.cancelGalleryPendingEdit() },
+                modifier = Modifier.fillMaxSize()
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing12))
-            when {
-                scanResult is ScanResultUiState.Success || scanResult is ScanResultUiState.Error -> ScanResultQualityCard(
-                    scanResult = scanResultToCardData(scanResult),
-                    qualityData = scanResultToQualityData(scanResult),
-                    showQualitySection = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                else -> ScanResultPlaceholder(
-                    isAnalyzing = scanResult is ScanResultUiState.Loading,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            Spacer(modifier = Modifier.height(Dimens.spacing12))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-            ) {
-                TakePhotoCard(
-                    modifier = Modifier.weight(1f),
-                    onClick = { if (isDirty) pendingReplaceAction = PendingReplace.TakePhoto else onTakePhoto() }
-                )
-                GalleryCard(
-                    modifier = Modifier.weight(1f),
-                    onClick = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else onPickFromGallery() }
-                )
-            }
-            if (isAnalyzing) {
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
-                Text(
-                    text = "Image actions are unavailable while analysis is running.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
-            }
-            if ((scanResult is ScanResultUiState.Success || scanResult is ScanResultUiState.Error) && imageSource != null) {
-                Text(
-                    text = "Source: $imageSource",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
-            }
-            ctaHelperLine(scanResult)?.let { (text, useWarningColor) ->
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (useWarningColor) WarningText else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
-            }
-            if ((scanResult as? ScanResultUiState.Success)?.let { finalUiGridRowMajor(it.numbers).count { n -> n != 0 } } == FULL_GRID_COUNT) {
-                Text(
-                    text = "Perfect scan. All numbers detected.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Success,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing8))
-                Spacer(modifier = Modifier.height(Dimens.spacing24))
-            }
-            AppPrimaryButton(
-                text = primaryCtaLabel(scanResult),
-                onClick = {
-                    if (!reviewClickedOnce) {
-                        reviewClickedOnce = true
-                        onReviewClicked()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = ctaEnabled && !reviewClickedOnce,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimens.iconDefault),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            )
-            if (!isAnalyzing) {
-                secondaryActionLabel(scanResult)?.let { label ->
-                    Spacer(modifier = Modifier.height(Dimens.spacing12))
-                    OutlinedButton(
-                        onClick = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else onPickFromGallery() },
-                        modifier = Modifier.fillMaxWidth().height(Dimens.buttonHeight),
-                        border = BorderStroke(1.dp, CardBorderGreen),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-                        shape = MaterialTheme.shapes.medium,
-                    ) {
-                        Text(text = label, style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            }
         }
         if (showBottomBar) {
             AppBottomBar(selectedTab = AppTab.Scan, onTabSelected = {})
@@ -283,7 +535,7 @@ fun ImportTicketScreen(
         onConfirm = {
             when (pendingReplaceAction) {
                 PendingReplace.TakePhoto -> onTakePhoto()
-                PendingReplace.PickGallery -> onPickFromGallery()
+                PendingReplace.PickGallery -> pickImageFromGallery()
                 null -> { }
             }
             pendingReplaceAction = null
@@ -297,119 +549,459 @@ private enum class PendingReplace { TakePhoto, PickGallery }
 
 private const val FULL_GRID_COUNT = 25
 
-private fun primaryCtaLabel(scanResult: ScanResultUiState): String = when (scanResult) {
-    is ScanResultUiState.Idle,
-    is ScanResultUiState.Loading,
-    is ScanResultUiState.Error -> "Review Detected Ticket"
-    is ScanResultUiState.Success -> when (finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
-        0 -> "Review Detected Ticket"
-        FULL_GRID_COUNT -> "Review Ticket"
-        else -> "Review Detected Numbers"
+private data class ScanSummaryUi(val numbers: String, val grid: String, val confidence: Float)
+
+private fun scanSummaryMetrics(scanResult: ScanResultUiState): ScanSummaryUi = when (scanResult) {
+    is ScanResultUiState.Success -> {
+        val grid = finalUiGridRowMajor(scanResult.numbers)
+        val count = grid.count { it != 0 }
+        ScanSummaryUi(
+            numbers = count.toString(),
+            grid = if (count > 0) "5×5" else "—",
+            confidence = (count / 25f).coerceIn(0f, 1f),
+        )
     }
+    is ScanResultUiState.Error -> ScanSummaryUi("—", "—", 0f)
+    else -> ScanSummaryUi("—", "—", 0f)
 }
 
-private fun secondaryActionLabel(scanResult: ScanResultUiState): String? = when (scanResult) {
-    is ScanResultUiState.Error -> "Retry Scan"
+private fun ctaHelperLine(scanResult: ScanResultUiState, idleHint: String): Pair<String, Boolean>? = when (scanResult) {
+    is ScanResultUiState.Idle -> Pair(idleHint, false)
+    is ScanResultUiState.Loading -> null
+    is ScanResultUiState.Error -> null
     is ScanResultUiState.Success -> when (finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
-        0 -> "Try Another Photo"
-        else -> "Scan Again"
-    }
-    else -> null
-}
-
-private fun ctaHelperLine(scanResult: ScanResultUiState): Pair<String, Boolean>? = when (scanResult) {
-    is ScanResultUiState.Loading -> Pair("Please wait while your ticket is being analyzed.", false)
-    is ScanResultUiState.Error -> Pair("Scan failed. Try another photo or enter numbers manually.", false)
-    is ScanResultUiState.Success -> when (val n = finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
         0 -> Pair("No readable numbers were found. Try another photo or enter numbers manually.", false)
         in 1..(FULL_GRID_COUNT - 1) -> Pair("Only some numbers were detected. Please review before continuing.", true)
         else -> null
     }
-    else -> Pair("Upload a ticket image to start scanning.", false)
 }
 
-private fun scanResultToCardData(scanResult: ScanResultUiState): ScanResultData = when (scanResult) {
-    is ScanResultUiState.Success -> {
-        val count = finalUiGridRowMajor(scanResult.numbers).count { it != 0 }
-        val statusText = when {
-            count == FULL_GRID_COUNT -> "Full ticket detected"
-            count in 1..(FULL_GRID_COUNT - 1) -> "Partial detection"
-            else -> "No readable numbers"
+/**
+ * Import ticket column: hero preview, metrics when not success, photo actions; auto Manual Entry is handled in NavGraph when the scan is strong enough.
+ * Analyzing feedback uses `ImportTicketHeroAnalyzingOverlay` on the hero only when [ScanResultUiState.Loading] (no separate card below).
+ * @param selectedUri Hero preview (committed image or gallery pending preview).
+ * @param galleryPendingEditUri When non-null, shows Apply/Discard before OCR; Gallery-only.
+ * @param suppressHeroImage when true, hero preview URI is not drawn (e.g. strong scan handoff before nav).
+ * @param onGalleryApply Trim fractions 0…[GalleryManualTrim.TRIM_SLIDER_MAX] per edge (gallery pending only).
+ */
+@Composable
+fun ImportTicketMainContent(
+    selectedUri: Uri?,
+    scanResult: ScanResultUiState,
+    isAnalyzing: Boolean,
+    imageSource: String?,
+    idleHint: String,
+    onTakePhoto: () -> Unit,
+    onPickFromGallery: () -> Unit,
+    onSecondaryOutlinedClick: () -> Unit,
+    galleryPendingEditUri: Uri? = null,
+    onGalleryApply: (trimLeft: Float, trimTop: Float, trimRight: Float, trimBottom: Float) -> Unit = { _, _, _, _ -> },
+    onGalleryCancel: () -> Unit = {},
+    suppressHeroImage: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    if (scanResult is ScanResultUiState.Error) {
+        val err = scanResult
+        val primary = err.message.takeIf { it.isNotBlank() }
+            ?: "Scan failed. Try another photo or enter numbers manually."
+        val errHeroUri = if (suppressHeroImage) null else selectedUri
+        Column(modifier = modifier.fillMaxSize()) {
+            if (errHeroUri != null) {
+                HeroBannerCard(
+                    selectedImageUri = errHeroUri,
+                    asyncImageModel = null,
+                    isAnalyzing = false,
+                    expandVertically = false,
+                    scanAgainOnError = null,
+                    heroOverlay = null,
+                    compactPadding = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 156.dp),
+                )
+                Spacer(modifier = Modifier.height(Dimens.spacing12))
+            }
+            ImportTicketFailedScanContent(
+                primaryMessage = primary,
+                helpText = stringResource(R.string.import_ticket_scan_tips_footer),
+                onTakePhoto = onTakePhoto,
+                onPickFromGallery = onPickFromGallery,
+                enabled = !isAnalyzing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (errHeroUri != null) Modifier.fillMaxHeight() else Modifier.fillMaxSize()),
+                detectedValidCount = err.detectedValidCount,
+                losNumber = err.losNumber,
+                serialNumber = err.serialNumber,
+            )
         }
-        ScanResultData(
-            numbers = count.toString(),
-            grid = if (count > 0) "5×5" else "—",
-            card = statusText
-        )
+    } else {
+    val galleryCtx = LocalContext.current.applicationContext
+    var trimLeft by remember { mutableFloatStateOf(0f) }
+    var trimTop by remember { mutableFloatStateOf(0f) }
+    var trimRight by remember { mutableFloatStateOf(0f) }
+    var trimBottom by remember { mutableFloatStateOf(0f) }
+    var heroAsyncImage by remember { mutableStateOf<Any?>(null) }
+    LaunchedEffect(galleryPendingEditUri) {
+        trimLeft = 0f
+        trimTop = 0f
+        trimRight = 0f
+        trimBottom = 0f
+        heroAsyncImage = null
     }
-    is ScanResultUiState.Error -> ScanResultData(
-        numbers = "—",
-        grid = "—",
-        card = "Could not read ticket",
-        helperLine = "Try another photo with better lighting and focus."
-    )
-    is ScanResultUiState.Loading -> ScanResultData(numbers = "—", grid = "—", card = "Scanning…")
-    else -> ScanResultData()
-}
-
-private fun qualityFromCount(count: Int): QualityLevel = when {
-    count <= 0 -> QualityLevel.LOW
-    count >= FULL_GRID_COUNT -> QualityLevel.HIGH
-    else -> QualityLevel.MEDIUM
-}
-
-private fun scanResultToQualityData(scanResult: ScanResultUiState): ScanQualityData = when (scanResult) {
-    is ScanResultUiState.Success -> {
-        val level = qualityFromCount(finalUiGridRowMajor(scanResult.numbers).count { it != 0 })
-        val ok = level == QualityLevel.HIGH || level == QualityLevel.MEDIUM
-        ScanQualityData(
-            level = level,
-            lightingOk = ok,
-            focusOk = ok,
-            angleOk = level == QualityLevel.HIGH
-        )
+    LaunchedEffect(galleryPendingEditUri, trimLeft, trimTop, trimRight, trimBottom) {
+        val u = galleryPendingEditUri
+        if (u == null) {
+            heroAsyncImage = null
+            return@LaunchedEffect
+        }
+        if (trimLeft <= 1e-5f && trimTop <= 1e-5f && trimRight <= 1e-5f && trimBottom <= 1e-5f) {
+            heroAsyncImage = null
+            return@LaunchedEffect
+        }
+        val bmp = withContext(Dispatchers.IO) {
+            GalleryManualTrim.previewBitmap(galleryCtx, u, trimLeft, trimTop, trimRight, trimBottom)
+        }
+        if (galleryPendingEditUri == u) heroAsyncImage = bmp
     }
-    is ScanResultUiState.Error -> ScanQualityData(level = QualityLevel.LOW, lightingOk = false, focusOk = false, angleOk = false)
-    else -> ScanQualityData()
+    val heroUri = if (suppressHeroImage) null else selectedUri
+    val galleryHeroModel = if (galleryPendingEditUri != null) heroAsyncImage else null
+    val preScanIdle = scanResult is ScanResultUiState.Idle && selectedUri == null
+    val showSaveRow = scanResult is ScanResultUiState.Success
+    val fullGridSuccess = (scanResult as? ScanResultUiState.Success)?.let {
+        finalUiGridRowMajor(it.numbers).count { n -> n != 0 } == FULL_GRID_COUNT
+    } == true
+    val useExpandHero = scanResult !is ScanResultUiState.Success && (
+        preScanIdle ||
+            (selectedUri != null && (scanResult is ScanResultUiState.Idle || scanResult is ScanResultUiState.Loading))
+        )
+    val compactHero = heroUri != null
+    val summary = scanSummaryMetrics(scanResult)
+    val successForGrid = scanResult as? ScanResultUiState.Success
+    val showLargePhotoRow = scanResult !is ScanResultUiState.Success
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .then(if (showSaveRow) Modifier else Modifier.animateContentSize()),
+    ) {
+        if (useExpandHero) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 140.dp)
+            ) {
+                HeroBannerCard(
+                    selectedImageUri = heroUri,
+                    asyncImageModel = galleryHeroModel,
+                    isAnalyzing = isAnalyzing,
+                    expandVertically = true,
+                    scanAgainOnError = null,
+                    heroOverlay = null,
+                    compactPadding = false,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else {
+            HeroBannerCard(
+                selectedImageUri = heroUri,
+                asyncImageModel = galleryHeroModel,
+                isAnalyzing = isAnalyzing,
+                expandVertically = false,
+                scanAgainOnError = null,
+                heroOverlay = null,
+                compactPadding = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (compactHero) Modifier.heightIn(max = 156.dp) else Modifier
+                    ),
+            )
+        }
+        if (showSaveRow) {
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+        } else {
+            Spacer(modifier = Modifier.height(Dimens.spacing10))
+        }
+        if (showLargePhotoRow) {
+            if (galleryPendingEditUri != null) {
+                Text(
+                    text = stringResource(R.string.import_ticket_gallery_preview_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (SHOW_POST_UCROP_GALLERY_TRIM_SLIDERS) {
+                    Spacer(modifier = Modifier.height(Dimens.spacing8))
+                    ImportTicketGalleryTrimSliders(
+                        trimLeft = trimLeft,
+                        trimTop = trimTop,
+                        trimRight = trimRight,
+                        trimBottom = trimBottom,
+                        onTrimLeft = { trimLeft = it },
+                        onTrimTop = { trimTop = it },
+                        onTrimRight = { trimRight = it },
+                        onTrimBottom = { trimBottom = it },
+                        enabled = !isAnalyzing,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Spacer(modifier = Modifier.height(Dimens.spacing12))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                ) {
+                    OutlinedButton(
+                        onClick = onGalleryCancel,
+                        enabled = !isAnalyzing,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.import_ticket_gallery_discard))
+                    }
+                    Button(
+                        onClick = { onGalleryApply(trimLeft, trimTop, trimRight, trimBottom) },
+                        enabled = !isAnalyzing,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                    ) {
+                        Text(stringResource(R.string.import_ticket_gallery_apply))
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                ) {
+                    TakePhotoCard(
+                        modifier = Modifier.weight(1f),
+                        compact = fullGridSuccess,
+                        enabled = !isAnalyzing,
+                        onClick = onTakePhoto
+                    )
+                    GalleryCard(
+                        modifier = Modifier.weight(1f),
+                        compact = fullGridSuccess,
+                        enabled = !isAnalyzing,
+                        onClick = onPickFromGallery
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+            if (preScanIdle) {
+                ImportTicketPrescanTipsCard(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(Dimens.spacing12))
+            }
+        }
+        if (scanResult is ScanResultUiState.Success && imageSource != null) {
+            Text(
+                text = "Source: $imageSource",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
+        }
+        ctaHelperLine(scanResult, idleHint)?.let { (text, useWarningColor) ->
+            val gap = if (fullGridSuccess) Dimens.spacing8 else Dimens.spacing16
+            Spacer(modifier = Modifier.height(gap))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (useWarningColor) WarningText else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(gap))
+        }
+    }
+    }
 }
 
 @Composable
-private fun ScanResultPlaceholder(
-    isAnalyzing: Boolean,
-    modifier: Modifier = Modifier
+private fun ImportTicketGalleryTrimSliders(
+    trimLeft: Float,
+    trimTop: Float,
+    trimRight: Float,
+    trimBottom: Float,
+    onTrimLeft: (Float) -> Unit,
+    onTrimTop: (Float) -> Unit,
+    onTrimRight: (Float) -> Unit,
+    onTrimBottom: (Float) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
 ) {
+    val max = GalleryManualTrim.TRIM_SLIDER_MAX
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+    ) {
+        GalleryTrimRow(
+            label = stringResource(R.string.import_ticket_trim_left),
+            value = trimLeft,
+            onValueChange = onTrimLeft,
+            valueRangeEnd = max,
+            enabled = enabled,
+        )
+        GalleryTrimRow(
+            label = stringResource(R.string.import_ticket_trim_top),
+            value = trimTop,
+            onValueChange = onTrimTop,
+            valueRangeEnd = max,
+            enabled = enabled,
+        )
+        GalleryTrimRow(
+            label = stringResource(R.string.import_ticket_trim_right),
+            value = trimRight,
+            onValueChange = onTrimRight,
+            valueRangeEnd = max,
+            enabled = enabled,
+        )
+        GalleryTrimRow(
+            label = stringResource(R.string.import_ticket_trim_bottom),
+            value = trimBottom,
+            onValueChange = onTrimBottom,
+            valueRangeEnd = max,
+            enabled = enabled,
+        )
+    }
+}
+
+@Composable
+private fun GalleryTrimRow(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRangeEnd: Float,
+    enabled: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.widthIn(min = 52.dp),
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0f..valueRangeEnd,
+            enabled = enabled,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** Compact help before any photo or OCR; caller shows only when idle with no image yet. */
+@Composable
+private fun ImportTicketPrescanTipsCard(modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val dark = isSystemInDarkTheme()
+    val cardBg =
+        if (dark) lerp(cs.surface, cs.surfaceVariant, 0.14f)
+        else lerp(Color(0xFFF6F8F4), cs.surfaceVariant, 0.07f)
     val shape = RoundedCornerShape(Dimens.radiusCard)
     Surface(
+        modifier = modifier,
         shape = shape,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(Dimens.cardBorderDefault, CardBorderGreen),
-        modifier = modifier
+        color = cardBg,
+        border = BorderStroke(1.dp, cs.outline.copy(alpha = if (dark) 0.09f else 0.06f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.spacing12),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.padding(Dimens.spacing16),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
         ) {
-            if (isAnalyzing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(Dimens.spacing24),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    strokeWidth = 2.dp
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing8))
+            Text(
+                text = stringResource(R.string.import_ticket_prescan_tips_title),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = cs.onSurface.copy(alpha = 0.96f),
+            )
+            listOf(
+                R.string.import_ticket_prescan_tip_1,
+                R.string.import_ticket_prescan_tip_2,
+                R.string.import_ticket_prescan_tip_3,
+            ).forEach { tipId ->
                 Text(
-                    text = "Analyzing…",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Text(
-                    text = "Scan result will appear after you upload and analyze a ticket image.",
+                    text = "• ${stringResource(tipId)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    color = cs.onSurfaceVariant.copy(alpha = 0.72f),
+                )
+            }
+        }
+    }
+}
+
+private fun Modifier.importHeroDashedBorder(
+    color: androidx.compose.ui.graphics.Color,
+    cornerRadius: Dp,
+): Modifier = drawBehind {
+    val strokeWidth = 2.dp.toPx()
+    drawRoundRect(
+        color = color,
+        topLeft = androidx.compose.ui.geometry.Offset.Zero,
+        size = size,
+        cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx()),
+        style = Stroke(
+            width = strokeWidth,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f),
+        ),
+    )
+}
+
+@Composable
+private fun ImportTicketHeroAnalyzingOverlay(
+    imageClipShape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .clip(imageClipShape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        cs.scrim.copy(alpha = 0.28f),
+                        Color.Black.copy(alpha = 0.38f),
+                        cs.scrim.copy(alpha = 0.44f),
+                    ),
+                ),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing14),
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(36.dp),
+                color = Primary.copy(alpha = 0.92f),
+                trackColor = Color.White.copy(alpha = 0.18f),
+                strokeWidth = 2.dp,
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+            ) {
+                Text(
+                    text = stringResource(R.string.import_ticket_analyzing_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White.copy(alpha = 0.92f),
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = stringResource(R.string.import_ticket_analyzing_duration_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.62f),
+                    textAlign = TextAlign.Center,
                 )
             }
         }
@@ -417,88 +1009,159 @@ private fun ScanResultPlaceholder(
 }
 
 @Composable
+private fun HeroThumbnailQuickActions(
+    modifier: Modifier = Modifier,
+    onTakePhoto: () -> Unit,
+    onPickGallery: () -> Unit,
+    enabled: Boolean,
+) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            onClick = onTakePhoto,
+            enabled = enabled,
+            shape = CircleShape,
+            color = PrimaryDark,
+            shadowElevation = 4.dp,
+            modifier = Modifier.size(42.dp),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Filled.PhotoCamera,
+                    contentDescription = stringResource(R.string.import_ticket_take_photo_cd),
+                    modifier = Modifier.size(22.dp),
+                    tint = OnPrimary,
+                )
+            }
+        }
+        Surface(
+            onClick = onPickGallery,
+            enabled = enabled,
+            shape = CircleShape,
+            color = cs.surface,
+            border = BorderStroke(1.dp, CardBorderGreen.copy(alpha = 0.85f)),
+            shadowElevation = 4.dp,
+            modifier = Modifier.size(42.dp),
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Filled.PhotoLibrary,
+                    contentDescription = stringResource(R.string.import_ticket_gallery_cd),
+                    modifier = Modifier.size(22.dp),
+                    tint = Primary,
+                )
+            }
+        }
+    }
+}
+
+/** Ticket preview frame: soft tinted surface, **outline** border, light dashed inner line; no elevation shadow. */
+@Composable
 private fun HeroBannerCard(
     selectedImageUri: Uri?,
+    asyncImageModel: Any? = null,
     isAnalyzing: Boolean = false,
+    expandVertically: Boolean = false,
+    scanAgainOnError: (() -> Unit)? = null,
+    heroOverlay: (@Composable BoxScope.() -> Unit)? = null,
+    compactPadding: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(Dimens.radiusCard)
     val imageShape = RoundedCornerShape(Dimens.radiusBingoCell)
+    val cs = MaterialTheme.colorScheme
+    val dark = isSystemInDarkTheme()
+    val heroContainerBg =
+        if (dark) lerp(cs.surface, cs.surfaceVariant, 0.12f)
+        else lerp(Color(0xFFF6F8F4), cs.surfaceVariant, 0.06f)
+    val pad = if (compactPadding) Dimens.spacing8 else Dimens.spacing16
     Box(
         modifier = modifier
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(Dimens.cardBorderDefault, CardBorderGreen, shape)
-            .padding(Dimens.spacing12)
+            .border(BorderStroke(1.dp, cs.outline.copy(alpha = if (dark) 0.1f else 0.065f)), shape)
+            .background(heroContainerBg)
+            .importHeroDashedBorder(CardBorderGreen.copy(alpha = 0.14f), Dimens.radiusCard)
+            .padding(pad)
     ) {
-        if (selectedImageUri != null) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+        val imageModel = asyncImageModel ?: selectedImageUri
+        if (selectedImageUri != null || asyncImageModel != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (expandVertically) Modifier.fillMaxHeight() else Modifier)
+            ) {
+                val imgMod = Modifier
+                    .fillMaxWidth()
+                    .then(if (expandVertically) Modifier.fillMaxHeight() else Modifier.aspectRatio(16f / 9f))
+                    .clip(imageShape)
                 AsyncImage(
-                    model = selectedImageUri,
+                    model = imageModel,
                     contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .clip(imageShape),
+                    modifier = imgMod,
                     contentScale = ContentScale.Crop
                 )
-                if (isAnalyzing) {
+                if (!isAnalyzing && scanAgainOnError != null) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                            .clip(imageShape)
-                            .background(Scrim),
-                        contentAlignment = Alignment.Center
+                            .align(Alignment.BottomStart)
+                            .padding(Dimens.spacing8)
+                            .clip(RoundedCornerShape(Dimens.radiusSmall))
+                            .background(Scrim.copy(alpha = 0.55f))
+                            .clickable(onClick = scanAgainOnError)
+                            .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing8)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(Dimens.spacing24),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                strokeWidth = 2.dp
-                            )
-                            Text(
-                                text = "Analyzing…",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        Text(
+                            text = stringResource(R.string.import_ticket_scan_again),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = PrimaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
+                }
+                if (isAnalyzing) {
+                    ImportTicketHeroAnalyzingOverlay(
+                        imageClipShape = imageShape,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                if (heroOverlay != null) {
+                    heroOverlay()
                 }
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = if (expandVertically) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Dimens.spacing12)
+                verticalArrangement = if (expandVertically) Arrangement.Center else Arrangement.spacedBy(Dimens.spacing12)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(Dimens.radiusSmall))
                         .background(IconContainerBg)
                         .border(Dimens.cardBorderDefault, CardBorderGreen, RoundedCornerShape(Dimens.radiusSmall)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Image,
+                        imageVector = Icons.Filled.PhotoCamera,
                         contentDescription = null,
                         modifier = Modifier.size(Dimens.iconDefault),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = Primary
                     )
                 }
                 Text(
                     text = "No photo selected",
-                    style = AppTextStyles.actionCardTitle,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.96f)
                 )
                 Text(
-                    text = "Take or choose a photo to scan your bingo ticket",
+                    text = stringResource(R.string.import_ticket_hero_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -509,42 +1172,49 @@ private fun HeroBannerCard(
 @Composable
 private fun TakePhotoCard(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
+    val pad = if (compact) Dimens.spacing8 else Dimens.spacing16
+    val minH = if (compact) 72.dp else Dimens.buttonHeight * 2
+    val iconBox = if (compact) 28.dp else 36.dp
+    val iconSz = if (compact) 18.dp else 22.dp
+    val gap = if (compact) Dimens.spacing4 else Dimens.spacing8
     Column(
         modifier = modifier
-            .heightIn(min = Dimens.buttonHeight * 2)
+            .heightIn(min = minH)
             .clip(RoundedCornerShape(Dimens.radiusCard))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(Dimens.radiusCard))
-            .clickable(onClick = onClick)
-            .padding(Dimens.spacing16),
-        verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            .background(PrimaryDark)
+            .clickable(enabled = enabled, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.38f)
+            .padding(pad),
+        verticalArrangement = Arrangement.spacedBy(gap),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(30.dp)
-                .clip(RoundedCornerShape(Dimens.radiusBingoCell))
-                .background(IconContainerBg),
+                .size(iconBox)
+                .clip(RoundedCornerShape(Dimens.radiusSmall))
+                .background(PrimaryContainer.copy(alpha = 0.45f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.CameraAlt,
+                imageVector = Icons.Filled.PhotoCamera,
                 contentDescription = null,
-                modifier = Modifier.size(Dimens.iconCompact),
-                tint = MaterialTheme.colorScheme.onSurface
+                modifier = Modifier.size(iconSz),
+                tint = PrimaryContainer
             )
         }
         Text(
             text = "Take Photo",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            style = if (compact) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = OnPrimary
         )
         Text(
             text = "Use your camera",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.labelSmall,
+            color = PrimaryContainer
         )
     }
 }
@@ -553,43 +1223,49 @@ private fun TakePhotoCard(
 private fun GalleryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
+    val pad = if (compact) Dimens.spacing8 else Dimens.spacing16
+    val minH = if (compact) 72.dp else Dimens.buttonHeight * 2
+    val iconBox = if (compact) 28.dp else 36.dp
+    val iconSz = if (compact) 18.dp else 22.dp
+    val gap = if (compact) Dimens.spacing4 else Dimens.spacing8
     Column(
         modifier = modifier
-            .heightIn(min = Dimens.buttonHeight * 2)
+            .heightIn(min = minH)
             .clip(RoundedCornerShape(Dimens.radiusCard))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(Dimens.cardBorderDefault, CardBorderGreen, RoundedCornerShape(Dimens.radiusCard))
+            .background(EmptyHistoryCardBg)
+            .border(Dimens.cardBorderDefault, CardBorderGreen.copy(alpha = 0.6f), RoundedCornerShape(Dimens.radiusCard))
             .alpha(if (enabled) 1f else 0.38f)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(Dimens.spacing16),
-        verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            .padding(pad),
+        verticalArrangement = Arrangement.spacedBy(gap),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(30.dp)
-                .clip(RoundedCornerShape(Dimens.radiusBingoCell))
-                .background(IconContainerBg),
+                .size(iconBox)
+                .clip(RoundedCornerShape(Dimens.radiusSmall))
+                .background(PrimaryContainer.copy(alpha = 0.55f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.PhotoLibrary,
+                imageVector = Icons.Filled.PhotoLibrary,
                 contentDescription = null,
-                modifier = Modifier.size(Dimens.iconCompact),
-                tint = MaterialTheme.colorScheme.onSurface
+                modifier = Modifier.size(iconSz),
+                tint = PrimaryDark
             )
         }
         Text(
             text = "Gallery",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            style = if (compact) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = PrimaryDark
         )
         Text(
-            text = "Pick from photos",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = stringResource(R.string.import_ticket_gallery_subtitle),
+            style = MaterialTheme.typography.labelSmall,
+            color = Slate600
         )
     }
 }
@@ -602,7 +1278,6 @@ private fun ImportTicketScreenPreview() {
             onBack = {},
             onDiscardAndBack = {},
             onTakePhoto = {},
-            onPickFromGallery = {},
             onReviewClicked = {},
             showBottomBar = true
         )

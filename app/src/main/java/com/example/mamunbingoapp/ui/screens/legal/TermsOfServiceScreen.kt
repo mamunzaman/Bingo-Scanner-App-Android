@@ -33,7 +33,11 @@ private const val TERMS_URL = "https://www.bingo-umweltlotterie.de/teilnahmebedi
 fun TermsOfServiceScreen(onBack: () -> Unit) {
     val uriHandler = LocalUriHandler.current
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         AppHeaderBackground(
             modifier = Modifier
                 .fillMaxWidth()

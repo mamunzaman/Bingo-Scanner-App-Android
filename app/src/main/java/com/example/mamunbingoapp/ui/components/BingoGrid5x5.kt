@@ -32,7 +32,9 @@ fun BingoGrid5x5(
     editUseFixedCellSize: Boolean = true,
     editCellSize: Dp = Dimens.bingoCellSize,
     winningCells: Set<Int> = emptySet(),
-    onCellClick: (Int) -> Unit = {}
+    onCellClick: (Int) -> Unit = {},
+    /** When set (e.g. History detail compact), lays out 5×5 at this cell size without a square aspect-ratio block. */
+    fixedLayoutCellSize: Dp? = null,
 ) {
     val normalized = when {
         cells.size >= 25 -> cells.take(25)
@@ -96,30 +98,47 @@ fun BingoGrid5x5(
             useFixedCellSize = editUseFixedCellSize,
             cellSize = editCellSize
         )
-        BingoGridMode.PLAY, BingoGridMode.PREVIEW -> Box(modifier = modifier) {
-            PlayModeGrid(
-                cells = normalized,
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-                winningCells = effectiveWinningCells,
-                newWinningCells = newWinningCells,
-                nearWinningCells = nearWinningCells,
-                newNearWinningCells = newNearWinningCells,
-                onCellClick = onCellClick,
-                cellSpacing = cellSpacing
-            )
-            if (mode == BingoGridMode.PLAY && (showReactionBanner.value || bannerExiting.value)) {
-                BingoWinBanner(
-                    lineCount = reactionLineCount.value,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(Dimens.spacing12),
-                    playEnterAnimation = true,
-                    visible = !bannerExiting.value,
-                    onExitComplete = {
-                        showReactionBanner.value = false
-                        bannerExiting.value = false
-                    }
-                )
+        BingoGridMode.PLAY, BingoGridMode.PREVIEW -> {
+            val fixed = fixedLayoutCellSize
+            Box(modifier = modifier) {
+                if (fixed != null) {
+                    FixedPlayModeGrid(
+                        cells = normalized,
+                        modifier = Modifier.fillMaxWidth(),
+                        cellSize = fixed,
+                        winningCells = effectiveWinningCells,
+                        newWinningCells = newWinningCells,
+                        nearWinningCells = nearWinningCells,
+                        newNearWinningCells = newNearWinningCells,
+                        onCellClick = onCellClick,
+                        cellSpacing = cellSpacing,
+                    )
+                } else {
+                    PlayModeGrid(
+                        cells = normalized,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                        winningCells = effectiveWinningCells,
+                        newWinningCells = newWinningCells,
+                        nearWinningCells = nearWinningCells,
+                        newNearWinningCells = newNearWinningCells,
+                        onCellClick = onCellClick,
+                        cellSpacing = cellSpacing
+                    )
+                }
+                if (mode == BingoGridMode.PLAY && (showReactionBanner.value || bannerExiting.value)) {
+                    BingoWinBanner(
+                        lineCount = reactionLineCount.value,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(Dimens.spacing12),
+                        playEnterAnimation = true,
+                        visible = !bannerExiting.value,
+                        onExitComplete = {
+                            showReactionBanner.value = false
+                            bannerExiting.value = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -179,6 +198,46 @@ private fun EditModeGrid(
                                     isWinning = index in winningCells
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FixedPlayModeGrid(
+    cells: List<BingoCellUi>,
+    modifier: Modifier,
+    cellSize: Dp,
+    winningCells: Set<Int>,
+    newWinningCells: Set<Int>,
+    nearWinningCells: Set<Int>,
+    newNearWinningCells: Set<Int>,
+    onCellClick: (Int) -> Unit,
+    cellSpacing: Dp,
+) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(cellSpacing),
+        ) {
+            cells.chunked(5).forEachIndexed { rowIndex, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(cellSpacing)) {
+                    row.forEachIndexed { colIndex, cell ->
+                        val index = rowIndex * 5 + colIndex
+                        Box(modifier = Modifier.size(cellSize)) {
+                            BingoCell(
+                                cell = cell,
+                                modifier = Modifier.fillMaxSize(),
+                                onClick = { onCellClick(index) }.takeIf { cell.isEditable && !cell.isDisabled },
+                                isWinning = index in winningCells,
+                                animateWinningPulse = index in newWinningCells,
+                                isNearWinning = index in nearWinningCells,
+                                animateNearWin = index in newNearWinningCells,
+                            )
                         }
                     }
                 }

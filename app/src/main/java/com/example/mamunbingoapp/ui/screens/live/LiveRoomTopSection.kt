@@ -7,18 +7,17 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +51,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +60,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,22 +79,24 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
-import com.example.mamunbingoapp.data.preferences.LiveHeaderStyle
+import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.LiveFonts
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import com.example.mamunbingoapp.viewmodel.LivePlayUiState
-import kotlinx.coroutines.delay
 
 private object NewVariantSpacing {
     val topRowPaddingH = Dimens.spacing16
@@ -116,15 +117,35 @@ private object NewVariantSpacing {
 private fun progressFraction(calledCount: Int): Float =
     (calledCount.coerceAtMost(MAX_LIVE_CALLS).toFloat() / MAX_LIVE_CALLS)
 
-private fun formatLastCalledAgo(lastCalledAtMillis: Long?, nowMillis: Long): String {
-    if (lastCalledAtMillis == null) return "00"
-    val elapsedSec = (nowMillis - lastCalledAtMillis) / 1000
-    return when {
-        elapsedSec < 60 -> "${elapsedSec} sec ago"
-        elapsedSec < 3600 -> "${elapsedSec / 60} min ago"
-        else -> "${elapsedSec / 3600} h ago"
+private fun liveBadgePillBackground(colorScheme: ColorScheme, darkTheme: Boolean): Color =
+    if (darkTheme) {
+        lerp(colorScheme.surface, colorScheme.primaryContainer, 0.28f).copy(alpha = 0.93f)
+    } else {
+        lerp(Color(0xFFE2F0DC), Color(0xFFD4E8D0), 0.35f).copy(alpha = 0.98f)
     }
-}
+
+private fun liveBadgePillBorder(colorScheme: ColorScheme, darkTheme: Boolean): Color =
+    if (darkTheme) {
+        colorScheme.primary.copy(alpha = 0.2f)
+    } else {
+        Color(0xFF4A8F2A).copy(alpha = 0.16f)
+    }
+
+private fun liveCountPillBackground(colorScheme: ColorScheme, darkTheme: Boolean): Color =
+    if (darkTheme) {
+        lerp(colorScheme.surface, colorScheme.surfaceVariant, 0.14f).copy(alpha = 0.88f)
+    } else {
+        lerp(Color(0xFFF6F8F4), colorScheme.surfaceVariant, 0.06f).copy(alpha = 0.9f)
+    }
+
+private fun liveCountPillBorder(colorScheme: ColorScheme, darkTheme: Boolean): Color =
+    if (darkTheme) {
+        colorScheme.outline.copy(alpha = 0.055f)
+    } else {
+        Color.Black.copy(alpha = 0.036f)
+    }
+
+private val LiveStatusPillShape = RoundedCornerShape(Dimens.radiusButtonPill)
 
 private data class LiveDisplayValues(
     val displayLetter: String,
@@ -149,31 +170,113 @@ private fun liveDisplayValues(
 @Composable
 private fun LiveBadge(
     dotAlpha: Float,
-    colorScheme: androidx.compose.material3.ColorScheme
+    colorScheme: ColorScheme
 ) {
-    Row(
-        modifier = Modifier
-            .offset(x = (-4).dp)
-            .clip(RoundedCornerShape(Dimens.radiusPill))
-            .background(colorScheme.primary.copy(alpha = 0.15f))
-            .padding(horizontal = 9.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    val darkTheme = isSystemInDarkTheme()
+    val infiniteTransition = rememberInfiniteTransition(label = "liveDotPulse")
+    val dotPulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "liveDotScale"
+    )
+    val dotPulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "liveDotAlpha"
+    )
+    val dotAlphaCombined = dotPulseAlpha * dotAlpha.coerceIn(0.75f, 1f)
+    Surface(
+        shape = LiveStatusPillShape,
+        color = liveBadgePillBackground(colorScheme, darkTheme),
+        border = BorderStroke(1.dp, liveBadgePillBorder(colorScheme, darkTheme)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp
     ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .background(colorScheme.error.copy(alpha = dotAlpha), CircleShape)
-        )
-        Text(
-            text = "LIVE",
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.12.sp
-            ),
-            color = colorScheme.primary
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .scale(dotPulseScale)
+                    .alpha(dotAlphaCombined)
+                    .background(Color.Red, CircleShape)
+            )
+            Text(
+                text = "LIVE",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.12.sp,
+                    lineHeight = 12.sp
+                ),
+                color = lerp(colorScheme.primary, Color(0xFF1B5E20), 0.12f).copy(alpha = 0.98f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveCallCountCapsule(
+    calledCount: Int,
+    colorScheme: ColorScheme
+) {
+    val darkTheme = isSystemInDarkTheme()
+    val countStyle = MaterialTheme.typography.labelMedium.copy(
+        fontFamily = LiveFonts.DMMono,
+        fontSize = 12.sp,
+        lineHeight = 14.sp
+    )
+    Surface(
+        shape = LiveStatusPillShape,
+        color = liveCountPillBackground(colorScheme, darkTheme),
+        border = BorderStroke(1.dp, liveCountPillBorder(colorScheme, darkTheme)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Dimens.spacing12, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            Text(
+                text = calledCount.toString(),
+                style = countStyle.copy(
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = (-0.02).sp
+                ),
+                color = colorScheme.onSurface.copy(alpha = 0.8f),
+                maxLines = 1
+            )
+            Text(
+                text = " / ",
+                style = countStyle.copy(
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 0.1.sp
+                ),
+                color = colorScheme.onSurface.copy(alpha = 0.3f),
+                maxLines = 1
+            )
+            Text(
+                text = MAX_LIVE_CALLS.toString(),
+                style = countStyle.copy(
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 0.sp
+                ),
+                color = colorScheme.onSurface.copy(alpha = 0.52f),
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -1071,30 +1174,34 @@ private fun LiveCallCardV6(
 }
 
 @Composable
-fun LiveRoomTopSection(
-    uiState: LivePlayUiState,
-    onFinish: () -> Unit,
-    onReset: () -> Unit,
-    onTapToCallRandom: () -> Unit = {},
+private fun LiveStatusHeaderRow(
+    calledCount: Int,
+    dotAlpha: Float,
+    colorScheme: androidx.compose.material3.ColorScheme,
     modifier: Modifier = Modifier,
-    compact: Boolean = false,
-    liveHeaderStyle: LiveHeaderStyle = LiveHeaderStyle.V1_CLEAN
+    horizontalInset: Dp = 0.dp,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = horizontalInset, vertical = Dimens.spacing4),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        LiveBadge(dotAlpha = dotAlpha, colorScheme = colorScheme)
+        LiveCallCountCapsule(calledCount = calledCount, colorScheme = colorScheme)
+    }
+}
+
+/** LIVE + count + [CalledHistoryPanel] in one surface card (live play). */
+@Composable
+fun LiveRoomWithHistoryCard(
+    uiState: LivePlayUiState,
+    isCallLimitReached: Boolean,
+    modifier: Modifier = Modifier,
+    showLimitMessage: Boolean = true,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    var nowMillis by remember { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(uiState.lastCalledAtMillis) {
-        while (uiState.lastCalledAtMillis != null) {
-            delay(1000)
-            nowMillis = System.currentTimeMillis()
-        }
-    }
-    val lastCalledAgoText = formatLastCalledAgo(uiState.lastCalledAtMillis, nowMillis)
-    val numberPopScale = remember { Animatable(1f) }
-    LaunchedEffect(uiState.lastCalled) {
-        numberPopScale.snapTo(0.85f)
-        numberPopScale.animateTo(1.05f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
-        numberPopScale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-    }
     val isSessionActive = uiState.effectiveStatus == RoomStatus.RUNNING || uiState.lastCalledAtMillis != null
     val infinite = rememberInfiniteTransition(label = "livePulse")
     val dotAlphaPulse by infinite.animateFloat(
@@ -1106,44 +1213,94 @@ fun LiveRoomTopSection(
         ),
         label = "dotAlpha"
     )
-    val dotAlphaPremiumPulse by infinite.animateFloat(
-        initialValue = 0.55f,
+    val dotAlpha = if (isSessionActive) dotAlphaPulse else 0.75f
+    val historyCalls = uiState.calledNumbers.takeLast(MAX_LIVE_CALLS)
+
+    val cardShape = RoundedCornerShape(Dimens.radiusCard)
+    val sectionBrush = if (isSystemInDarkTheme()) {
+        Brush.verticalGradient(
+            colors = listOf(
+                colorScheme.surface,
+                colorScheme.surfaceVariant.copy(alpha = 0.28f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFFF6F8F4),
+                Color(0xFFF0F5EC)
+            )
+        )
+    }
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = cardShape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, colorScheme.outline.copy(alpha = 0.06f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(brush = sectionBrush, shape = cardShape)
+        ) {
+            Column(Modifier.padding(Dimens.spacing12)) {
+                LiveStatusHeaderRow(
+                    calledCount = uiState.calledNumbers.size,
+                    dotAlpha = dotAlpha,
+                    colorScheme = colorScheme,
+                    horizontalInset = 0.dp,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                CalledHistoryPanel(
+                    calledNumbers = historyCalls,
+                    isCallLimitReached = isCallLimitReached,
+                    showLimitMessage = showLimitMessage,
+                    applyOuterPadding = false,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LiveRoomTopSection(
+    uiState: LivePlayUiState,
+    onFinish: () -> Unit,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isSessionActive = uiState.effectiveStatus == RoomStatus.RUNNING || uiState.lastCalledAtMillis != null
+    val infinite = rememberInfiniteTransition(label = "livePulse")
+    val dotAlphaPulse by infinite.animateFloat(
+        initialValue = 0.5f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "dotAlphaPremium"
+        label = "dotAlpha"
     )
     val dotAlpha = if (isSessionActive) dotAlphaPulse else 0.75f
-    val dotAlphaPremium = if (isSessionActive) dotAlphaPremiumPulse else 0.8f
-    val lastCalledSec = uiState.lastCalledAtMillis?.let { ((nowMillis - it) / 1000).toInt().coerceAtLeast(0) } ?: 0
 
     if (compact) {
         GreenCardCompact(
             calledCount = uiState.calledNumbers.size,
+            dotAlpha = dotAlpha,
             colorScheme = colorScheme,
             modifier = modifier
         )
     } else {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
-        ) {
-            GreenCard(
-                calledCount = uiState.calledNumbers.size,
-                lastCalled = uiState.lastCalled,
-                lastCalledAgoText = lastCalledAgoText,
-                lastCalledSec = lastCalledSec,
-                sheetName = uiState.sheetName,
-                numberPopScale = numberPopScale.value,
-                dotAlpha = dotAlpha,
-                dotAlphaPremium = dotAlphaPremium,
-                onTapToCallRandom = onTapToCallRandom,
-                colorScheme = colorScheme,
-                liveHeaderStyle = liveHeaderStyle
-            )
-        }
+        GreenCard(
+            calledCount = uiState.calledNumbers.size,
+            dotAlpha = dotAlpha,
+            colorScheme = colorScheme,
+            modifier = modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -1309,6 +1466,7 @@ private fun StatusCard(
 @Composable
 private fun GreenCardCompact(
     calledCount: Int,
+    dotAlpha: Float,
     colorScheme: androidx.compose.material3.ColorScheme,
     modifier: Modifier = Modifier
 ) {
@@ -1316,170 +1474,40 @@ private fun GreenCardCompact(
         modifier = modifier.fillMaxWidth(),
         color = colorScheme.surface,
         shape = RoundedCornerShape(0.dp),
-        tonalElevation = 1.dp
+        border = BorderStroke(Dimens.cardBorderDefault, colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12)
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(84.dp)
-                    .heightIn(min = 48.dp)
-                    .clip(RoundedCornerShape(Dimens.radiusSmall))
-                    .background(colorScheme.primary)
-                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing8),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "$calledCount / $MAX_LIVE_CALLS",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontFamily = LiveFonts.DMMono,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = colorScheme.onPrimary,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip
-                )
-            }
-        }
+        LiveStatusHeaderRow(
+            calledCount = calledCount,
+            dotAlpha = dotAlpha,
+            colorScheme = colorScheme,
+            horizontalInset = Dimens.spacing16,
+        )
     }
 }
 
 @Composable
 private fun GreenCard(
     calledCount: Int,
-    lastCalled: Int?,
-    lastCalledAgoText: String,
-    lastCalledSec: Int,
-    sheetName: String,
-    numberPopScale: Float,
     dotAlpha: Float,
-    dotAlphaPremium: Float,
-    onTapToCallRandom: () -> Unit,
     colorScheme: androidx.compose.material3.ColorScheme,
-    modifier: Modifier = Modifier,
-    liveHeaderStyle: LiveHeaderStyle = LiveHeaderStyle.V1_CLEAN
+    modifier: Modifier = Modifier
 ) {
     val innerInset = Dimens.screenHorizontalPadding
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimens.radiusXL))
-            .background(
-                Brush.linearGradient(
-                    listOf(colorScheme.primary, colorScheme.primary.copy(alpha = 0.85f))
-                )
-            )
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Dimens.radiusXL),
+        color = colorScheme.surface,
+        border = BorderStroke(Dimens.cardBorderDefault, colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp
     ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 48.dp, y = (-48).dp)
-                .size(180.dp)
-                .background(colorScheme.onPrimary.copy(alpha = 0.06f), CircleShape)
+        LiveStatusHeaderRow(
+            calledCount = calledCount,
+            dotAlpha = dotAlpha,
+            colorScheme = colorScheme,
+            horizontalInset = innerInset,
         )
-        var lastSeen by remember { mutableStateOf<Int?>(null) }
-        var outgoingText by remember { mutableStateOf("") }
-        var outgoingVisible by remember { mutableStateOf(false) }
-        LaunchedEffect(lastCalled) {
-            if (lastCalled != null) {
-                val prev = lastSeen
-                lastSeen = lastCalled
-                if (prev != null && prev != lastCalled) {
-                    outgoingText = prev.toString()
-                    outgoingVisible = true
-                    delay(180)
-                    outgoingVisible = false
-                    delay(220)
-                    outgoingText = ""
-                }
-            } else {
-                lastSeen = null
-                outgoingVisible = false
-                outgoingText = ""
-            }
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = innerInset)
-                .padding(top = Dimens.spacing16, bottom = Dimens.spacing16),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
-        ) {
-            val liveValues = liveDisplayValues(
-                bingoLetter(lastCalled),
-                lastCalled,
-                calledCount,
-                MAX_LIVE_CALLS,
-                lastCalledAgoText
-            )
-            when (liveHeaderStyle) {
-                LiveHeaderStyle.V1_CLEAN -> LiveCallCardV1(
-                    values = liveValues,
-                    numberPopScale = numberPopScale,
-                    dotAlpha = dotAlpha,
-                    previousOutgoingText = outgoingText,
-                    previousOutgoingVisible = outgoingVisible,
-                    onAutoCall = onTapToCallRandom,
-                    modifier = Modifier.fillMaxWidth(),
-                    colorScheme = colorScheme
-                )
-                LiveHeaderStyle.V2_SPLIT -> LiveCallCardV2(
-                    values = liveValues,
-                    numberPopScale = numberPopScale,
-                    dotAlpha = dotAlpha,
-                    previousOutgoingText = outgoingText,
-                    previousOutgoingVisible = outgoingVisible,
-                    onAutoCall = onTapToCallRandom,
-                    modifier = Modifier.fillMaxWidth(),
-                    colorScheme = colorScheme
-                )
-                LiveHeaderStyle.V3_BAND -> LiveCallCardV3(
-                    values = liveValues,
-                    numberPopScale = numberPopScale,
-                    dotAlpha = dotAlpha,
-                    previousOutgoingText = outgoingText,
-                    previousOutgoingVisible = outgoingVisible,
-                    onAutoCall = onTapToCallRandom,
-                    modifier = Modifier.fillMaxWidth(),
-                    colorScheme = colorScheme
-                )
-                LiveHeaderStyle.V4_CLEAN_NEW -> LiveCallCardV4(
-                    values = liveValues,
-                    numberPopScale = numberPopScale,
-                    dotAlpha = dotAlphaPremium,
-                    previousOutgoingText = outgoingText,
-                    previousOutgoingVisible = outgoingVisible,
-                    onAutoCall = onTapToCallRandom,
-                    modifier = Modifier.fillMaxWidth(),
-                    colorScheme = colorScheme
-                )
-                LiveHeaderStyle.V5_SPLIT_NEW -> LiveCallCardV5(
-                    values = liveValues,
-                    numberPopScale = numberPopScale,
-                    dotAlpha = dotAlphaPremium,
-                    previousOutgoingText = outgoingText,
-                    previousOutgoingVisible = outgoingVisible,
-                    onAutoCall = onTapToCallRandom,
-                    modifier = Modifier.fillMaxWidth(),
-                    colorScheme = colorScheme
-                )
-                LiveHeaderStyle.V6_BAND_NEW -> LiveCallCardV6(
-                    values = liveValues,
-                    numberPopScale = numberPopScale,
-                    dotAlpha = dotAlphaPremium,
-                    previousOutgoingText = outgoingText,
-                    previousOutgoingVisible = outgoingVisible,
-                    onAutoCall = onTapToCallRandom,
-                    modifier = Modifier.fillMaxWidth(),
-                    colorScheme = colorScheme
-                )
-            }
-        }
     }
 }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,7 +30,6 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -62,19 +60,16 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Secondary
 import com.example.mamunbingoapp.theme.SecondaryContainer
-import com.example.mamunbingoapp.theme.Slate400
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
-import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTopBar
-import com.example.mamunbingoapp.data.preferences.LiveHeaderStyle
 import com.example.mamunbingoapp.viewmodel.SettingsViewModel
 import com.example.mamunbingoapp.viewmodel.ThemeMode
 import com.example.mamunbingoapp.viewmodel.ThemeViewModel
 import androidx.compose.material3.Scaffold
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
@@ -126,37 +121,28 @@ fun SettingsScreen(
     val dailyReminders by viewModel.dailyReminders.collectAsState()
     val faceIdTouchId by viewModel.faceIdTouchId.collectAsState()
     val dataSharing by viewModel.dataSharing.collectAsState()
-    val liveHeaderStyle by viewModel.liveHeaderStyle.collectAsState(LiveHeaderStyle.V1_CLEAN)
-
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = { AppBottomBar(selectedTab = AppTab.Profile, onTabSelected = onTabSelected) }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = paddingValues.calculateBottomPadding())
-        ) {
-            AppHeaderBackground(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.4f)
-                    .align(Alignment.TopCenter)
-            )
-            Column(Modifier.fillMaxSize()) {
+        AppHeaderPageLayout(
+            modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
+            topBar = {
                 AppTopBar(
                     title = "Settings",
                     showBack = true,
                     onBackClick = onBack
                 )
+            },
+            content = {
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = Dimens.screenHorizontalPadding)
-                        .padding(top = Dimens.spacing5, bottom = Dimens.spacing16)
+                        .padding(top = Dimens.spacing8, bottom = Dimens.spacing16)
                 ) {
                     SettingsSection(title = "DATA") {
                 SettingsToggleRow(
@@ -185,44 +171,6 @@ fun SettingsScreen(
                     title = "Dark",
                     selected = themeMode == ThemeMode.DARK,
                     onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) }
-                )
-            }
-            SettingsSection(title = "Live Header Style") {
-                SettingsThemeRow(
-                    icon = Icons.Default.ViewModule,
-                    title = "V1 Clean",
-                    selected = liveHeaderStyle == LiveHeaderStyle.V1_CLEAN,
-                    onClick = { viewModel.setLiveHeaderStyle(LiveHeaderStyle.V1_CLEAN) }
-                )
-                SettingsThemeRow(
-                    icon = Icons.Default.ViewModule,
-                    title = "V2 Split",
-                    selected = liveHeaderStyle == LiveHeaderStyle.V2_SPLIT,
-                    onClick = { viewModel.setLiveHeaderStyle(LiveHeaderStyle.V2_SPLIT) }
-                )
-                SettingsThemeRow(
-                    icon = Icons.Default.ViewModule,
-                    title = "V3 Band",
-                    selected = liveHeaderStyle == LiveHeaderStyle.V3_BAND,
-                    onClick = { viewModel.setLiveHeaderStyle(LiveHeaderStyle.V3_BAND) }
-                )
-                SettingsThemeRow(
-                    icon = Icons.Default.ViewModule,
-                    title = "V4 Clean (new)",
-                    selected = liveHeaderStyle == LiveHeaderStyle.V4_CLEAN_NEW,
-                    onClick = { viewModel.setLiveHeaderStyle(LiveHeaderStyle.V4_CLEAN_NEW) }
-                )
-                SettingsThemeRow(
-                    icon = Icons.Default.ViewModule,
-                    title = "V5 Split (new)",
-                    selected = liveHeaderStyle == LiveHeaderStyle.V5_SPLIT_NEW,
-                    onClick = { viewModel.setLiveHeaderStyle(LiveHeaderStyle.V5_SPLIT_NEW) }
-                )
-                SettingsThemeRow(
-                    icon = Icons.Default.ViewModule,
-                    title = "V6 Band (new)",
-                    selected = liveHeaderStyle == LiveHeaderStyle.V6_BAND_NEW,
-                    onClick = { viewModel.setLiveHeaderStyle(LiveHeaderStyle.V6_BAND_NEW) }
                 )
             }
             SettingsSection(title = "NOTIFICATIONS") {
@@ -347,8 +295,8 @@ fun SettingsScreen(
                 }
             }
             }
-        }
-    }
+            }
+        )
     }
 }
 

@@ -61,7 +61,11 @@ fun ForgotPasswordScreen(
         modifier = Modifier.fillMaxSize()
     ) {
         AuthBottomWave(modifier = Modifier.align(Alignment.BottomCenter))
-        Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
             AppHeaderBackground(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -34,7 +34,11 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 
 @Composable
 fun EnvironmentalImpactScreen(onBack: () -> Unit) {
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         AppHeaderBackground(
             modifier = Modifier
                 .fillMaxWidth()

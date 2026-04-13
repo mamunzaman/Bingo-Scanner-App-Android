@@ -2,6 +2,7 @@ package com.example.mamunbingoapp.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,24 +17,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.shadow
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Error
 import com.example.mamunbingoapp.theme.OnSurface
 import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.theme.PrimaryDark
 import com.example.mamunbingoapp.theme.Slate400
 import com.example.mamunbingoapp.theme.Slate600
-import com.example.mamunbingoapp.theme.Success
-import com.example.mamunbingoapp.theme.Surface
 import com.example.mamunbingoapp.theme.SurfaceContainer
 import com.example.mamunbingoapp.theme.Warning
 import com.example.mamunbingoapp.theme.AppTextStyles
@@ -60,7 +60,7 @@ val QualityLevel.labelColor: Color
         QualityLevel.NONE -> Slate400
         QualityLevel.LOW -> Error
         QualityLevel.MEDIUM -> Warning
-        QualityLevel.HIGH -> Success
+        QualityLevel.HIGH -> Primary
     }
 
 val QualityLevel.displayLabel: String
@@ -78,12 +78,23 @@ fun ScanResultQualityCard(
     showQualitySection: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        shape = RoundedCornerShape(Dimens.radiusCard),
-        color = Surface,
-        border = BorderStroke(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 0.dp,
-        modifier = modifier.fillMaxWidth(),
+    val cardShape = RoundedCornerShape(Dimens.radiusCard)
+    val cs = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(Dimens.cardElevationDefault, cardShape, ambientColor = cs.primary.copy(alpha = 0.06f), spotColor = cs.primary.copy(alpha = 0.08f))
+            .clip(cardShape)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        cs.surface,
+                        cs.surfaceVariant.copy(alpha = 0.4f),
+                    ),
+                ),
+                shape = cardShape,
+            )
+            .border(BorderStroke(Dimens.cardBorderDefault, cs.outlineVariant), cardShape),
     ) {
         Column(modifier = Modifier.padding(Dimens.spacing12)) {
             Row(
@@ -94,7 +105,7 @@ fun ScanResultQualityCard(
                 Text(
                     text = "SCAN RESULT",
                     style = AppTextStyles.sectionLabel,
-                    color = Slate600,
+                    color = PrimaryDark,
                 )
                 if (showQualitySection && qualityData.level != QualityLevel.NONE) {
                     Text(
@@ -115,7 +126,6 @@ fun ScanResultQualityCard(
                 ) {
                     StatRow(label = "Numbers", value = scanResult.numbers)
                     StatRow(label = "Grid", value = scanResult.grid)
-                    StatRow(label = "Card", value = scanResult.card)
                 }
                 Box(
                     modifier = Modifier
@@ -225,7 +235,7 @@ private fun QualityIndicatorRow(label: String, ok: Boolean?) {
                 .background(
                     when {
                         neutral -> Slate400
-                        ok -> Success
+                        ok == true -> Primary
                         else -> Error
                     }
                 ),
@@ -239,7 +249,7 @@ private fun QualityIndicatorRow(label: String, ok: Boolean?) {
             style = MaterialTheme.typography.labelSmall,
             color = when {
                 neutral -> Slate400
-                ok == true -> Success
+                ok == true -> Primary
                 else -> Error
             },
             fontWeight = FontWeight.SemiBold,

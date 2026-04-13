@@ -33,7 +33,11 @@ private const val PRIVACY_URL = "https://www.bingo-umweltlotterie.de/datenschutz
 fun PrivacyPolicyScreen(onBack: () -> Unit) {
     val uriHandler = LocalUriHandler.current
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         AppHeaderBackground(
             modifier = Modifier
                 .fillMaxWidth()

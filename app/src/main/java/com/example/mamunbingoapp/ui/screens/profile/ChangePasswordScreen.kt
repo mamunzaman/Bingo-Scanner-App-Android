@@ -49,7 +49,11 @@ fun ChangePasswordScreen(onBack: () -> Unit) {
     val strengthLabel = stringResource(R.string.change_password_strength_strong)
     val strengthProgress = 0.75f
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         AppHeaderBackground(
             modifier = Modifier
                 .fillMaxWidth()

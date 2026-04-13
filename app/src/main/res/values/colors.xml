@@ -7,4 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- uCrop (gallery ticket crop only); aligns with app Primary green -->
+    <color name="ucrop_toolbar_green">#4C8C00</color>
+    <color name="ucrop_status_bar_green">#3E7000</color>
+    <color name="ucrop_toolbar_content_light">#FFFFFF</color>
+    <color name="ucrop_canvas_background">#FAFAFA</color>
 </resources>

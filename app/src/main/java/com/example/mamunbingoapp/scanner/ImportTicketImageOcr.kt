@@ -55,10 +55,29 @@ object ImportTicketImageOcr {
     /** Left branding strip (fraction of full ticket width); grid OCR uses the region to the right. */
     private const val LEFT_STRIP_WIDTH_FRAC = 0.24f
 
-    fun analyzeUri(context: Context, uri: Uri): HistoryImportOcrOutcome {
+    /** Graded consensus quality: Tier A strict; Tier B when display advantage + sanity caps. */
+    private const val CONSENSUS_TIER_A_MIN_DISTINCT_DISPLAYED = 15
+    private const val CONSENSUS_TIER_A_MAX_DUPLICATE_PENALTY = 3
+    private const val CONSENSUS_TIER_B_MIN_DISTINCT_DISPLAYED = 14
+    private const val CONSENSUS_TIER_B_MAX_DUPLICATE_PENALTY = 3
+    private const val CONSENSUS_TIER_B_MAX_COLUMN_VIOLATIONS = 1
+    private const val CONSENSUS_DISPLAY_ADVANTAGE_VS_RAW_ML = 4
+    private const val CONSENSUS_EXTREME_DUPLICATE_PENALTY = 8
+    private const val CONSENSUS_WORSE_THAN_RAW_DISTINCT_GAP = 2
+    /** Hard reject consensus before tiers (distinct / duplicate / Bingo column ranges). */
+    private const val CONSENSUS_SANITY_MIN_DISTINCT_DISPLAYED = 14
+    private const val CONSENSUS_SANITY_MAX_DUPLICATE_PENALTY = 4
+    private const val CONSENSUS_SANITY_MAX_COLUMN_VIOLATIONS = 2
+
+    /** Gallery apply: pass [bypassInternalGridCrop] true to skip [gridCropForNumberRegion]. */
+    fun analyzeUri(
+        context: Context,
+        uri: Uri,
+        bypassInternalGridCrop: Boolean = false,
+    ): HistoryImportOcrOutcome {
         val bitmap = loadBitmapDownsampled(context, uri, maxSide = 1600)
             ?: error("Could not load image")
-        return analyzeBitmap(bitmap)
+        return analyzeBitmap(context.applicationContext, bitmap, bypassInternalGridCrop)
     }
 
     private data class PipelineResult(
@@ -76,7 +95,11 @@ object ImportTicketImageOcr {
         val logLine: String,
     )
 
-    private fun analyzeBitmap(bitmap: Bitmap): HistoryImportOcrOutcome {
+    private fun analyzeBitmap(
+        appContext: Context,
+        bitmap: Bitmap,
+        bypassInternalGridCrop: Boolean = false,
+    ): HistoryImportOcrOutcome {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val bezel = tryScreenshotBezelCrop(bitmap)
         val preCropApplied = bezel.applied
@@ -85,7 +108,18 @@ object ImportTicketImageOcr {
             bitmap.recycle()
         }
         val rootForPipeline = bezel.bitmap
-        val pass1 = gridCropForNumberRegion(rootForPipeline)
+        val pass1 =
+            if (bypassInternalGridCrop) {
+                Log.d(
+                    TAG,
+                    "gridCropForNumberRegion source=bypass_gallery_manual_crop " +
+                        "src=${rootForPipeline.width}x${rootForPipeline.height} " +
+                        "out=${rootForPipeline.width}x${rootForPipeline.height}",
+                )
+                rootForPipeline
+            } else {
+                gridCropForNumberRegion(rootForPipeline)
+            }
         var pass2: Bitmap? = null
         var highlightGridBitmap: Bitmap? = null
         return try {
@@ -225,9 +259,86 @@ object ImportTicketImageOcr {
                 distinctValidCount = consensusVc,
                 raw = "",
             )
-            val (stageName, chosenPr) = pickConsensusOrBestStage(consensusPr, stageCandidates)
+            val (rankedRawPick, weakFallbackRaw) = rankRawStagesForFallback(stageCandidates)
+            val bestRawStagePair = rankedRawPick.stage to rankedRawPick.pr
+            Log.d(
+                TAG,
+                "fallbackPick stage=${rankedRawPick.stage} " +
+                    "displayed=${rankedRawPick.displayedCount} " +
+                    "distinctDisplayed=${rankedRawPick.distinctDisplayedCount} " +
+                    "duplicatePenalty=${rankedRawPick.duplicatePenalty} " +
+                    "columnRangeViolations=${rankedRawPick.columnRangeViolations} " +
+                    "weakFallback=$weakFallbackRaw",
+            )
+            val consensusSanity = gridSanityMetrics(consensusPr.outcome.numbersRowMajor)
+            val sanityGate = consensusSanityGate(consensusSanity)
+            Log.d(
+                TAG,
+                "finalGridSanity candidate=consensus displayed=${consensusSanity.displayed} " +
+                    "distinctDisplayed=${consensusSanity.distinctDisplayed} " +
+                    "duplicatePenalty=${consensusSanity.duplicatePenalty} " +
+                    "columnRangeViolations=${consensusSanity.columnRangeViolations} " +
+                    "accepted=${sanityGate.first} reason=${sanityGate.second}",
+            )
+            val bestRawDistinct = bestRawStagePair.second.distinctValidCount
+            val (consensusQualityOk, consensusQualityReason) = consensusPassesQualityBar(
+                consensusPr,
+                bestRawStagePair.second,
+                consensusSanity,
+                sanityGate = sanityGate,
+            )
+            Log.d(
+                TAG,
+                "finalQualityCheck candidate=consensus displayed=${consensusSanity.displayed} " +
+                    "distinctDisplayed=${consensusSanity.distinctDisplayed} " +
+                    "duplicatePenalty=${consensusSanity.duplicatePenalty} " +
+                    "bestRawDistinct=$bestRawDistinct " +
+                    "accepted=$consensusQualityOk reason=$consensusQualityReason",
+            )
+            val consensusAllowed = consensusQualityOk && (
+                consensusQualityReason == "tier_b_display_advantage" ||
+                    (
+                        consensusPr.distinctValidCount >= bestRawStagePair.second.distinctValidCount &&
+                            compareStrongestStagePrimary(consensusPr, bestRawStagePair.second) >= 0
+                        )
+                )
+            val (bestStageRaw, chosenPrRaw) =
+                if (consensusAllowed) {
+                    pickConsensusOrBestStage(
+                        consensusPr,
+                        stageCandidates,
+                        includeConsensus = true,
+                    )
+                } else {
+                    bestRawStagePair
+                }
+            var strongestStageOnly = stageCandidates.maxWithOrNull { a, b ->
+                compareStrongestStagePrimary(a.second, b.second)
+            }
+            if (!consensusAllowed) {
+                strongestStageOnly = bestRawStagePair
+            }
+            val guardApplied = strongestStageOnly != null &&
+                strongestStageOnly.second.distinctValidCount >= chosenPrRaw.distinctValidCount + 4
+            var finalStage: String
+            var chosenPr: PipelineResult
+            if (guardApplied) {
+                finalStage = strongestStageOnly!!.first
+                chosenPr = strongestStageOnly.second
+            } else {
+                finalStage = bestStageRaw
+                chosenPr = chosenPrRaw
+            }
+            val finalReason =
+                if (finalStage == "consensus") "consensus_better_or_equal" else "kept_best_raw"
+            Log.d(
+                TAG,
+                "stagePickAdjust bestRawStage=${bestRawStagePair.first} " +
+                    "bestRawDistinct=${bestRawStagePair.second.distinctValidCount} " +
+                    "consensusDistinct=${consensusPr.distinctValidCount} " +
+                    "finalStage=$finalStage finalReason=$finalReason",
+            )
 
-            var finalStage = stageName
             var chosenOutcome = chosenPr.outcome
             var chosenDistinct = chosenPr.distinctValidCount
 
@@ -243,30 +354,55 @@ object ImportTicketImageOcr {
                         finalStage = "bingoHeaderWeak"
                         chosenOutcome = layoutOutcome
                         chosenDistinct = headerPr.distinctValidCount
-                        val v = strictValidColumnCellCount(layoutOutcome.numbersRowMajor)
-                        val v25 = isStrictValidRowMajorGrid(layoutOutcome.numbersRowMajor)
+                        val weakBase = layoutOutcome.copy(losNumber = null, serialNumber = null)
+                        val weakRm0 = pad25(weakBase.numbersRowMajor)
+                        val beforeDw = weakRm0.count { it != 0 }
+                        val beforeDdist = weakRm0.filter { it in 1..75 }.distinct().size
+                        val (weakDeduped, weakRemoved) = dedupeDuplicateBingoValuesRowMajor(weakRm0)
+                        val afterDw = weakDeduped.count { it != 0 }
+                        val afterDdist = weakDeduped.filter { it in 1..75 }.distinct().size
+                        Log.d(
+                            TAG,
+                            "finalDedup removed=$weakRemoved beforeDisplayed=$beforeDw beforeDistinct=$beforeDdist " +
+                                "afterDisplayed=$afterDw afterDistinct=$afterDdist",
+                        )
+                        val weakOut = weakBase.copy(numbersRowMajor = weakDeduped)
+                        val v = strictValidColumnCellCount(weakOut.numbersRowMajor)
+                        val v25 = isStrictValidRowMajorGrid(weakOut.numbersRowMajor)
                         Log.d(
                             TAG,
                             "ocrFinal: finalStage=$finalStage consensusValidCells=$consensusVc " +
-                                "consensusValid25=$consensusV25 validCells=$v distinct=$chosenDistinct valid25=$v25",
+                                "consensusValid25=$consensusV25 validCells=$v distinct=$afterDdist valid25=$v25",
                         )
-                        val weakOut = layoutOutcome.copy(losNumber = null, serialNumber = null)
                         logFinalGridHandoff(weakOut)
-                        return weakOut
+                        return attachLeftStripMeta(weakOut, rootForPipeline)
                     }
                 }
             }
 
-            val out = chosenOutcome.copy(losNumber = null, serialNumber = null)
+            val outBase = chosenOutcome.copy(losNumber = null, serialNumber = null)
+            val rm0 = pad25(outBase.numbersRowMajor)
+            val beforeDw = rm0.count { it != 0 }
+            val beforeDdist = rm0.filter { it in 1..75 }.distinct().size
+            val (dedupedRm, removedDup) = dedupeDuplicateBingoValuesRowMajor(rm0)
+            val afterDw = dedupedRm.count { it != 0 }
+            val afterDdist = dedupedRm.filter { it in 1..75 }.distinct().size
+            Log.d(
+                TAG,
+                "finalDedup removed=$removedDup beforeDisplayed=$beforeDw beforeDistinct=$beforeDdist " +
+                    "afterDisplayed=$afterDw afterDistinct=$afterDdist",
+            )
+            val out = outBase.copy(numbersRowMajor = dedupedRm)
             val vc = strictValidColumnCellCount(out.numbersRowMajor)
             val v25 = isStrictValidRowMajorGrid(out.numbersRowMajor)
             Log.d(
                 TAG,
                 "ocrFinal: finalStage=$finalStage consensusValidCells=$consensusVc " +
-                    "consensusValid25=$consensusV25 validCells=$vc distinct=$chosenDistinct valid25=$v25",
+                    "consensusValid25=$consensusV25 validCells=$vc distinct=$afterDdist valid25=$v25",
             )
-            logFinalGridHandoff(out)
-            out
+            val withMeta = attachLeftStripMeta(out, rootForPipeline)
+            logFinalGridHandoff(withMeta)
+            withMeta
         } finally {
             recognizer.close()
             pass2?.let { p2 ->
@@ -579,19 +715,244 @@ object ImportTicketImageOcr {
         }
     }
 
-    /** Among strict-valid grids pick highest [strictValidColumnCellCount]; else [compareStageCandidates]. */
+    /**
+     * Picks best grid by [compareStrongestStagePrimary]. When [includeConsensus] is false, weak consensus
+     * cannot override stronger single-stage OCR (consensus row is still built upstream for diagnostics).
+     */
     private fun pickConsensusOrBestStage(
         consensusPr: PipelineResult,
         stageCandidates: List<Pair<String, PipelineResult>>,
+        includeConsensus: Boolean = true,
     ): Pair<String, PipelineResult> {
         val all = mutableListOf<Pair<String, PipelineResult>>()
-        all.add("consensus" to consensusPr)
+        if (includeConsensus) all.add("consensus" to consensusPr)
         all.addAll(stageCandidates)
         val strictOk = all.filter { isStrictValidRowMajorGrid(it.second.outcome.numbersRowMajor) }
-        if (strictOk.isNotEmpty()) {
-            return strictOk.maxBy { strictValidColumnCellCount(it.second.outcome.numbersRowMajor) }
+        val pool = if (strictOk.isNotEmpty()) strictOk else all
+        val picked = pool.maxWithOrNull { a, b -> compareStrongestStagePrimary(a.second, b.second) }!!
+        logFinalDuplicateCheck(picked.second)
+        return picked.first to picked.second
+    }
+
+    /** 25 non-zero cells but not 25 distinct values in 1–75 (invalid full grid). */
+    private fun isDeceptiveFullGrid(rowMajor: List<Int>): Boolean {
+        val p = pad25(rowMajor)
+        if (p.count { it != 0 } != 25) return false
+        return p.filter { it in 1..75 }.distinct().size < 25
+    }
+
+    private fun distinctDisplayedCountGrid(rowMajor: List<Int>): Int =
+        pad25(rowMajor).filter { it in 1..75 }.distinct().size
+
+    private data class GridQualityMetrics(
+        val displayed: Int,
+        val distinctDisplayed: Int,
+        val duplicatePenalty: Int,
+    )
+
+    private fun gridQualityMetrics(rowMajor: List<Int>): GridQualityMetrics {
+        val p = pad25(rowMajor)
+        val displayed = p.count { it != 0 }
+        val distinctDisplayed = p.filter { it in 1..75 }.distinct().size
+        return GridQualityMetrics(displayed, distinctDisplayed, displayed - distinctDisplayed)
+    }
+
+    private fun duplicatePenaltyGrid(rowMajor: List<Int>): Int =
+        gridQualityMetrics(rowMajor).duplicatePenalty
+
+    /** Bingo column range violations (non-zero cell not in B/I/N/G/O range for its column). */
+    private data class GridSanityMetrics(
+        val displayed: Int,
+        val distinctDisplayed: Int,
+        val duplicatePenalty: Int,
+        val columnRangeViolations: Int,
+    )
+
+    private fun gridSanityMetrics(rowMajor: List<Int>): GridSanityMetrics {
+        val g = gridQualityMetrics(rowMajor)
+        return GridSanityMetrics(
+            g.displayed,
+            g.distinctDisplayed,
+            g.duplicatePenalty,
+            rowMajorOutOfColumnCount(rowMajor),
+        )
+    }
+
+    private data class RawStageRank(
+        val stage: String,
+        val pr: PipelineResult,
+        val displayedCount: Int,
+        val distinctDisplayedCount: Int,
+        val duplicatePenalty: Int,
+        val columnRangeViolations: Int,
+        val distinctValidCount: Int,
+    )
+
+    /** Raw fallback / best-raw reference: grid-quality sort; strong = distinct ≥10 or displayed ≥12. */
+    private fun rankRawStagesForFallback(
+        stageCandidates: List<Pair<String, PipelineResult>>,
+    ): Pair<RawStageRank, Boolean> {
+        val ranked = stageCandidates.map { (name, pr) ->
+            val s = gridSanityMetrics(pr.outcome.numbersRowMajor)
+            RawStageRank(
+                stage = name,
+                pr = pr,
+                displayedCount = s.displayed,
+                distinctDisplayedCount = s.distinctDisplayed,
+                duplicatePenalty = s.duplicatePenalty,
+                columnRangeViolations = s.columnRangeViolations,
+                distinctValidCount = pr.distinctValidCount,
+            )
+        }.sortedWith(
+            compareByDescending<RawStageRank> { it.distinctDisplayedCount }
+                .thenByDescending { it.displayedCount }
+                .thenBy { it.duplicatePenalty }
+                .thenBy { it.columnRangeViolations }
+                .thenByDescending { it.distinctValidCount },
+        )
+        val strong = ranked.filter {
+            it.distinctDisplayedCount >= 10 || it.displayedCount >= 12
         }
-        return all.maxWithOrNull { a, b -> compareStageCandidates(a.second, b.second) }!!
+        val pick = if (strong.isNotEmpty()) strong.first() else ranked.first()
+        return pick to strong.isEmpty()
+    }
+
+    private fun consensusSanityGate(s: GridSanityMetrics): Pair<Boolean, String> =
+        when {
+            s.distinctDisplayed < CONSENSUS_SANITY_MIN_DISTINCT_DISPLAYED ->
+                false to "sanity_low_distinct"
+            s.duplicatePenalty >= CONSENSUS_SANITY_MAX_DUPLICATE_PENALTY ->
+                false to "sanity_high_duplicate_penalty"
+            s.columnRangeViolations >= CONSENSUS_SANITY_MAX_COLUMN_VIOLATIONS ->
+                false to "sanity_column_violations"
+            else -> true to "ok"
+        }
+
+    /**
+     * After [consensusSanityGate]: Tier A strong grid; Tier B needs display advantage + caps on
+     * distinct/duplicates/column violations.
+     */
+    private fun consensusPassesQualityBar(
+        consensusPr: PipelineResult,
+        bestRawPr: PipelineResult,
+        consensusSanity: GridSanityMetrics,
+        sanityGate: Pair<Boolean, String>,
+    ): Pair<Boolean, String> {
+        if (!sanityGate.first) return false to sanityGate.second
+        val c = consensusSanity
+        val b = gridQualityMetrics(bestRawPr.outcome.numbersRowMajor)
+        val bestRawMlDistinct = bestRawPr.distinctValidCount
+
+        val tierA =
+            c.distinctDisplayed >= CONSENSUS_TIER_A_MIN_DISTINCT_DISPLAYED &&
+                c.duplicatePenalty < CONSENSUS_TIER_A_MAX_DUPLICATE_PENALTY &&
+                c.distinctDisplayed > b.distinctDisplayed - CONSENSUS_WORSE_THAN_RAW_DISTINCT_GAP &&
+                c.columnRangeViolations <= CONSENSUS_TIER_B_MAX_COLUMN_VIOLATIONS
+        if (tierA) return true to "tier_a_ok"
+
+        val displayAdvantageVsMl =
+            c.displayed >= bestRawMlDistinct + CONSENSUS_DISPLAY_ADVANTAGE_VS_RAW_ML
+        val tierB =
+            displayAdvantageVsMl &&
+                c.distinctDisplayed >= CONSENSUS_TIER_B_MIN_DISTINCT_DISPLAYED &&
+                c.duplicatePenalty <= CONSENSUS_TIER_B_MAX_DUPLICATE_PENALTY &&
+                c.columnRangeViolations <= CONSENSUS_TIER_B_MAX_COLUMN_VIOLATIONS &&
+                c.duplicatePenalty < CONSENSUS_EXTREME_DUPLICATE_PENALTY
+        if (tierB) return true to "tier_b_display_advantage"
+
+        return when {
+            c.duplicatePenalty >= CONSENSUS_EXTREME_DUPLICATE_PENALTY ->
+                false to "rejected_extreme_duplicates"
+            c.distinctDisplayed < CONSENSUS_TIER_A_MIN_DISTINCT_DISPLAYED ->
+                false to "low_distinct"
+            c.duplicatePenalty >= CONSENSUS_TIER_A_MAX_DUPLICATE_PENALTY ->
+                false to "high_duplicate_penalty"
+            c.distinctDisplayed <= b.distinctDisplayed - CONSENSUS_WORSE_THAN_RAW_DISTINCT_GAP ->
+                false to "worse_than_best_raw"
+            else -> false to "rejected_tier_c"
+        }
+    }
+
+    /**
+     * Final grid strength: distinct displayed → duplicate penalty → column-range violations → ML
+     * [PipelineResult.distinctValidCount] → valid25 / deceptive / duplicate count / strict column / OOB.
+     */
+    private fun compareStrongestStagePrimary(a: PipelineResult, b: PipelineResult): Int {
+        val ra = a.outcome.numbersRowMajor
+        val rb = b.outcome.numbersRowMajor
+        val dda = distinctDisplayedCountGrid(ra)
+        val ddb = distinctDisplayedCountGrid(rb)
+        if (dda != ddb) return dda.compareTo(ddb)
+        val penA = duplicatePenaltyGrid(ra)
+        val penB = duplicatePenaltyGrid(rb)
+        if (penA != penB) return penB.compareTo(penA)
+        val oa = rowMajorOutOfColumnCount(ra)
+        val ob = rowMajorOutOfColumnCount(rb)
+        if (oa != ob) return ob.compareTo(oa)
+        if (a.distinctValidCount != b.distinctValidCount) {
+            return a.distinctValidCount.compareTo(b.distinctValidCount)
+        }
+        val va = isStrictValidRowMajorGrid(ra)
+        val vb = isStrictValidRowMajorGrid(rb)
+        when {
+            va && !vb -> return 1
+            !va && vb -> return -1
+        }
+        val fa = isDeceptiveFullGrid(ra)
+        val fb = isDeceptiveFullGrid(rb)
+        when {
+            fa && !fb -> return -1
+            !fa && fb -> return 1
+        }
+        val da = rowMajorDuplicateCount(ra)
+        val db = rowMajorDuplicateCount(rb)
+        if (da != db) return db.compareTo(da)
+        val ca = strictValidColumnCellCount(ra)
+        val cb = strictValidColumnCellCount(rb)
+        if (ca != cb) return ca.compareTo(cb)
+        return 0
+    }
+
+    /** &gt; 0 if [a] is better than [b] for final consensus/stage selection. */
+    private fun compareFinalStageCandidates(a: PipelineResult, b: PipelineResult): Int {
+        val ra = a.outcome.numbersRowMajor
+        val rb = b.outcome.numbersRowMajor
+        val va = isStrictValidRowMajorGrid(ra)
+        val vb = isStrictValidRowMajorGrid(rb)
+        when {
+            va && !vb -> return 1
+            !va && vb -> return -1
+        }
+        val fa = isDeceptiveFullGrid(ra)
+        val fb = isDeceptiveFullGrid(rb)
+        when {
+            fa && !fb -> return -1
+            !fa && fb -> return 1
+        }
+        val da = rowMajorDuplicateCount(ra)
+        val db = rowMajorDuplicateCount(rb)
+        if (da != db) return db.compareTo(da)
+        val ca = strictValidColumnCellCount(ra)
+        val cb = strictValidColumnCellCount(rb)
+        if (ca != cb) return ca.compareTo(cb)
+        val dda = distinctDisplayedCountGrid(ra)
+        val ddb = distinctDisplayedCountGrid(rb)
+        if (dda != ddb) return dda.compareTo(ddb)
+        if (a.distinctValidCount != b.distinctValidCount) {
+            return a.distinctValidCount.compareTo(b.distinctValidCount)
+        }
+        val oa = rowMajorOutOfColumnCount(ra)
+        val ob = rowMajorOutOfColumnCount(rb)
+        if (oa != ob) return ob.compareTo(oa)
+        return 0
+    }
+
+    private fun logFinalDuplicateCheck(pr: PipelineResult) {
+        val rm = pad25(pr.outcome.numbersRowMajor)
+        val displayed = rm.count { it != 0 }
+        val distinct = rm.filter { it in 1..75 }.distinct().size
+        val dup = rowMajorDuplicateCount(rm)
+        Log.d(TAG, "finalDuplicateCheck displayed=$displayed distinct=$distinct duplicates=$dup")
     }
 
     /** Rotate around center; output bounds padded so content is not clipped. */
@@ -1115,8 +1476,20 @@ object ImportTicketImageOcr {
      * top/bottom) before ML Kit runs, so more budget goes to grid text.
      */
     private fun gridCropForNumberRegion(src: Bitmap): Bitmap {
-        BingoNumberAnalyzer.tryDetectBingoGridCropForOcr(src)?.let { return it }
-        return heuristicCentralGridCrop(src)
+        val analyzerCrop = BingoNumberAnalyzer.tryDetectBingoGridCropForOcr(src)
+        if (analyzerCrop != null) {
+            Log.d(
+                TAG,
+                "gridCropForNumberRegion source=analyzer src=${src.width}x${src.height} out=${analyzerCrop.width}x${analyzerCrop.height}",
+            )
+            return analyzerCrop
+        }
+        val fallback = heuristicCentralGridCrop(src)
+        Log.d(
+            TAG,
+            "gridCropForNumberRegion source=heuristic src=${src.width}x${src.height} out=${fallback.width}x${fallback.height}",
+        )
+        return fallback
     }
 
     /** Fallback when [BingoNumberAnalyzer.tryDetectBingoGridCropForOcr] returns null. */
@@ -1124,12 +1497,16 @@ object ImportTicketImageOcr {
         val w = src.width
         val h = src.height
         if (w < 32 || h < 32) return src
-        val left = (w * 0.18f).toInt().coerceIn(0, w - 2)
-        val right = (w * 0.82f).toInt().coerceIn(left + 1, w)
-        val top = (h * 0.22f).toInt().coerceIn(0, h - 2)
-        val bottom = (h * 0.72f).toInt().coerceIn(top + 1, h)
+        val left = (w * 0.14f).toInt().coerceIn(0, w - 2)
+        val right = (w * 0.86f).toInt().coerceIn(left + 1, w)
+        val top = (h * 0.18f).toInt().coerceIn(0, h - 2)
+        val bottom = (h * 0.78f).toInt().coerceIn(top + 1, h)
         val cw = right - left
         val ch = bottom - top
+        Log.d(
+            TAG,
+            "heuristicGridCrop rect=[$left,$top][$right,$bottom] size=${cw}x${ch} src=${w}x${h}",
+        )
         return try {
             Bitmap.createBitmap(src, left, top, cw, ch)
         } catch (_: Exception) {
@@ -1205,11 +1582,56 @@ object ImportTicketImageOcr {
     private fun pad25(rowMajor: List<Int>): List<Int> =
         if (rowMajor.size >= 25) rowMajor.take(25) else rowMajor + List(25 - rowMajor.size) { 0 }
 
+    /** Same value in multiple cells: keep one (column-range match, then earliest row-major index); zero others. */
+    private fun dedupeDuplicateBingoValuesRowMajor(rowMajor: List<Int>): Pair<List<Int>, Int> {
+        val grid = pad25(rowMajor).toMutableList()
+        var removed = 0
+        val byValue = mutableMapOf<Int, MutableList<Int>>()
+        for (i in 0 until 25) {
+            val v = grid[i]
+            if (v != 0) byValue.getOrPut(v) { mutableListOf() }.add(i)
+        }
+        fun inColumnRange(idx: Int, value: Int): Boolean {
+            val col = idx % 5
+            val rng = BingoNumberAnalyzer.bingoColumnValueRange(col) ?: return false
+            return value in rng
+        }
+        for ((value, indices) in byValue) {
+            if (indices.size <= 1) continue
+            val inRange = indices.filter { inColumnRange(it, value) }
+            val keeper = when {
+                inRange.isNotEmpty() -> inRange.minOrNull()!!
+                else -> indices.minOrNull()!!
+            }
+            for (idx in indices) {
+                if (idx != keeper) {
+                    grid[idx] = 0
+                    removed++
+                }
+            }
+        }
+        return grid.toList() to removed
+    }
+
     private fun logFinalGridHandoff(outcome: HistoryImportOcrOutcome) {
         val rm = pad25(outcome.numbersRowMajor)
         val displayedCount = rm.count { it != 0 }
         val distinctDisplayedCount = rm.filter { it in 1..75 }.distinct().size
         Log.d(TAG, "finalRowMajor=$rm displayedCount=$displayedCount distinctDisplayedCount=$distinctDisplayedCount")
+    }
+
+    /** Left-strip meta only; does not touch [HistoryImportOcrOutcome.numbersRowMajor]. */
+    private fun attachLeftStripMeta(gridOnly: HistoryImportOcrOutcome, ticketBitmap: Bitmap): HistoryImportOcrOutcome {
+        val (los, serial) = LeftStripMetaOcr.detect(ticketBitmap)
+        val w = ticketBitmap.width
+        val h = ticketBitmap.height
+        val lw = (w * LEFT_STRIP_WIDTH_FRAC).toInt().coerceIn(4, w)
+        val success = los != null || serial != null
+        Log.d(
+            TAG,
+            "metaDebug left=${lw}x${h} los=${los ?: "-"} serial=${serial ?: "-"} success=$success",
+        )
+        return if (los == null && serial == null) gridOnly else gridOnly.copy(losNumber = los, serialNumber = serial)
     }
 
     /** Non-zero cells whose value lies in the expected B/I/N/G/O column (row-major). */

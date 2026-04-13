@@ -1,11 +1,13 @@
 package com.example.mamunbingoapp.ui.screens.history
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,14 +26,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -48,27 +49,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.theme.Slate200
+import com.example.mamunbingoapp.theme.IconContainerBg
+import com.example.mamunbingoapp.theme.OnPrimary
+import com.example.mamunbingoapp.theme.OnSurface
+import com.example.mamunbingoapp.theme.Outline
+import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.theme.SurfaceContainer
+import com.example.mamunbingoapp.theme.WarningBorder
+import com.example.mamunbingoapp.theme.WarningContainer
+import com.example.mamunbingoapp.theme.WarningIcon
+import com.example.mamunbingoapp.theme.WarningSubText
+import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
@@ -77,24 +97,22 @@ import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
+import com.example.mamunbingoapp.ui.components.CalledHistoryPanelContext
 import com.example.mamunbingoapp.core.BingoWinChecker
-import com.example.mamunbingoapp.ui.components.AlmostBingoAlertRowV2
+import com.example.mamunbingoapp.ui.components.LabelValueInfoRow
+import com.example.mamunbingoapp.ui.components.LabelValueInfoRowVariant
 import com.example.mamunbingoapp.ui.components.BingoCardGrid
+import com.example.mamunbingoapp.ui.components.MiniBingoPreview
 import com.example.mamunbingoapp.ui.components.BingoGridMode
 import com.example.mamunbingoapp.ui.components.BingoSheetSection
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
-import com.example.mamunbingoapp.ui.components.SectionHeader
-import com.example.mamunbingoapp.ui.components.TicketInfoCard
-import com.example.mamunbingoapp.ui.components.TicketInfoItem
 import com.example.mamunbingoapp.ui.components.StatusPill
-import com.example.mamunbingoapp.ui.components.TicketInfoStatusChip
 import com.example.mamunbingoapp.data.LiveRoom
 import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.ui.model.SheetStatus
-import androidx.compose.foundation.clickable
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -324,7 +342,7 @@ fun HistoryDetailScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
@@ -339,330 +357,188 @@ fun HistoryDetailScreen(
                     .align(Alignment.TopCenter)
             )
             Column(Modifier.fillMaxSize()) {
+                val configuration = LocalConfiguration.current
+                val historyDetailIconOnlyActions = configuration.screenWidthDp < 360
+                val historyDetailLiveActionLabel =
+                    if (displayAssignedRoomId != null) "Go to Live Room" else "Add to Live Play"
                 AppTopBar(
                     title = "History Detail",
                     showBack = true,
                     onBackClick = onBack,
                     actions = {
-                        IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                )
-                LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(
-                start = Dimens.screenHorizontalPadding,
-                top = Dimens.spacing5,
-                end = Dimens.screenHorizontalPadding,
-                bottom = Dimens.spacing16
-            ),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing24)
-        ) {
-            when (displaySheetStatus) {
-                SheetStatus.ACTIVE -> item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatusPill(status = SheetStatus.ACTIVE)
-                        Row(
-                            modifier = Modifier
-                                .heightIn(min = Dimens.buttonHeight)
-                                .clip(RoundedCornerShape(Dimens.radiusSmall))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(Dimens.spacing4),
-                            horizontalArrangement = Arrangement.spacedBy(0.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(Dimens.radiusSmall))
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .clickable { }
-                                    .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Live",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(Dimens.radiusSmall))
-                                    .clickable { showLeaveLiveDialog = true }
-                                    .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Leave",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-                SheetStatus.COMPLETED -> item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatusPill(status = SheetStatus.COMPLETED)
-                    }
-                }
-                SheetStatus.IN_PROGRESS -> item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatusPill(status = SheetStatus.IN_PROGRESS)
-                    }
-                }
-                SheetStatus.IDLE -> { }
-            }
-            item {
-                val clipboard = LocalClipboardManager.current
-                val infoItems = buildList {
-                    add(TicketInfoItem("Sheet Name", sessionForDisplay.effectiveSheetName().ifEmpty { "Unnamed sheet" }))
-                    add(
-                        TicketInfoItem(
-                            "Draw Date",
-                            SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(sessionForDisplay.effectivePlayedAtMillis()))
-                        )
-                    )
-                    sessionForDisplay.ocrSource?.takeIf { it in listOf("GEMINI", "ML_KIT") }?.let { src ->
-                        add(TicketInfoItem("Imported via", if (src == "GEMINI") "Gemini OCR" else "ML Kit OCR"))
-                    }
-                    if (sessionForDisplay.ocrSource == "GEMINI" && sessionForDisplay.ocrConfidence != null) {
-                        add(TicketInfoItem("OCR confidence", "${(sessionForDisplay.ocrConfidence!! * 100).toInt()}%"))
-                    }
-                    sessionForDisplay.originalOcrNumbers?.takeIf { it.isNotBlank() }?.takeIf {
-                        sessionForDisplay.ocrSource in listOf("GEMINI", "ML_KIT")
-                    }?.let { nums ->
-                        add(TicketInfoItem("Original OCR numbers", nums))
-                    }
-                    if (sessionForDisplay.ocrSource in listOf("GEMINI", "ML_KIT") && sessionForDisplay.originalOcrNumbers?.isNotBlank() == true && displayCells != null) {
-                        val originalList = sessionForDisplay.originalOcrNumbers!!.split(",").mapNotNull { it.trim().toIntOrNull() }.take(25)
-                        val savedRowMajor = displayCells!!.take(25).map { it.number?.toIntOrNull() ?: 0 }
-                        val savedForCompare = if (sessionForDisplay.ocrSource == "ML_KIT") rowMajorToColumnMajor(savedRowMajor) else savedRowMajor
-                        val n = minOf(originalList.size, savedForCompare.size)
-                        val edited = n > 0 && (0 until n).any { originalList[it] != savedForCompare[it] }
-                        val correctionCount = (0 until n).count { originalList[it] != savedForCompare[it] }
-                        add(TicketInfoItem("OCR review", if (edited) "Edited after import" else "Saved without changes"))
-                        add(TicketInfoItem("OCR corrections", when (correctionCount) { 0 -> "0 changes"; 1 -> "1 change"; else -> "$correctionCount changes" }))
-                    }
-                    add(
-                        TicketInfoItem(
-                            "Ticket ID",
-                            ticketId,
-                            trailing = {
-                                IconButton(onClick = {
-                                    clipboard.setText(AnnotatedString(ticketId))
-                                    scope.launch { snackbarHostState.showSnackbar("Copied to clipboard") }
-                                }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy ticket id")
-                                }
-                            }
-                        )
-                    )
-                    if (displaySheetStatus == SheetStatus.ACTIVE) {
-                        add(TicketInfoItem("Status", "", trailing = { TicketInfoStatusChip("Live") }))
-                    }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)) {
-                    TicketInfoCard(title = "TICKET INFORMATION", items = infoItems)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                modifier = Modifier.size(Dimens.iconCompact),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "${sessionForDisplay.sheetsCount} Sheets",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)) {
-                            Icon(
-                                imageVector = Icons.Default.Numbers,
-                                contentDescription = null,
-                                modifier = Modifier.size(Dimens.iconCompact),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            if (displayAssignedRoomId != null) {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        text = "Numbers Called (Live)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                                    )
-                                    Text(
-                                        text = if (displayCalledNumbers.isNotEmpty()) "${displayCalledNumbers.size} Called" else "Live (loading…)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                                    )
-                                }
-                            } else {
-                                Text(
-                                    text = "${displayCalledNumbers.size} Numbers Called",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            item {
-                CalledHistoryPanel(
-                    modifier = Modifier.fillMaxWidth(),
-                    calledNumbers = displayCalledNumbers,
-                    isCallLimitReached = true
-                )
-            }
-            if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
-                item {
-                    BingoWinBanner(lineCount = winResult.winningLines.size, modifier = Modifier.fillMaxWidth())
-                }
-                item { Spacer(modifier = Modifier.height(Dimens.spacing12)) }
-            }
-            if (almostBingoInfo != null && displayCells != null && displayCells.size >= 25) {
-                item {
-                    AlmostBingoAlertRowV2(
-                        lineType = almostBingoInfo.lineLabel,
-                        filled = almostBingoInfo.marked,
-                        total = almostBingoInfo.total,
-                        markedCells = markedSetForAlert,
-                        nearCells = emptySet(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                item { Spacer(modifier = Modifier.height(Dimens.spacing12)) }
-            }
-            item {
-                SectionHeader(title = "Bingo Sheet")
-            }
-            item {
-                BingoGridCard(cells = displayCells, winningCells = if (winResult?.isWin == true) winResult.winningCells else emptySet())
-            }
-            if (displayAssignedRoomId != null && displayCalledNumbers.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(Dimens.radiusCard))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(Dimens.radiusCard))
-                            .padding(Dimens.spacing16)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)) {
-                            Text(
-                                text = "Waiting for live data…",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Open Live Room to see real-time called numbers.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                            )
-                        }
-                    }
-                }
-            }
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
-                ) {
-                    if (displayAssignedRoomId != null) {
-                        AppPrimaryButton(
-                            text = "Go to Live Room",
-                            onClick = { displayAssignedRoomId?.let { onOpenRoom(it) } },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = Dimens.buttonHeight),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimens.iconCompact),
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
-                        )
-                    } else {
-                        AppPrimaryButton(
-                            text = "Add to Live Play",
-                            onClick = {
-                                scope.launch {
-                                    val assigned = RoomRepository.findAssignedRoomId(ticketId)
-                                    if (assigned != null) {
-                                        val name = RoomRepository.getRoom(assigned)?.name ?: "another room"
-                                        showAlreadyInRoomDialog = Pair(assigned, name)
-                                    } else {
-                                        showRoomPicker = true
+                        HistoryDetailHeaderActions(
+                            iconOnlyActions = historyDetailIconOnlyActions,
+                            liveActionLabel = historyDetailLiveActionLabel,
+                            onLiveAction = {
+                                if (displayAssignedRoomId != null) {
+                                    displayAssignedRoomId?.let { onOpenRoom(it) }
+                                } else {
+                                    scope.launch {
+                                        val assigned = RoomRepository.findAssignedRoomId(ticketId)
+                                        if (assigned != null) {
+                                            val name = RoomRepository.getRoom(assigned)?.name ?: "another room"
+                                            showAlreadyInRoomDialog = Pair(assigned, name)
+                                        } else {
+                                            showRoomPicker = true
+                                        }
                                     }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = Dimens.buttonHeight),
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Filled.PlayArrow,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimens.iconCompact),
-                                    tint = MaterialTheme.colorScheme.onPrimary
+                            onDeleteClick = { showDeleteDialog = true },
+                        )
+                    }
+                )
+                val historyDetailSectionGap = Dimens.spacing8
+                val historyDetailStatusPadV = Dimens.spacing8
+                val historyDetailWinSpacer = Dimens.spacing8
+                val historyDetailBottomInset = Dimens.spacing8
+                val historyDetailCalledPanelPadH = Dimens.spacing12
+                val historyDetailWaitingPadding = Dimens.spacing16
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = Dimens.screenHorizontalPadding)
+                            .padding(bottom = historyDetailBottomInset),
+                        verticalArrangement = Arrangement.spacedBy(historyDetailSectionGap),
+                    ) {
+                            when (displaySheetStatus) {
+                                SheetStatus.COMPLETED -> {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                horizontal = Dimens.spacing12,
+                                                vertical = historyDetailStatusPadV,
+                                            ),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        StatusPill(status = SheetStatus.COMPLETED)
+                                    }
+                                }
+                                SheetStatus.IN_PROGRESS -> {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                horizontal = Dimens.spacing12,
+                                                vertical = historyDetailStatusPadV,
+                                            ),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        StatusPill(status = SheetStatus.IN_PROGRESS)
+                                    }
+                                }
+                                else -> { }
+                            }
+                            val clipboard = LocalClipboardManager.current
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(
+                                    if (displaySheetStatus == SheetStatus.ACTIVE) Dimens.spacing4 else 0.dp
+                                ),
+                            ) {
+                                if (displaySheetStatus == SheetStatus.ACTIVE) {
+                                    HistoryDetailCompactActiveStatusRow(
+                                        onLeaveClick = { showLeaveLiveDialog = true },
+                                    )
+                                }
+                                HistoryDetailCompactTicketSection(
+                                    session = sessionForDisplay,
+                                    ticketId = ticketId,
+                                    displaySheetStatus = displaySheetStatus,
+                                    displayAssignedRoomId = displayAssignedRoomId,
+                                    displayCalledNumbers = displayCalledNumbers,
+                                    onCopyTicketId = {
+                                        clipboard.setText(AnnotatedString(ticketId))
+                                        scope.launch { snackbarHostState.showSnackbar("Copied to clipboard") }
+                                    },
                                 )
                             }
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { onDuplicateSession(sessionForDisplay.id) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = Dimens.buttonHeight),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(Dimens.radiusCard)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimens.iconCompact),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Duplicate Session",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(start = Dimens.spacing8)
-                        )
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+                            ) {
+                                if (almostBingoInfo != null && displayCells != null && displayCells.size >= 25) {
+                                    HistoryDetailCompactAlmostBingoRow(
+                                        lineType = almostBingoInfo.lineLabel,
+                                        filled = almostBingoInfo.marked,
+                                        total = almostBingoInfo.total,
+                                        markedCells = markedSetForAlert,
+                                    )
+                                }
+                                CalledHistoryPanel(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = historyDetailCalledPanelPadH),
+                                    calledNumbers = displayCalledNumbers.takeLast(MAX_LIVE_CALLS),
+                                    isCallLimitReached = displayCalledNumbers.size >= MAX_LIVE_CALLS,
+                                    showLimitMessage = displayCalledNumbers.size >= MAX_LIVE_CALLS,
+                                    panelContext = CalledHistoryPanelContext.HistoryDetail,
+                                )
+                            }
+                            if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
+                                BingoWinBanner(
+                                    lineCount = winResult.winningLines.size,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
+                                Spacer(modifier = Modifier.height(historyDetailWinSpacer))
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                            ) {
+                                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                                    BingoGridCard(
+                                        cells = displayCells,
+                                        winningCells = if (winResult?.isWin == true) winResult.winningCells else emptySet(),
+                                        historyDetailOuterMaxWidth = maxWidth,
+                                        historyDetailOuterMaxHeight = maxHeight,
+                                    )
+                                }
+                            }
+                            if (displayAssignedRoomId != null && displayCalledNumbers.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(Dimens.radiusCard))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                            RoundedCornerShape(Dimens.radiusCard)
+                                        )
+                                        .padding(historyDetailWaitingPadding)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)) {
+                                        Text(
+                                            text = "Waiting for live data…",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "Open Live Room to see real-time called numbers.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                }
+                            }
                     }
                 }
+                AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
             }
         }
-        AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
-    }
-    }
     }
 }
 
@@ -807,9 +683,394 @@ private fun CreateRoomDialog(
 }
 
 @Composable
-private fun BingoGridCard(cells: List<BingoCellUi>?, winningCells: Set<Int> = emptySet()) {
-    BingoSheetSection {
-        if (cells == null || cells.size != 25) {
+private fun HistoryDetailCompactActiveStatusRow(
+    onLeaveClick: () -> Unit,
+    compactVertical: Boolean = false,
+) {
+    val padV = if (compactVertical) Dimens.spacing4 else Dimens.spacing5
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.spacing12, vertical = padV),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(Dimens.radiusPill))
+                .background(IconContainerBg)
+                .padding(horizontal = Dimens.spacing12, vertical = 3.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "Active",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Primary,
+            )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(Dimens.radiusPill))
+                    .background(Primary)
+                    .clickable { }
+                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing5),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Live",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = OnPrimary,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(Dimens.radiusPill))
+                    .background(SurfaceContainer)
+                    .border(BorderStroke(1.dp, Outline), RoundedCornerShape(Dimens.radiusPill))
+                    .clickable(onClick = onLeaveClick)
+                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing5),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Leave",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = OnSurface,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailCompactTicketSection(
+    session: HistorySession,
+    ticketId: String,
+    displaySheetStatus: SheetStatus,
+    displayAssignedRoomId: String?,
+    displayCalledNumbers: List<Int>,
+    onCopyTicketId: () -> Unit,
+    compactVertical: Boolean = false,
+) {
+    val dateStr = remember(session.id, session.playedAtMillis) {
+        SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(session.effectivePlayedAtMillis()))
+    }
+    val sheetLabel = session.effectiveSheetName().ifEmpty { "Unnamed sheet" }
+    val truncatedId = if (ticketId.length > 16) ticketId.take(14) + "…" else ticketId
+    val n = session.sheetsCount
+    val sheetWord = if (n == 1) "Sheet" else "Sheets"
+    val summaryMiddle = if (displayAssignedRoomId != null) "Numbers called (Live)" else "Numbers called"
+    val summaryTail = when {
+        displayAssignedRoomId != null && displayCalledNumbers.isNotEmpty() ->
+            "${displayCalledNumbers.size} Called"
+        displayAssignedRoomId != null ->
+            "loading…"
+        else ->
+            "${displayCalledNumbers.size} Numbers Called"
+    }
+    val statsAnnotated = buildAnnotatedString {
+        val baseStyle = SpanStyle(
+            color = OnSurface.copy(alpha = 0.6f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Normal,
+        )
+        val boldStyle = SpanStyle(
+            color = OnSurface,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        withStyle(boldStyle) {
+            append("$n $sheetWord")
+        }
+        withStyle(baseStyle) {
+            append(" · $summaryMiddle · ")
+        }
+        withStyle(boldStyle) {
+            append(summaryTail)
+        }
+    }
+    val statusText = historyDetailStatusLabel(displaySheetStatus)
+    val ticketLabelTop = if (compactVertical) 2.dp else 4.dp
+    val ticketLabelBottom = if (compactVertical) 1.dp else 2.dp
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "TICKET INFORMATION",
+            modifier = Modifier.padding(
+                top = ticketLabelTop,
+                start = Dimens.spacing12,
+                end = Dimens.spacing12,
+                bottom = ticketLabelBottom,
+            ),
+            fontSize = 9.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.07.em,
+            color = Outline,
+        )
+        LabelValueInfoRow(
+            label = "Sheet name",
+            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+        ) {
+            Text(
+                text = sheetLabel,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        LabelValueInfoRow(
+            label = "Draw date",
+            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+        ) {
+            Text(
+                text = dateStr,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End,
+            )
+        }
+        LabelValueInfoRow(
+            label = "Ticket ID",
+            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = truncatedId,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                IconButton(onClick = onCopyTicketId, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy ticket id",
+                        modifier = Modifier.size(Dimens.iconCompact),
+                        tint = Primary,
+                    )
+                }
+            }
+        }
+        LabelValueInfoRow(
+            label = "Status",
+            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+        ) {
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = if (displaySheetStatus == SheetStatus.ACTIVE) {
+                    Primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                textAlign = TextAlign.End,
+            )
+        }
+        val statsRowPadV = if (compactVertical) 2.dp else 4.dp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = statsRowPadV, horizontal = Dimens.spacing12),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = statsAnnotated, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        session.ocrSource?.takeIf { it in listOf("GEMINI", "ML_KIT") }?.let { src ->
+            val via = if (src == "GEMINI") "Gemini OCR" else "ML Kit OCR"
+            val conf = session.ocrConfidence?.let { " · ${(it * 100).toInt()}%" } ?: ""
+            Text(
+                text = "$via$conf",
+                modifier = Modifier.padding(
+                    start = Dimens.spacing12,
+                    end = Dimens.spacing12,
+                    top = Dimens.spacing4,
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailCompactAlmostBingoRow(
+    lineType: String,
+    filled: Int,
+    total: Int,
+    markedCells: Set<Int>,
+    compactVertical: Boolean = false,
+) {
+    val need = total - filled
+    val subtitle = "$lineType · need $need more number${if (need == 1) "" else "s"}"
+    val alertShape = RoundedCornerShape(Dimens.radiusCard)
+    val rowPadV = if (compactVertical) Dimens.spacing4 else Dimens.spacing8
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(alertShape)
+            .background(WarningContainer, alertShape)
+            .border(
+                Dimens.cardBorderDefault,
+                WarningBorder.copy(alpha = 0.2f),
+                alertShape,
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(WarningBorder.copy(alpha = 0.35f)),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = rowPadV, horizontal = Dimens.spacing12),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(Dimens.radiusBingoCell))
+                    .background(WarningIcon)
+                    .padding(2.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                MiniBingoPreview(
+                    markedCells = markedCells,
+                    nearCells = emptySet(),
+                    modifier = Modifier.fillMaxSize(),
+                    gap = 1.dp,
+                    cellRadius = 2.dp,
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = Dimens.spacing8),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                Text(
+                    text = "Almost Bingo!",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = WarningText,
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 10.sp,
+                    color = WarningSubText,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(Dimens.progressBarRadius))
+                    .background(WarningIcon)
+                    .padding(vertical = 2.dp, horizontal = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "$filled/$total",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = OnPrimary,
+                )
+            }
+        }
+    }
+}
+
+private fun historyDetailStatusLabel(status: SheetStatus): String = when (status) {
+    SheetStatus.ACTIVE -> "Live"
+    SheetStatus.COMPLETED -> "Completed"
+    SheetStatus.IN_PROGRESS -> "In progress"
+    SheetStatus.IDLE -> "—"
+}
+
+@Composable
+private fun HistoryDetailHeaderActions(
+    iconOnlyActions: Boolean,
+    liveActionLabel: String,
+    onLiveAction: () -> Unit,
+    onDeleteClick: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
+    ) {
+        if (iconOnlyActions) {
+            IconButton(onClick = onLiveAction) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = liveActionLabel,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        } else {
+            TextButton(
+                onClick = onLiveAction,
+                contentPadding = PaddingValues(
+                    horizontal = Dimens.spacing8,
+                    vertical = Dimens.spacing8,
+                ),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.iconCompact),
+                )
+                Spacer(modifier = Modifier.width(Dimens.spacing4))
+                Text(
+                    text = liveActionLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        IconButton(onClick = onDeleteClick) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete",
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BingoGridCard(
+    cells: List<BingoCellUi>?,
+    winningCells: Set<Int> = emptySet(),
+    historyDetailOuterMaxWidth: Dp? = null,
+    historyDetailOuterMaxHeight: Dp? = null,
+) {
+    val sheetInset = Dimens.spacing16 * 2
+    val innerContentMaxWidth = historyDetailOuterMaxWidth?.let { (it - sheetInset).coerceAtLeast(1.dp) }
+    val innerContentMaxHeight = historyDetailOuterMaxHeight?.let { (it - sheetInset).coerceAtLeast(1.dp) }
+    if (cells == null || cells.size != 25) {
+        BingoSheetSection(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -822,17 +1083,17 @@ private fun BingoGridCard(cells: List<BingoCellUi>?, winningCells: Set<Int> = em
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                 )
             }
-        } else {
-            BingoCardGrid(
-                cells = cells,
-                modifier = Modifier.fillMaxWidth(),
-                mode = BingoGridMode.PREVIEW,
-                winningCells = winningCells,
-                onCellClick = {}
-            )
         }
+    } else {
+        BingoCardGrid(
+            cells = cells,
+            modifier = Modifier.fillMaxSize(),
+            mode = BingoGridMode.PREVIEW,
+            winningCells = winningCells,
+            onCellClick = {},
+            historyDetailCompact = true,
+            historyDetailContentMaxWidth = innerContentMaxWidth,
+            historyDetailContentMaxHeight = innerContentMaxHeight,
+        )
     }
 }
-
-private fun rowMajorToColumnMajor(rowMajor: List<Int>): List<Int> =
-    if (rowMajor.size < 25) rowMajor else (0..24).map { i -> rowMajor[(i % 5) * 5 + i / 5] }

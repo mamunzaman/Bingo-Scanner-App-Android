@@ -28,8 +28,6 @@ import kotlinx.coroutines.launch
 import kotlin.OptIn
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
-import com.example.mamunbingoapp.data.preferences.LiveHeaderStyle
-import com.example.mamunbingoapp.data.preferences.UserPreferencesRepository
 import com.example.mamunbingoapp.ui.model.RoomStatus
 
 sealed class LivePlayUiEvent {
@@ -130,9 +128,6 @@ class LivePlayViewModel(
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LivePlayUiState())
-
-    val liveHeaderStyle: StateFlow<LiveHeaderStyle> = UserPreferencesRepository.liveHeaderStyleFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LiveHeaderStyle.V1_CLEAN)
 
     init {
         viewModelScope.launch {

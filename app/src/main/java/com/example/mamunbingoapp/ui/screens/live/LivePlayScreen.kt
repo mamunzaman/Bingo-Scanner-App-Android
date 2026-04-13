@@ -163,7 +163,6 @@ import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.RoomSettings
-import com.example.mamunbingoapp.data.preferences.LiveHeaderStyle
 import com.example.mamunbingoapp.engine.RoomTimerManager
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
@@ -232,8 +231,7 @@ fun LivePlayScreen(
     onResetConfirm: () -> Unit = {},
     onResetDismiss: () -> Unit = {},
     onFinishClick: () -> Unit = {},
-    onUndoLastCall: () -> Unit = {},
-    liveHeaderStyle: LiveHeaderStyle = LiveHeaderStyle.V1_CLEAN
+    onUndoLastCall: () -> Unit = {}
 ) {
     var selectedView by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
@@ -452,6 +450,15 @@ fun LivePlayScreen(
             onCreateTicket = {
                 isMyTicketsSheetOpen = false
                 onNavigateToManualEntry()
+            },
+            onBulkDeleteTickets = { ids ->
+                com.example.mamunbingoapp.data.HistoryRepository.deleteSessions(ids)
+            },
+            onBulkLeaveTickets = { ids ->
+                com.example.mamunbingoapp.data.RoomRepository.unassignTickets(ids)
+            },
+            onBulkAddToRoom = { ids ->
+                ids.forEach { sessionId -> onAddToRoom(sessionId) }
             }
         )
         Column(modifier = if (selectedView) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth().wrapContentHeight()) {
@@ -473,7 +480,6 @@ fun LivePlayScreen(
                     LiveEmptyState(
                         onAddTicket = { isMyTicketsSheetOpen = true },
                         onManualEntry = onNavigateToManualEntry,
-                        onScanSheet = { onTabSelected(AppTab.Scan) }
                     )
                 }
             } else {
@@ -501,47 +507,29 @@ fun LivePlayScreen(
                             }
                         }
                     }
-                    item(key = "live_header") {
-                        Box {
-                            LiveRoomTopSection(
-                                uiState = LivePlayUiState(
-                                    sheetName = sheetName,
-                                    calledNumbers = calledNumbers,
-                                    lastCalled = lastCalled,
-                                    lastCalledAtMillis = lastCalledAtMillis,
-                                    effectiveStatus = effectiveStatus
-                                ),
-                                onFinish = {
-                                    onFinishClick()
-                                    scope.launch { snackbarHostState.showSnackbar("Room archived") }
-                                },
-                                onReset = onResetClick,
-                                onTapToCallRandom = {
-                                    if (calledNumbers.size >= MAX_LIVE_CALLS) scope.launch {
-                                        snackbarHostState.showSnackbar("Round complete — Finish or Reset", duration = SnackbarDuration.Short)
-                                    } else onCallRandomNumber()
-                                },
-                                liveHeaderStyle = liveHeaderStyle
-                            )
-                        }
-                    }
                     stickyHeader {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .zIndex(1f)
                                 .background(MaterialTheme.colorScheme.background)
-                                .padding(top = Dimens.spacing8)
+                                .padding(top = Dimens.spacing4)
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
-                                CalledHistoryPanel(
-                                    calledNumbers = calledNumbers.takeLast(MAX_LIVE_CALLS),
+                                LiveRoomWithHistoryCard(
+                                    uiState = LivePlayUiState(
+                                        sheetName = sheetName,
+                                        calledNumbers = calledNumbers,
+                                        lastCalled = lastCalled,
+                                        lastCalledAtMillis = lastCalledAtMillis,
+                                        effectiveStatus = effectiveStatus
+                                    ),
                                     isCallLimitReached = isCallLimitReached
                                 )
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = Dimens.spacing8),
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    thickness = Dimens.cardBorderDefault
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    thickness = 1.dp
                                 )
                                 Box(modifier = Modifier.padding(top = Dimens.spacing8, bottom = Dimens.spacing16)) {
                                     ViewToggleChipRow(
@@ -551,8 +539,8 @@ fun LivePlayScreen(
                                     )
                                 }
                                 HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    thickness = Dimens.cardBorderDefault
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                    thickness = 1.dp
                                 )
                             }
                         }
@@ -723,7 +711,6 @@ private fun LivePlayBottomArea(
 private fun LiveEmptyState(
     onAddTicket: () -> Unit = {},
     onManualEntry: () -> Unit,
-    onScanSheet: () -> Unit
 ) {
     Column(
         modifier = Modifier

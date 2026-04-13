@@ -51,7 +51,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -64,6 +63,7 @@ import com.example.mamunbingoapp.theme.Slate200
 import com.example.mamunbingoapp.theme.Slate400
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import androidx.compose.material3.Scaffold
@@ -97,7 +97,7 @@ fun ProfileScreen(
     )
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
@@ -105,24 +105,23 @@ fun ProfileScreen(
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            AppTopBar(
-                title = "Profile",
-                actions = {
-                    IconButton(onClick = onSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+        AppHeaderPageLayout(
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+            topBar = {
+                AppTopBar(
+                    title = "Profile",
+                    actions = {
+                        IconButton(onClick = onSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
-                }
-            )
+                )
+            },
+            content = {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -245,7 +244,7 @@ fun ProfileScreen(
                 Box(
                     modifier = Modifier
                         .size(1.dp, 60.dp)
-                        .background(MaterialTheme.colorScheme.outlineVariant)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
                 )
                 Column(
                     modifier = Modifier.weight(1f),
@@ -343,7 +342,8 @@ fun ProfileScreen(
                 )
             }
         }
-        }
+            }
+        )
     }
 }
 

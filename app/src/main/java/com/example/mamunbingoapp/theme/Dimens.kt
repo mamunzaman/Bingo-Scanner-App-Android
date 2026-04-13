@@ -10,6 +10,7 @@ object Dimens {
     val spacing12 = 12.dp
     val spacing14 = 14.dp
     val spacing16 = 16.dp
+    val spacing20 = 20.dp
     val spacing24 = 24.dp
     val spacing32 = 32.dp
 
@@ -46,4 +47,8 @@ object Dimens {
 
     val screenHorizontalPadding = spacing16
     val topBarHeight = 64.dp
+
+    /** Hairlines / borders (outlineVariant); matches info rows & cards */
+    const val outlineDividerAlpha = 0.28f
+    const val outlineBorderAlpha = 0.34f
 }

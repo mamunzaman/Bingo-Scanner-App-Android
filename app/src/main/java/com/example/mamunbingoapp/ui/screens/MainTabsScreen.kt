@@ -19,8 +19,10 @@ fun MainTabsScreen(
     onTabSelected: (AppTab) -> Unit,
     onNavigateToLiveRoom: (String) -> Unit,
     onNavigateToLiveRooms: () -> Unit,
-    /** Scan tab “Direct Scan” / Launch camera → `historyPhotoImport` with document scanner (auto-opens from NavGraph). */
+    /** Scan tab Launch camera: same GMS Take Photo launcher as `main` → pending URI → `historyPhotoImport`. */
     onNavigateToHistoryPhotoImport: () -> Unit,
+    /** Jackpot “Scan Sheet”: same launcher as Scan tab camera. */
+    onJackpotScanSheet: () -> Unit,
     onNavigateToManualEntry: () -> Unit,
     onNavigateToManualEntryWithScannedNumbers: (List<Int>) -> Unit = {},
     onNavigateToHistory: () -> Unit,
@@ -60,7 +62,7 @@ fun MainTabsScreen(
             AppTab.Jackpot -> com.example.mamunbingoapp.ui.screens.live.LiveRoomsScreen(
                 onEnterRoom = onNavigateToLiveRoom,
                 onCreateRoom = onNavigateToLiveRoom,
-                onScanSheet = { onTabSelected(AppTab.Scan) },
+                onScanSheet = onJackpotScanSheet,
                 onManualEntry = onNavigateToManualEntry,
                 onHistory = onNavigateToHistory,
                 onGoLivePlay = onNavigateToLiveRooms,

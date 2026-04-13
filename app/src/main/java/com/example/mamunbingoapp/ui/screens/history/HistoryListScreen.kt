@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -32,17 +32,25 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.mamunbingoapp.ui.components.EmptyHistoryActionCards
@@ -57,7 +65,10 @@ import com.example.mamunbingoapp.viewmodel.HistorySortOption
 import com.example.mamunbingoapp.viewmodel.HistorySourceFilter
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppBottomBar
-import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
+import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
+import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
@@ -73,8 +84,16 @@ fun HistoryListScreen(
     onLeaveRoom: (sessionId: String) -> Unit = {},
     onAddFromPhotoClick: () -> Unit = {},
     onPlayClick: () -> Unit = {},
+    onBulkDeleteSessions: (Collection<String>) -> Unit = { ids -> ids.forEach { onDeleteSession(it) } },
+    onBulkLeaveSessions: (Collection<String>) -> Unit = { ids -> ids.forEach { onLeaveRoom(it) } },
     viewModel: HistoryViewModel = viewModel()
 ) {
+    var selectionMode by remember { mutableStateOf(false) }
+    var selectedSessionIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showBulkDeleteConfirm by remember { mutableStateOf(false) }
+    var showBulkLeaveConfirm by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val filteredSessions by viewModel.filteredSessions.collectAsState()
     val sessionsWithLive by viewModel.sessionsWithLiveStatus.collectAsState()
     val query by viewModel.query.collectAsState()
@@ -83,6 +102,11 @@ fun HistoryListScreen(
     val counts by viewModel.filterCounts.collectAsState()
     val selectedSourceFilter by viewModel.selectedSourceFilter.collectAsState()
     val screenHPad = Dimens.screenHorizontalPadding
+    val selectedSessionIdsInRoom = remember(selectedSessionIds, filteredSessions) {
+        selectedSessionIds.filter { sid ->
+            filteredSessions.any { it.session.id == sid && it.roomId != null }
+        }.toSet()
+    }
     val combinedFilterOptions = buildList {
         add(HistoryFilter.ALL.displayName)
         add(HistorySourceFilter.OCR_IMPORTS.displayName)
@@ -112,44 +136,114 @@ fun HistoryListScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = MaterialTheme.colorScheme.surface,
-        bottomBar = { AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            if (selectionMode && filteredSessions.isNotEmpty()) {
+                BulkSelectionActionBar(
+                    modifier = Modifier.navigationBarsPadding(),
+                    showRemoveFromRoom = filteredSessions.any { it.roomId != null },
+                    removeFromRoomEnabled = selectedSessionIdsInRoom.isNotEmpty(),
+                    removeCount = selectedSessionIdsInRoom.size,
+                    deleteEnabled = selectedSessionIds.isNotEmpty(),
+                    deleteCount = selectedSessionIds.size,
+                    onRemoveFromRoomClick = { showBulkLeaveConfirm = true },
+                    onDeleteFromHistoryClick = { showBulkDeleteConfirm = true }
+                )
+            } else {
+                AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
+            }
+        }
     ) { paddingValues ->
-        Surface(color = MaterialTheme.colorScheme.surface) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-            AppHeaderBackground(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.4f)
-                    .align(Alignment.TopCenter)
-            )
-            Column(modifier = Modifier.fillMaxSize()) {
+        AppHeaderPageLayout(
+            modifier = Modifier.padding(paddingValues),
+            topBar = {
                 AppTopBar(
                     title = "History",
+                    titleContent = if (selectionMode) {
+                        {
+                            Text(
+                                text = if (selectedSessionIds.isEmpty()) {
+                                    "Select items"
+                                } else {
+                                    "${selectedSessionIds.size} selected"
+                                },
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.semantics { heading() }
+                            )
+                        }
+                    } else {
+                        null
+                    },
                     showBack = true,
-                    onBackClick = onBack,
+                    onBackClick = {
+                        if (selectionMode) {
+                            selectionMode = false
+                            selectedSessionIds = emptySet()
+                        } else {
+                            onBack()
+                        }
+                    },
                     actions = {
-                        IconButton(
-                            onClick = onAddFromPhotoClick,
-                            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add from photo",
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
+                        if (!selectionMode) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (filteredSessions.isNotEmpty()) {
+                                    TextButton(onClick = {
+                                        selectionMode = true
+                                        selectedSessionIds = emptySet()
+                                    }) {
+                                        Text("Select")
+                                    }
+                                }
+                                IconButton(
+                                    onClick = onAddFromPhotoClick,
+                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add from photo",
+                                            modifier = Modifier.size(24.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    }
+                                }
                             }
+                        }
+                    }
+                )
+            },
+            content = {
+                LeaveRoomBulkConfirmDialog(
+                    visible = showBulkLeaveConfirm,
+                    count = selectedSessionIdsInRoom.size,
+                    onDismiss = { showBulkLeaveConfirm = false },
+                    onConfirm = {
+                        onBulkLeaveSessions(selectedSessionIdsInRoom)
+                        selectionMode = false
+                        selectedSessionIds = emptySet()
+                        showBulkLeaveConfirm = false
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Removed from room")
+                        }
+                    }
+                )
+                DeleteFromHistoryBulkConfirmDialog(
+                    visible = showBulkDeleteConfirm,
+                    count = selectedSessionIds.size,
+                    onDismiss = { showBulkDeleteConfirm = false },
+                    onConfirm = {
+                        onBulkDeleteSessions(selectedSessionIds)
+                        selectionMode = false
+                        selectedSessionIds = emptySet()
+                        showBulkDeleteConfirm = false
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Deleted from history")
                         }
                     }
                 )
@@ -314,7 +408,7 @@ fun HistoryListScreen(
                                 actionText = actionText,
                                 onActionClick = onAction,
                                 modifier = Modifier.fillMaxWidth(),
-                                onCardClick = { onSessionClick(item.session.id, item.roomId) },
+                                onCardClick = if (selectionMode) null else { { onSessionClick(item.session.id, item.roomId) } },
                                 sheetStatus = sheetStatus,
                                 addedToRoomName = item.roomName,
                                 addedAtMillis = item.session.effectivePlayedAtMillis(),
@@ -323,12 +417,21 @@ fun HistoryListScreen(
                                 almostBingo = item.almostBingo,
                                 bingoWinLineCount = item.bingoWinLineCount,
                                 actionIcon = if (actionText == "Join") Icons.Default.PlayArrow else Icons.AutoMirrored.Filled.OpenInNew,
-                                onViewClick = if (item.isLive && item.roomId != null) {{ onSessionClick(item.session.id, item.roomId) }} else null,
-                                onDeleteClick = { onDeleteSession(item.session.id) },
-                                onLeaveRoomClick = if (item.roomId != null) { { onLeaveRoom(item.session.id) } } else null,
+                                onViewClick = if (selectionMode) null else if (item.isLive && item.roomId != null) {{ onSessionClick(item.session.id, item.roomId) }} else null,
+                                onDeleteClick = if (selectionMode) null else { { onDeleteSession(item.session.id) } },
+                                onLeaveRoomClick = if (selectionMode) null else if (item.roomId != null) { { onLeaveRoom(item.session.id) } } else null,
                                 ocrSource = item.session.ocrSource,
                                 editedAfterOcr = item.editedAfterOcr,
-                                ocrCorrectionCount = item.ocrCorrectionCount
+                                ocrCorrectionCount = item.ocrCorrectionCount,
+                                selectionMode = selectionMode,
+                                isSelected = item.session.id in selectedSessionIds,
+                                onSelectionToggle = if (selectionMode) {
+                                    {
+                                        val id = item.session.id
+                                        selectedSessionIds =
+                                            if (id in selectedSessionIds) selectedSessionIds - id else selectedSessionIds + id
+                                    }
+                                } else null
                             )
                         }
                 }
@@ -389,9 +492,6 @@ fun HistoryListScreen(
         }
         }
         }
-    }
-    }
+        )
     }
 }
-
-

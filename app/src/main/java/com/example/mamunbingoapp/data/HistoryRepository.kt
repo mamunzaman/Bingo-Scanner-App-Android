@@ -135,6 +135,10 @@ object HistoryRepository {
         RoomRepository.unassignTicket(sessionId)
     }
 
+    fun deleteSessions(sessionIds: Collection<String>) {
+        sessionIds.distinct().forEach { deleteSession(it) }
+    }
+
     fun softDeleteSession(sessionId: String) {
         scope.launch { softDeleteSessionSync(sessionId) }
     }

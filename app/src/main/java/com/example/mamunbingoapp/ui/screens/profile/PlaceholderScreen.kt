@@ -23,7 +23,11 @@ fun PlaceholderScreen(
     title: String,
     onBack: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         AppHeaderBackground(
             modifier = Modifier
                 .fillMaxWidth()

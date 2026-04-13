@@ -70,7 +70,11 @@ fun RegisterScreen(
                 .align(Alignment.BottomEnd)
                 .offset(x = 80.dp, y = 80.dp)
         )
-        Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
             AppHeaderBackground(
                 modifier = Modifier
                     .fillMaxWidth()

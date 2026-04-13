@@ -3,8 +3,6 @@ package com.example.mamunbingoapp.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.data.SettingsRepository
-import com.example.mamunbingoapp.data.preferences.LiveHeaderStyle
-import com.example.mamunbingoapp.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,13 +16,6 @@ class SettingsViewModel : ViewModel() {
 
     fun setShowDemoData(value: Boolean) {
         viewModelScope.launch { SettingsRepository.setShowDemoData(value) }
-    }
-
-    val liveHeaderStyle: StateFlow<LiveHeaderStyle> = UserPreferencesRepository.liveHeaderStyleFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LiveHeaderStyle.V1_CLEAN)
-
-    fun setLiveHeaderStyle(value: LiveHeaderStyle) {
-        viewModelScope.launch { UserPreferencesRepository.setLiveHeaderStyle(value) }
     }
 
     private val _pushNotifications = MutableStateFlow(true)

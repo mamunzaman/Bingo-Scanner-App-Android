@@ -5,4 +5,12 @@
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:colorBackground">@android:color/white</item>
     </style>
+
+    <style name="Theme.MamunBingoApp.UCrop" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/ucrop_toolbar_green</item>
+        <item name="colorPrimaryDark">@color/ucrop_status_bar_green</item>
+        <item name="android:statusBarColor">@color/ucrop_status_bar_green</item>
+        <item name="android:navigationBarColor">@color/ucrop_canvas_background</item>
+        <item name="android:windowBackground">@color/ucrop_canvas_background</item>
+    </style>
 </resources>

@@ -1,56 +1,65 @@
-# PROJECT_SNAPSHOT
+# Project snapshot
 
-- **Current build status**
-  - `./gradlew :app:assembleDebug` succeeds (verified).
-  - Debug `DEMO_MODE=true`; release `DEMO_MODE=false`; release `isMinifyEnabled=false`.
+- **Build:** `./gradlew :app:assembleDebug` — **BUILD SUCCESSFUL** (verified 2026-04-12; re-verified after `SettingsScreen` unused import). Release: `isMinifyEnabled = false`. Debug `BuildConfig.DEMO_MODE = true`; release `DEMO_MODE = false`.
 
-- **Core tech stack**
-  - Kotlin, Jetpack Compose, Material 3 (`app/build.gradle.kts`).
-  - Navigation Compose, Room (KSP, schema v7 export), DataStore Preferences.
-  - CameraX, GMS ML Kit Document Scanner, **ML Kit Text Recognition** (`text-recognition:16.0.0`), Coil Compose.
+## Core tech stack
 
-- **Implemented features**
-  - Auth: `splash` → `auth/login` | `auth/forgot` | `auth/register` → `main`.
-  - `MainTabsScreen`: Home, Scan, Jackpot, Profile tabs via `NavGraph` / `AppBottomBar`.
-  - **Ticket OCR (on-device):** `ImportTicketImageOcr.analyzeUri` — grid crop, full-grid ML Kit + spatial/text parsers, optional tighter crop + deskew + perspective warp, **fixed 5×5 per-cell OCR** merged by score with whole-grid result, left-strip LOS/serial zone OCR + regex meta, `mergeStripMeta` into `HistoryImportOcrOutcome`.
-  - **History photo import:** `historyPhotoImport` — GMS document scanner (Take Photo) → URI → `ImportTicketViewModel.analyzeTicketFromUri` → `ScanResultUiState.Success` (numbers, `losNumber`, `serialNumber`, `HistoryOcrSource.ML_KIT`); preview shows LOS/Serial when present; Continue → `buildManualEntryRoute` with row-major prefill + meta.
-  - `directDocumentScan` → pending URI on `main` `SavedStateHandle` → `historyPhotoImport`.
-  - `directScan` → `DirectScanScreen` (CameraX), separate from `historyPhotoImport`.
-  - Manual entry: `manualEntry` / `manualEntryForRoom` with scanned numbers, `prefillOrder`, `ocrSource`, `ocrConfidence`, `losNumber`, `serialNumber` (`ManualEntryRouteHandoff.kt`).
-  - Live: rooms, play, sheet detail, calls/tickets, `RoomRepository` + Room entities.
-  - History: list, detail, add-from-photo → `historyPhotoImport`, CRUD via `HistoryRepository` (+ optional demo merge).
-  - Profile/settings: `settings`, account, payments, support, password, legal/placeholder screens.
-  - `ticket/{ticketId}` detail.
-  - Debug: `DemoSeeder.seedIfNeeded()` from `MainActivity` when `DEMO_MODE`.
+- **Language / UI:** Kotlin 2.2.10, Jetpack Compose (BOM `2024.02.00`), Material 3, Navigation Compose 2.7.7
+- **AndroidX:** Activity Compose 1.9.0, Lifecycle 2.7.0, Room 2.7.0, DataStore Preferences 1.0.0
+- **Media / ML:** CameraX 1.5.0, Coil Compose 2.5.0, ML Kit Text Recognition 16.0.0, Play Services ML Kit Document Scanner 16.0.0-beta1, uCrop 2.2.8 (gallery crop)
+- **Build:** AGP 9.0.1, KSP for Room
 
-- **Active navigation routes** (`NavGraph.kt`)
-  - `splash`, `auth/login`, `auth/forgot`, `auth/register`, `main`
-  - `directScan`, `directDocumentScan`
-  - `livePlayRoom/{roomId}`, `liveSheetDetail/{roomId}/{ticketId}`
-  - `manualEntry?scannedNumbers=…&ocrSource=…&ocrConfidence=…&prefillOrder=…&losNumber=…&serialNumber=…`
-  - `manualEntryForRoom/{roomId}?scannedNumbers=…&losNumber=…&serialNumber=…`
-  - `history`, `historyPhotoImport?…`, `historyDetail/{sessionId}`
-  - `settings`, `myAccount`, `paymentMethods`, `support`, `changePassword`, `locationServices`, `environmentalImpact`, `termsOfService`, `privacyPolicy`
-  - `ticket/{ticketId}`
+## Implemented features (from code)
 
-- **Database entities + DAOs** (`AppDatabase` v7)
-  - Entities: `LiveRoomEntity`, `RoomTicketEntity`, `RoomCalledNumberEntity`, `RoomSettingsEntity`, `TicketEntity`, `TicketCellEntity`.
-  - DAOs: `LiveRoomDao`, `RoomTicketDao`, `RoomCalledNumberDao`, `RoomSettingsDao`, `TicketDao`.
+- **Cold start:** `splash` → `onboarding` (once via `SettingsRepository`) → `auth/login`
+- **Auth:** login (`AppHeaderPageLayout`), register, forgot password
+- **Main tabs (`main`):** Home, Scan (`ScanScreen`), Jackpot (`LiveRoomsScreen`), Profile; `AppBottomBar`
+- **Live:** `livePlayRoom/{roomId}`, `liveSheetDetail/{roomId}/{ticketId}`; calls, sheets, My Tickets bottom sheet; bulk selection with leave-room / delete / add-to-room where wired
+- **Manual entry:** `manualEntry` (optional query: scannedNumbers, ocrSource, ocrConfidence, prefillOrder, losNumber, serialNumber), `manualEntryForRoom/{roomId}` (optional query: scannedNumbers, losNumber, serialNumber)
+- **Import / OCR:** `historyPhotoImport` (optional query args). GMS document scan + gallery → uCrop → `ImportTicketViewModel` pipeline; `ImportTicketImageOcr`, `LeftStripMetaOcr`, `BingoNumberAnalyzer`; pending URI handoff from main/Jackpot; **`photoImportLeaveHandler`** registered via **`onRegisterLeaveHandler`** so bottom-tab switches use the same discard flow as back
+- **History:** `history`, `historyDetail/{sessionId}`; search/filter/sort; bulk delete / leave; `HistoryRepository.deleteSessions`; selection-mode **`BulkSelectionActionBar`** uses **`navigationBarsPadding`** when it replaces **`AppBottomBar`**
+- **Rooms:** `RoomRepository` + Room entities; `unassignTickets` for bulk leave from room
+- **Profile / settings:** `settings`, `myAccount`, `paymentMethods`, `support`, `changePassword`, `locationServices`, `environmentalImpact`, `termsOfService`, `privacyPolicy`, `ticket/{ticketId}` — dead **`LiveHeaderStyle`** preference chain removed (**`UserPreferencesRepository.kt`** deleted, **`MainActivity`** no longer inits it)
+- **Demo:** `DemoSeeder` + `DemoDataFactory` when `DEMO_MODE`; `SettingsRepository.showDemoData` merges demo history when enabled; `RoomRepository.seedDemoData`
 
-- **Shared UI components** (non-exhaustive, `ui/components`)
-  - Chrome: `AppTopBar`, `AppBottomBar`, `AppPrimaryButton`, `AppConfirmDialog`, `AppHeaderBackground`.
-  - Bingo: `BingoCardGrid`, `BingoGrid5x5`, `BingoHeaderRow`, `CalledHistoryPanel`, `LiveCallInputBar`, `RoomSessionCard`.
-  - Common: `SearchFilterSortHeader`, `EmptyHistoryState`, `TicketCard`, `ScanResultQualityCard`, etc.
+## Active navigation routes
 
-- **Design rules currently used**
-  - `.cursor/rules`: Material 3; tokens `theme/Color.kt`, `Dimens.kt`, `Typography.kt`; spacing scale 8/12/16/24/32; reuse shared composables; minimal unrelated edits.
+- `splash`, `onboarding`, `auth/login`, `auth/forgot`, `auth/register`
+- `main`
+- `livePlayRoom/{roomId}`, `liveSheetDetail/{roomId}/{ticketId}`
+- `manualEntry?...`, `manualEntryForRoom/{roomId}?...`
+- `history`, `historyPhotoImport?...`, `historyDetail/{sessionId}`
+- `settings`, `myAccount`, `paymentMethods`, `support`, `changePassword`, `locationServices`, `environmentalImpact`, `termsOfService`, `privacyPolicy`
+- `ticket/{ticketId}`
 
-- **Known bugs / inconsistencies**
-  - `HistoryPhotoImportScreen` scan-result copy still includes a line implying automated read is “not available yet” while ML Kit OCR runs — **stale UX vs. behavior**.
-  - No centralized bug tracker in repo.
+## Database (Room)
 
-- **Next logical tasks**
-  - Align `HistoryPhotoImportScreen` placeholder/error copy with actual ML Kit OCR behavior.
-  - OCR quality: tuning thresholds/fractions (`ImportTicketImageOcr`, `BingoNumberAnalyzer`); optional reduce ML Kit call count (cell grid = 25+ passes per pipeline).
-  - Release: validate `assembleRelease`; enable R8 when ready (`isMinifyEnabled` currently false).
-  - Optional: split scanner/import composables out of `NavGraph.kt`.
+- **DB:** `AppDatabase` v7 (`exportSchema = true`)
+- **Entities:** `LiveRoomEntity`, `RoomTicketEntity`, `RoomCalledNumberEntity`, `RoomSettingsEntity`, `TicketEntity`, `TicketCellEntity`
+- **DAOs:** `LiveRoomDao`, `RoomTicketDao`, `RoomCalledNumberDao`, `RoomSettingsDao`, `TicketDao`
+- **Access:** `DatabaseProvider` + repository `object` singletons
+
+## Shared UI components (representative)
+
+- **Theme / interaction:** `theme/Color.kt`, `Dimens.kt`, `Typography.kt`; `ui/core/interaction/` — `AppAnimation`, `AppRipple`, `AppClick` (`appClickable`)
+- **Chrome:** `AppTopBar`, `AppBottomBar`, `AppHeaderBackground`, `AppHeaderPageLayout`, `AppCard`, `AppPrimaryButton`, `AppConfirmDialog`, `AppScreenHeader`, `AppSectionHeader`, `AppIconContainer`, `AppTextField`
+- **Bingo:** `BingoCardGrid`, `BingoGrid5x5`, `BingoHeaderRow`, `BingoCell`, `BingoSheetSection`, `BingoNumberBox`, `CalledHistoryPanel`, `LiveCallInputBar`
+- **Live / rooms:** `RoomSessionCard`, `RoundProgressCards`, `CreateNewRoomCardUC2`, `LiveRoomTopBar`, `JackpotHeroCard`, `RoomConflictDialog`, `AlmostBingoAlertRowV2`, `AlmostBingoPill`, `BingoWinBanner`
+- **Bulk selection:** `BulkSelectionActionBar`, `LeaveRoomBulkConfirmDialog`, `DeleteFromHistoryBulkConfirmDialog` (`BulkSelectionConfirmDialogs.kt`)
+- **Import:** `ImportTicketMainContent` / screen file `ImportTicketScreen.kt`, `ImportTicketScanResultContent`, `ScanResultSummaryCard`, `ScanResultQualityCard`, `ImportTicketLosSerialCard`, `TicketMetaField`
+- **History / filters:** `SearchFilterSortHeader`, `SearchFilterBar`, `SortDropdown`, `EmptyHistoryState`, `EmptyHistoryActionCards`, `LabelValueInfoRow`
+- **Other:** `StatusPill` / chips, `TicketInfoCard`, `TicketCard`, `AuthFooterPrompt`, `AuthScreenDecoration`, `EmptyStateBlock`, `ModifierExt`
+
+## Design rules in use
+
+- Material 3; tokens from `Color.kt` / `Dimens.kt` / `Typography.kt` (e.g. `titleMedium` SemiBold, `outlineDividerAlpha` / `outlineBorderAlpha` for hairlines); spacing scale 8 / 12 / 16 / 24 / 32 (`.cursor/rules/ui-rule.mdc`, `project-rule.mdc`)
+
+## Known bugs
+
+- No in-repo issue tracker; OCR/grid and device-specific paths (GMS, gallery) need ongoing QA. **`PROJECT_STATUS.md` / `NEXT_TASK.md`** list open verification items.
+
+## Next logical tasks
+
+- **`NEXT_TASK.md`** (numbered steps)
+- Optional: tune `MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV` (20) after validation
+- **`PROJECT_STATUS.md` pending:** broader gallery/camera + `historyPhotoImport` device QA

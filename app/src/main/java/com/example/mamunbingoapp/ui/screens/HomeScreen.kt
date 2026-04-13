@@ -46,6 +46,7 @@ import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppSectionHeader
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
@@ -63,9 +64,8 @@ fun HomeScreen(
     onTabSelected: (AppTab) -> Unit = {},
     showBottomBar: Boolean = true
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    AppHeaderPageLayout(
+        topBar = {
         AppTopBar(
             title = "",
             titleContent = {
@@ -109,14 +109,15 @@ fun HomeScreen(
                 }
             }
         )
+        },
+        content = {
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(bottom = Dimens.spacing16)
+                .padding(top = Dimens.spacing8, bottom = Dimens.spacing16)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
             JackpotHeroCard(
                 jackpotAmount = "$5,000,000",
                 nextDrawText = stringResource(R.string.home_next_draw),
@@ -177,7 +178,8 @@ fun HomeScreen(
         if (showBottomBar) {
             AppBottomBar(selectedTab = AppTab.Home, onTabSelected = onTabSelected)
         }
-    }
+        }
+    )
 }
 
 @Composable

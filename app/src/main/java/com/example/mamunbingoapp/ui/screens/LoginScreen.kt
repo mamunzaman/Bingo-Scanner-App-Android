@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AuthBottomWave
@@ -51,15 +52,16 @@ fun LoginScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        AuthBottomWave(modifier = Modifier.align(Alignment.BottomCenter))
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = Dimens.screenHorizontalPadding)
-        ) {
+    AppHeaderPageLayout(
+        topBar = {},
+        content = {
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            AuthBottomWave(modifier = Modifier.align(Alignment.BottomCenter))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = Dimens.screenHorizontalPadding)
+            ) {
             Spacer(modifier = Modifier.height(96.dp))
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -169,5 +171,7 @@ fun LoginScreen(
                 onClick = onRegister
             )
         }
-    }
+        }
+        }
+    )
 }

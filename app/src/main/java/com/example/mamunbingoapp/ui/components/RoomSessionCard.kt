@@ -1,9 +1,7 @@
 package com.example.mamunbingoapp.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.material.ripple.rememberRipple
+import com.example.mamunbingoapp.ui.core.interaction.appClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +30,7 @@ import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTonalElevationEnabled
@@ -94,7 +93,10 @@ fun RoomSessionCard(
     onLeaveRoomClick: (() -> Unit)? = null,
     ocrSource: String? = null,
     editedAfterOcr: Boolean = false,
-    ocrCorrectionCount: Int = 0
+    ocrCorrectionCount: Int = 0,
+    selectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectionToggle: (() -> Unit)? = null
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
@@ -102,19 +104,25 @@ fun RoomSessionCard(
     val clampedCount = calledCount.coerceAtMost(totalCount)
     val progressValue = if (totalCount > 0) (clampedCount.toFloat() / totalCount).coerceIn(0f, 1f) else 0f
     val footerBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    val footerBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    val footerBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
 
     val summary = "$title, $ticketsCount tickets, $clampedCount of $totalCount called. $actionText."
     CompositionLocalProvider(LocalTonalElevationEnabled provides false) {
     val cs = MaterialTheme.colorScheme
+    val cardOnClick: () -> Unit = when {
+        selectionMode && onSelectionToggle != null -> onSelectionToggle!!
+        onCardClick != null -> onCardClick!!
+        else -> fun() {}
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (isSelected) Modifier.border(2.dp, cs.primary, shape) else Modifier)
             .semantics(mergeDescendants = true) { contentDescription = summary },
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = cs.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.cardElevationDefault),
-        onClick = onCardClick ?: {}
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.cardElevationSubtle),
+        onClick = cardOnClick
     ) {
         Column(modifier = Modifier.fillMaxWidth().background(cs.surface)) {
         Column(
@@ -128,16 +136,29 @@ fun RoomSessionCard(
                 )
         ) {
             Column(Modifier.fillMaxWidth()) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (selectionMode && onSelectionToggle != null) {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { onSelectionToggle() },
+                            modifier = Modifier.padding(end = Dimens.spacing8)
+                        )
+                    }
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Spacer(Modifier.height(Dimens.spacing8))
+                if (!selectionMode) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8, Alignment.End),
@@ -183,6 +204,7 @@ fun RoomSessionCard(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
+                }
                 }
             }
             Spacer(Modifier.height(Dimens.spacing16))
@@ -388,26 +410,20 @@ Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
             ) {
-                if (onLeaveRoomClick != null) {
+                if (!selectionMode && onLeaveRoomClick != null) {
                     Text(
                         text = "leave room",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable(
-                            indication = rememberRipple(),
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { showLeaveConfirm = true }
+                        modifier = Modifier.appClickable { showLeaveConfirm = true }
                     )
                 }
-                if (onDeleteClick != null) {
+                if (!selectionMode && onDeleteClick != null) {
                     Box(
                         modifier = Modifier
                             .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .clickable(
-                                indication = rememberRipple(),
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { showDeleteConfirm = true },
+                            .appClickable { showDeleteConfirm = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -472,7 +488,7 @@ private fun MiniBingoGrid(cells: List<Boolean>) {
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
+            .border(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f), RoundedCornerShape(4.dp))
             .padding(2.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {

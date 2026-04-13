@@ -267,6 +267,10 @@ object RoomRepository {
         }
     }
 
+    fun unassignTickets(ticketIds: Collection<String>) {
+        ticketIds.distinct().forEach { unassignTicket(it) }
+    }
+
     fun clearRoomCalledNumbers(roomId: String) {
         scope.launch { calledDao().clearCalled(roomId) }
     }

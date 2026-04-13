@@ -80,7 +80,7 @@ fun AppBottomBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(cs.outlineVariant.copy(alpha = 0.4f))
+                    .background(cs.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha))
             )
             BoxWithConstraints(
                 modifier = Modifier

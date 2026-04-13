@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.PrimaryContainer
@@ -38,6 +39,13 @@ import com.example.mamunbingoapp.theme.WarningIcon
 import com.example.mamunbingoapp.theme.WarningSubText
 import com.example.mamunbingoapp.theme.WarningText
 
+enum class AlmostBingoAlertVariant {
+    /** Alarm icon left, mini grid stacked under score on the right. */
+    Default,
+    /** Mini grid left, title center, orange score pill right (History Detail compact banner). */
+    HistoryDetailCompact,
+}
+
 @Composable
 fun AlmostBingoAlertRowV2(
     lineType: String,
@@ -45,74 +53,130 @@ fun AlmostBingoAlertRowV2(
     total: Int,
     markedCells: Set<Int>,
     nearCells: Set<Int> = emptySet(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    variant: AlmostBingoAlertVariant = AlmostBingoAlertVariant.Default,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimens.radiusCard))
-            .background(WarningContainer)
-            .border(Dimens.cardBorderDefault, WarningBorder, RoundedCornerShape(Dimens.radiusCard))
-            .padding(horizontal = Dimens.spacing14, vertical = Dimens.spacing10),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(Dimens.iconAlertBox)
-                .clip(RoundedCornerShape(Dimens.radiusSmall))
-                .background(WarningIcon),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.NotificationsActive,
-                contentDescription = null,
-                tint = WarningText,
-                modifier = Modifier.size(Dimens.iconAlert)
-            )
-        }
-        Spacer(modifier = Modifier.width(Dimens.spacing12))
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)
-        ) {
-            Text(
-                text = "Almost Bingo!",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = WarningText
-            )
-            Text(
-                text = "$lineType · need ${total - filled} more number${if (total - filled == 1) "" else "s"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = WarningSubText
-            )
-        }
-        Spacer(modifier = Modifier.width(Dimens.spacing12))
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(Dimens.radiusPill))
-                    .background(Warning)
-                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing4),
-                contentAlignment = Alignment.Center
+    val shell = Modifier
+        .fillMaxWidth()
+        .clip(RoundedCornerShape(Dimens.radiusCard))
+        .background(WarningContainer)
+        .border(Dimens.cardBorderDefault, WarningBorder, RoundedCornerShape(Dimens.radiusCard))
+    val subtitle = "$lineType · need ${total - filled} more number${if (total - filled == 1) "" else "s"}"
+    when (variant) {
+        AlmostBingoAlertVariant.HistoryDetailCompact -> {
+            Row(
+                modifier = modifier
+                    .then(shell)
+                    .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "$filled/$total",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = WarningText
+                MiniBingoPreview(
+                    markedCells = markedCells,
+                    nearCells = nearCells,
+                    modifier = Modifier.size(44.dp),
+                    cellRadius = 2.dp,
+                    gap = 2.dp,
                 )
+                Spacer(modifier = Modifier.width(Dimens.spacing10))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Almost Bingo!",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = WarningText
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WarningSubText
+                    )
+                }
+                Spacer(modifier = Modifier.width(Dimens.spacing8))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(Dimens.radiusPill))
+                        .background(Warning)
+                        .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing4),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$filled/$total",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = WarningText
+                    )
+                }
             }
-            MiniBingoPreview(
-                markedCells = markedCells,
-                nearCells = nearCells,
-                modifier = Modifier.size(Dimens.miniBingoPreviewSize),
-                cellRadius = Dimens.radiusXSmall,
-                gap = Dimens.spacing4
-            )
+        }
+        AlmostBingoAlertVariant.Default -> {
+            Row(
+                modifier = modifier
+                    .then(shell)
+                    .padding(horizontal = Dimens.spacing14, vertical = Dimens.spacing10),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(Dimens.iconAlertBox)
+                        .clip(RoundedCornerShape(Dimens.radiusSmall))
+                        .background(WarningIcon),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsActive,
+                        contentDescription = null,
+                        tint = WarningText,
+                        modifier = Modifier.size(Dimens.iconAlert)
+                    )
+                }
+                Spacer(modifier = Modifier.width(Dimens.spacing12))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)
+                ) {
+                    Text(
+                        text = "Almost Bingo!",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = WarningText
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WarningSubText
+                    )
+                }
+                Spacer(modifier = Modifier.width(Dimens.spacing12))
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(Dimens.radiusPill))
+                            .background(Warning)
+                            .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing4),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$filled/$total",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = WarningText
+                        )
+                    }
+                    MiniBingoPreview(
+                        markedCells = markedCells,
+                        nearCells = nearCells,
+                        modifier = Modifier.size(Dimens.miniBingoPreviewSize),
+                        cellRadius = Dimens.radiusXSmall,
+                        gap = Dimens.spacing4
+                    )
+                }
+            }
         }
     }
 }
