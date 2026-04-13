@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.LocalPrimaryBorder
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 
@@ -71,7 +72,7 @@ fun BingoNumberBox(
     Box(modifier = mod, contentAlignment = Alignment.Center) {
         Text(
             text = numberText,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 18.sp),
             color = textColor
         )
     }

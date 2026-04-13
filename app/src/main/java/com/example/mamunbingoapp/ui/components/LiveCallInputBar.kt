@@ -1,297 +1,349 @@
 package com.example.mamunbingoapp.ui.components
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
 
-private val undoWidth = 56.dp
-private val callWidth = 108.dp
-
+/**
+ * Manual-entry-style numeric keypad for live rooms: progress, draft, clear, undo, call, digit rows.
+ * Sits above [AppBottomBar]; shell/padding aligned with manual-entry numeric keypad.
+ */
 @Composable
-fun LiveCallInputBar(
+fun LivePlayCallKeypad(
     progressText: String,
-    enterLabel: String,
-    enterRange: String,
-    modifier: Modifier = Modifier,
-    inputText: String = "",
-    onInputChange: (String) -> Unit = {},
-    canAddNumber: Boolean = true,
-    actionInProgress: Boolean = false,
-    showScrimBehind: Boolean = false,
-    onDiceClick: () -> Unit = {},
-    onCallClick: () -> Unit = {},
-    onBackClick: () -> Unit = {},
-    focusRequester: FocusRequester? = null
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    canAddNumber: Boolean,
+    actionInProgress: Boolean,
+    onCallClick: () -> Unit,
+    onUndoClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val cs = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(
-        topStart = Dimens.radiusSmall,
-        topEnd = Dimens.radiusSmall,
-        bottomStart = 0.dp,
-        bottomEnd = 0.dp
-    )
-    val keyboardController = LocalSoftwareKeyboardController.current
-    var fieldValue by remember(inputText) { mutableStateOf(TextFieldValue(inputText, TextRange(inputText.length))) }
-    LaunchedEffect(inputText) {
-        if (fieldValue.text != inputText) fieldValue = TextFieldValue(inputText, TextRange(inputText.length))
-    }
-    val parsedNumber = fieldValue.text.trim().toIntOrNull()
-    val isValidNumber = parsedNumber != null && parsedNumber in 1..75
+    val scheme = MaterialTheme.colorScheme
+    val keyHeight = Dimens.spacing32 + Dimens.spacing12
+    val keyShape = RoundedCornerShape(Dimens.radiusSmall)
+    val keyBg = scheme.surfaceContainerHighest.copy(alpha = 0.55f)
+    val pillShape = RoundedCornerShape(Dimens.radiusPill)
+    val confirmDiameter = Dimens.buttonHeight
+    val haptic = LocalHapticFeedback.current
+    val parsed = draft.trim().toIntOrNull()
+    val isValidNumber = parsed != null && parsed in 1..75
     val actionsEnabled = !actionInProgress
+    val callEnabled = canAddNumber && isValidNumber && actionsEnabled
 
-    Row(
+    fun appendDigit(d: Int) {
+        if (!canAddNumber || !actionsEnabled) return
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        if (draft.length < 2) onDraftChange(draft + d)
+    }
+
+    Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .imePadding()
-            .height(Dimens.inputBarHeight)
-            .clip(shape)
-            .background(cs.surface)
-            .border(1.dp, cs.outlineVariant.copy(alpha = 0.6f), shape),
-        verticalAlignment = Alignment.CenterVertically
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(
+            topStart = Dimens.radiusMedium,
+            topEnd = Dimens.radiusMedium
+        ),
+        color = scheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing4),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-        ) {
-            Column(
-                modifier = Modifier.wrapContentHeight(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = progressText.replace(" ", ""),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = cs.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                .fillMaxWidth()
+                .padding(
+                    start = Dimens.screenHorizontalPadding,
+                    end = Dimens.screenHorizontalPadding,
+                    top = Dimens.spacing12,
+                    bottom = Dimens.spacing16
                 )
-                Text(
-                    text = "called",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = cs.onSurfaceVariant.copy(alpha = 0.9f),
-                    maxLines = 1
-                )
-            }
-            VerticalDivider(
-                modifier = Modifier.height(Dimens.iconAlertBox),
-                thickness = 1.dp,
-                color = cs.outlineVariant.copy(alpha = 0.5f)
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .then(
-                        if (focusRequester != null) Modifier.clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusRequester.requestFocus() }
-                        else Modifier
-                    ),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .widthIn(min = 72.dp, max = 96.dp)
-                            .fillMaxHeight(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BasicTextField(
-                            value = fieldValue,
-                            onValueChange = { newValue ->
-                                val filtered = newValue.text.filter { c -> c.isDigit() }.take(2)
-                                fieldValue = TextFieldValue(filtered, TextRange(filtered.length))
-                                if (filtered != inputText) onInputChange(filtered)
-                            },
-                            enabled = canAddNumber && actionsEnabled,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-                                .onFocusChanged {
-                                    if (it.isFocused) {
-                                        keyboardController?.show()
-                                        if (fieldValue.text.isNotEmpty()) {
-                                            fieldValue = fieldValue.copy(selection = TextRange(0, fieldValue.text.length))
-                                        }
-                                    }
-                                },
-                            textStyle = TextStyle(
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = cs.primary,
-                                textAlign = TextAlign.Center
-                            ),
-                            maxLines = 1,
-                            singleLine = true,
-                            cursorBrush = SolidColor(cs.primary),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            decorationBox = { inner ->
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (fieldValue.text.isEmpty()) {
-                                        Text(
-                                            "1–75",
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                color = cs.onSurfaceVariant
-                                            ),
-                                            maxLines = 1
-                                        )
-                                    }
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        inner()
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        VerticalDivider(
-            modifier = Modifier.height(Dimens.inputBarHeight),
-            thickness = 1.dp,
-            color = cs.outlineVariant.copy(alpha = 0.5f)
-        )
-
-        Box(
-            modifier = Modifier
-                .width(undoWidth)
-                .fillMaxHeight()
-                .semantics { role = Role.Button }
-                .background(cs.surface)
-                .clickable(
-                    enabled = actionsEnabled,
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    if (!actionsEnabled) return@clickable
-                    onBackClick()
-                    focusRequester?.requestFocus()
-                    keyboardController?.show()
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Undo,
-                contentDescription = "Undo last call",
-                modifier = Modifier.size(Dimens.iconDefault),
-                tint = cs.primary
-            )
-        }
-
-        VerticalDivider(
-            modifier = Modifier.height(Dimens.inputBarHeight),
-            thickness = 1.dp,
-            color = cs.outlineVariant.copy(alpha = 0.5f)
-        )
-
-        Box(
-            modifier = Modifier
-                .width(callWidth)
-                .fillMaxHeight()
-                .semantics { role = Role.Button }
-                .background(cs.primary)
-                .clickable(
-                    enabled = canAddNumber && isValidNumber && actionsEnabled,
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    if (!actionsEnabled) return@clickable
-                    if (isValidNumber) onCallClick()
-                    focusRequester?.requestFocus()
-                    keyboardController?.show()
-                }
-                .padding(horizontal = Dimens.spacing8),
-            contentAlignment = Alignment.Center
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimens.iconCompact),
-                    tint = cs.onPrimary
-                )
-                Text(
-                    text = "Call",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
-                    color = cs.onPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(Dimens.inputBarHeight)
+                        .clip(pillShape)
+                        .border(
+                            width = Dimens.cardBorderDefault,
+                            color = scheme.primary,
+                            shape = pillShape
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .background(scheme.primary)
+                            .padding(horizontal = Dimens.spacing12),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4)
+                    ) {
+                        Column {
+                            Text(
+                                text = progressText.replace(" ", ""),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                ),
+                                color = scheme.onPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "called",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = scheme.onPrimary.copy(alpha = 0.9f),
+                                maxLines = 1
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(scheme.primaryContainer)
+                            .padding(start = Dimens.spacing12, end = Dimens.spacing8),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                    ) {
+                        Crossfade(
+                            targetState = draft.isEmpty(),
+                            modifier = Modifier.weight(1f),
+                            animationSpec = tween(85, easing = FastOutSlowInEasing),
+                            label = "liveDraftEmpty"
+                        ) { isEmpty ->
+                            Text(
+                                text = if (isEmpty) "—" else draft,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = if (isEmpty) FontWeight.Medium else FontWeight.Bold,
+                                    lineHeight = 40.sp,
+                                    letterSpacing = if (isEmpty) 0.sp else 0.5.sp,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                ),
+                                color = if (isEmpty) {
+                                    scheme.onPrimaryContainer.copy(alpha = 0.5f)
+                                } else {
+                                    scheme.primary
+                                },
+                                maxLines = 1,
+                                textAlign = TextAlign.Start
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .width(Dimens.cardBorderDefault)
+                                .height(Dimens.spacing24)
+                                .background(scheme.primary.copy(alpha = 0.35f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(Dimens.spacing32)
+                                .clip(CircleShape)
+                                .clickable(
+                                    enabled = draft.isNotEmpty() && actionsEnabled,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    if (draft.isNotEmpty()) onDraftChange("")
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "×",
+                                modifier = Modifier.padding(bottom = 2.dp),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 26.sp
+                                ),
+                                color = scheme.primary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+                IconButton(
+                    onClick = {
+                        if (!actionsEnabled) return@IconButton
+                        onUndoClick()
+                    },
+                    enabled = actionsEnabled,
+                    modifier = Modifier.size(confirmDiameter)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                        contentDescription = "Undo last call",
+                        tint = scheme.primary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(confirmDiameter)
+                        .clip(CircleShape)
+                        .border(
+                            width = Dimens.cardBorderDefault,
+                            color = scheme.primary,
+                            shape = CircleShape
+                        )
+                        .background(
+                            if (callEnabled) scheme.primaryContainer
+                            else scheme.primaryContainer.copy(alpha = 0.55f)
+                        )
+                        .clickable(
+                            enabled = callEnabled,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onCallClick()
+                        }
+                        .semantics { contentDescription = "Call number" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.iconDefault + Dimens.spacing4),
+                        tint = if (callEnabled) scheme.primary else scheme.primary.copy(alpha = 0.38f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing12))
+            val rowA = listOf(1, 2, 3, 4, 5)
+            val rowB = listOf(6, 7, 8, 9, 0)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+            ) {
+                for (d in rowA) {
+                    LivePlayKeypadDigitKey(
+                        digit = d,
+                        keyHeight = keyHeight,
+                        keyShape = keyShape,
+                        keyBgIdle = keyBg,
+                        enabled = canAddNumber && actionsEnabled,
+                        onDigit = { appendDigit(d) }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+            ) {
+                for (d in rowB) {
+                    LivePlayKeypadDigitKey(
+                        digit = d,
+                        keyHeight = keyHeight,
+                        keyShape = keyShape,
+                        keyBgIdle = keyBg,
+                        enabled = canAddNumber && actionsEnabled,
+                        onDigit = { appendDigit(d) }
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun RowScope.LivePlayKeypadDigitKey(
+    digit: Int,
+    keyHeight: Dp,
+    keyShape: RoundedCornerShape,
+    keyBgIdle: Color,
+    enabled: Boolean,
+    onDigit: () -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = tween(75, easing = FastOutSlowInEasing),
+        label = "liveKeypadDigit"
+    )
+    val keyBg = if (pressed) {
+        scheme.surfaceContainerHighest.copy(alpha = 0.62f)
+    } else {
+        keyBgIdle
+    }
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .height(keyHeight)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                transformOrigin = TransformOrigin(0.5f, 0.5f)
+            }
+            .clip(keyShape)
+            .background(keyBg)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = null
+            ) { onDigit() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "$digit",
+            style = MaterialTheme.typography.titleMedium,
+            color = scheme.onSurface
+        )
     }
 }

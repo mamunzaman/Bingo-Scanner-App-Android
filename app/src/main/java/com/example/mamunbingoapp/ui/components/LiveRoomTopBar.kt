@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -16,6 +18,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +49,11 @@ fun LiveRoomTopBar(
     onOpenSettings: () -> Unit,
     onOpenInfo: () -> Unit,
     onLeaveRoom: () -> Unit,
-    showArchivedBadge: Boolean = false
+    showArchivedBadge: Boolean = false,
+    showSheetViewModeMenu: Boolean = false,
+    listViewSelected: Boolean = false,
+    onSelectCardsView: () -> Unit = {},
+    onSelectListView: () -> Unit = {},
 ) {
     var menuExpanded by rememberSaveable { mutableStateOf(false) }
     val iconColor = MaterialTheme.colorScheme.onSurface
@@ -134,6 +141,45 @@ fun LiveRoomTopBar(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false }
                 ) {
+                    if (showSheetViewModeMenu) {
+                        DropdownMenuItem(
+                            text = { Text("Cards view") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.GridView,
+                                    contentDescription = null,
+                                    tint = if (!listViewSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onSelectCardsView()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("List view") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.List,
+                                    contentDescription = null,
+                                    tint = if (listViewSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onSelectListView()
+                            }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
                     DropdownMenuItem(
                         text = { Text("Info") },
                         leadingIcon = {
@@ -148,7 +194,7 @@ fun LiveRoomTopBar(
                         },
                         onClick = { menuExpanded = false; onOpenSettings() }
                     )
-                    androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     DropdownMenuItem(
                         text = { Text("Leave Room", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {

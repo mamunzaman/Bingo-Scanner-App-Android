@@ -35,10 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusState
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -256,9 +252,7 @@ fun ManualEntryBingoCard(
     dateText: String,
     isEditingSheetName: Boolean,
     sheetTitleStyle: TextStyle,
-    sheetTitleFocusRequester: FocusRequester,
     onSheetNameChange: (String) -> Unit,
-    onSheetTitleFocusChanged: (FocusState) -> Unit,
     onSheetNameDone: () -> Unit,
     onRequestEditTitle: () -> Unit,
     onToggleEditSheet: () -> Unit,
@@ -436,9 +430,7 @@ fun ManualEntryBingoCard(
                                     value = sheetName,
                                     onValueChange = onSheetNameChange,
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(sheetTitleFocusRequester)
-                                        .onFocusChanged(onSheetTitleFocusChanged),
+                                        .fillMaxWidth(),
                                     textStyle = sheetTitleStyle.copy(
                                         color = OnPrimary,
                                         fontWeight = FontWeight.Normal

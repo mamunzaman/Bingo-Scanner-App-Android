@@ -39,7 +39,9 @@ data class LiveSheetUi(
     val title: String,
     val playedAtMillis: Long,
     val cells: List<BingoCellUi>,
-    val markedCount: Int
+    val markedCount: Int,
+    val losNumber: String? = null,
+    val serialNumber: String? = null
 )
 
 data class LivePlayUiState(
@@ -268,7 +270,9 @@ class LivePlayViewModel(
                     title = ticket.sheetName.ifBlank { "Unnamed" },
                     playedAtMillis = ticket.playedAtMillis,
                     cells = cells25,
-                    markedCount = 0
+                    markedCount = 0,
+                    losNumber = ticket.losNumber,
+                    serialNumber = ticket.serialNumber
                 )
             }
         }

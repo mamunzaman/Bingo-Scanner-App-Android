@@ -132,6 +132,7 @@ fun CalledHistoryPanel(
                 LatestCallCircle(
                     number = lastCalled,
                     colorScheme = colorScheme,
+                    isFinished = isCallLimitReached,
                 )
                 Spacer(modifier = Modifier.width(20.dp))
                 LazyRow(
@@ -152,14 +153,7 @@ fun CalledHistoryPanel(
                     }
                 }
             }
-            if (showLimitMessage && isCallLimitReached) {
-                Spacer(modifier = Modifier.height(Dimens.spacing8))
-                Text(
-                    text = "Call numbers ended",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colorScheme.onSurfaceVariant,
-                )
-            }
+        
         }
     }
 }
@@ -168,6 +162,7 @@ fun CalledHistoryPanel(
 private fun LatestCallCircle(
     number: Int?,
     colorScheme: ColorScheme,
+    isFinished: Boolean = false,
 ) {
     val scaleAnim = remember { Animatable(1f) }
     val alphaAnim = remember { Animatable(1f) }
@@ -205,7 +200,13 @@ private fun LatestCallCircle(
             }
         }
     }
-    val radialColors = if (isSystemInDarkTheme()) {
+    val radialColors = if (isFinished) {
+        if (isSystemInDarkTheme()) {
+            listOf(colorScheme.error.copy(alpha = 0.82f), colorScheme.error.copy(alpha = 0.48f))
+        } else {
+            listOf(Color(0xFFD84040), Color(0xFFB02828))
+        }
+    } else if (isSystemInDarkTheme()) {
         listOf(colorScheme.primary.copy(alpha = 0.82f), colorScheme.primary.copy(alpha = 0.48f))
     } else {
         listOf(Color(0xFF7ABF3F), Color(0xFF529628))

@@ -112,7 +112,7 @@ fun BingoHeaderRow(
                 ) {
                     Text(
                         text = letter,
-                        style = letterTextStyle ?: MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = letterTextStyle ?: MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
                         color = textColor,
                     )
                 }
@@ -166,6 +166,7 @@ private fun PrimaryGreenCircleChipBingoHeader(
 ) {
     val letterStyle = letterTextStyle ?: MaterialTheme.typography.titleLarge.copy(
         fontWeight = FontWeight.ExtraBold,
+        fontSize = 24.sp,
         letterSpacing = 0.25.sp,
     )
     val gap = fiveColumnGap ?: minOf(cellSpacing, GreenChipMaxSpacing)

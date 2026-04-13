@@ -67,7 +67,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.util.lerp
@@ -78,8 +77,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.TextStyle
@@ -94,9 +91,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
@@ -128,11 +125,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.PlatformTextStyle
 import android.util.Log
 import androidx.activity.compose.BackHandler
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val MANUAL_ENTRY_TAG = "ManualEntry"
+
+/** Shared with live play so bottom keypad height matches manual-entry dock. */
+internal object ManualEntryKeypadDockMetrics {
+    val keyHeight: Dp get() = Dimens.spacing32 + Dimens.spacing12
+    val topRowHeight: Dp get() = maxOf(Dimens.inputBarHeight, Dimens.buttonHeight)
+    val estimatedDockHeight: Dp get() =
+        Dimens.spacing12 + Dimens.spacing16 + topRowHeight +
+            Dimens.spacing12 + keyHeight + Dimens.spacing8 + keyHeight
+}
 
 private fun manualEntryKeypadLayoutHeightsPx(
     innerMaxHeightPx: Int,
@@ -200,11 +205,7 @@ fun ManualEntryScreen(
     var infoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var isEditingSheetName by remember { mutableStateOf(false) }
-    val sheetTitleFocusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    val coroutineScope = rememberCoroutineScope()
-    var sheetTitleBlurJob by remember { mutableStateOf<Job?>(null) }
-    var sheetTitleHadFocusWhileEditing by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
     val isPartialScan = scannedNumbers.isNotEmpty() && (scannedNumbers.size < 25 || scannedNumbers.any { it == 0 })
     var hasShownPartialInfoDialog by rememberSaveable { mutableStateOf(false) }
     var allowNavigationByEvent by remember { mutableStateOf(false) }
@@ -311,7 +312,6 @@ fun ManualEntryScreen(
     LaunchedEffect(state.selectedIndex) {
         val i = state.selectedIndex
         if (i in 0..24) {
-            focusManager.clearFocus()
             val committed = state.cells.getOrNull(i)?.number?.orEmpty() ?: ""
             manualEntrySelectionBaseline =
                 i to committed.takeIf { it.isNotBlank() }?.toIntOrNull()
@@ -323,10 +323,7 @@ fun ManualEntryScreen(
     }
 
     LaunchedEffect(isEditingSheetName) {
-        sheetTitleBlurJob?.cancel()
-        sheetTitleBlurJob = null
         if (isEditingSheetName) {
-            sheetTitleHadFocusWhileEditing = false
             val prev = state.selectedIndex
             if (prev in 0..24) {
                 val d = draftPerCell.getOrNull(prev).orEmpty()
@@ -343,8 +340,6 @@ fun ManualEntryScreen(
                 )
             }
             viewModel.onAction(ManualEntryUiAction.CellSelected(-1))
-            delay(80)
-            runCatching { sheetTitleFocusRequester.requestFocus() }
         }
     }
 
@@ -409,11 +404,9 @@ fun ManualEntryScreen(
         LaunchedEffect(state.selectedIndex) {
             if (state.selectedIndex in 0..24) lastKeypadIndex = state.selectedIndex
         }
-        val keypadKeyHeight = Dimens.spacing32 + Dimens.spacing12
-        val keypadTopRowH =
-            maxOf(Dimens.inputBarHeight, Dimens.buttonHeight)
-        val keypadDockEstimateDp = Dimens.spacing12 + Dimens.spacing16 + keypadTopRowH +
-            Dimens.spacing12 + keypadKeyHeight + Dimens.spacing8 + keypadKeyHeight
+        val keypadKeyHeight = ManualEntryKeypadDockMetrics.keyHeight
+        val keypadTopRowH = ManualEntryKeypadDockMetrics.topRowHeight
+        val keypadDockEstimateDp = ManualEntryKeypadDockMetrics.estimatedDockHeight
 
         val keypadMotionMs = 160
         val keypadSharedTweenFloat = tween<Float>(
@@ -438,10 +431,7 @@ fun ManualEntryScreen(
         val keyboardUiActive = showKeypadSurface
         val keypadTotalHeight = animatedKeypadDockDp + bottomInsetDp
         val dismissSheetTitleEdit: () -> Unit = {
-            sheetTitleBlurJob?.cancel()
-            sheetTitleBlurJob = null
-            sheetTitleHadFocusWhileEditing = false
-            focusManager.clearFocus()
+            keyboardController?.hide()
             isEditingSheetName = false
         }
         val flushManualEntryLeaveDraft: () -> Unit = {
@@ -680,38 +670,18 @@ fun ManualEntryScreen(
                                         dateText = dateText,
                                         isEditingSheetName = isEditingSheetName,
                                         sheetTitleStyle = sheetTitleStyle,
-                                        sheetTitleFocusRequester = sheetTitleFocusRequester,
                                         onSheetNameChange = { name ->
                                             viewModel.onAction(
                                                 ManualEntryUiAction.SheetNameChanged(name)
                                             )
                                         },
-                                        onSheetTitleFocusChanged = { fc ->
-                                            if (fc.isFocused) {
-                                                sheetTitleBlurJob?.cancel()
-                                                sheetTitleHadFocusWhileEditing = true
-                                            } else if (
-                                                isEditingSheetName &&
-                                                sheetTitleHadFocusWhileEditing
-                                            ) {
-                                                sheetTitleBlurJob?.cancel()
-                                                sheetTitleBlurJob = coroutineScope.launch {
-                                                    delay(180)
-                                                    isEditingSheetName = false
-                                                }
-                                            }
-                                        },
                                         onSheetNameDone = {
-                                            sheetTitleBlurJob?.cancel()
-                                            focusManager.clearFocus()
+                                            keyboardController?.hide()
                                             isEditingSheetName = false
                                         },
                                         onRequestEditTitle = { isEditingSheetName = true },
                                         onToggleEditSheet = {
-                                            sheetTitleBlurJob?.cancel()
-                                            if (isEditingSheetName) {
-                                                focusManager.clearFocus()
-                                            }
+                                            if (isEditingSheetName) keyboardController?.hide()
                                             isEditingSheetName = !isEditingSheetName
                                         },
                                         onEditDate = { showDatePicker = true },
