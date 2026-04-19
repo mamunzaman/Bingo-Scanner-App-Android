@@ -420,7 +420,12 @@ fun ManualEntryBingoCard(
                     }
                     Spacer(modifier = Modifier.height(Dimens.spacing4))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { if (!isEditingSheetName) onRequestEditTitle() },
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -466,9 +471,7 @@ fun ManualEntryBingoCard(
                                         fontWeight = FontWeight.Normal
                                     ),
                                     color = greenHeaderLabelColor,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onRequestEditTitle() }
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }

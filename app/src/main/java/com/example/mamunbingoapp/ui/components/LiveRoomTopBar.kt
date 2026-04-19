@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.Info
@@ -48,6 +49,7 @@ fun LiveRoomTopBar(
     onAddTicket: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenInfo: () -> Unit,
+    onResetGame: () -> Unit = {},
     onLeaveRoom: () -> Unit,
     showArchivedBadge: Boolean = false,
     showSheetViewModeMenu: Boolean = false,
@@ -194,6 +196,13 @@ fun LiveRoomTopBar(
                         },
                         onClick = { menuExpanded = false; onOpenSettings() }
                     )
+                    DropdownMenuItem(
+                        text = { Text("Reset game") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        onClick = { menuExpanded = false; onResetGame() }
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     DropdownMenuItem(
                         text = { Text("Leave Room", color = MaterialTheme.colorScheme.error) },
@@ -218,6 +227,7 @@ private fun LiveRoomTopBarPreview() {
             onAddTicket = {},
             onOpenSettings = {},
             onOpenInfo = {},
+            onResetGame = {},
             onLeaveRoom = {}
         )
     }
@@ -233,6 +243,7 @@ private fun LiveRoomTopBarDarkPreview() {
             onAddTicket = {},
             onOpenSettings = {},
             onOpenInfo = {},
+            onResetGame = {},
             onLeaveRoom = {}
         )
     }

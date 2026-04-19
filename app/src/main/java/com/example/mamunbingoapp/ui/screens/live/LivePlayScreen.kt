@@ -123,6 +123,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarDuration
@@ -255,6 +256,7 @@ fun LivePlayScreen(
     val inputBarVisible = showBottomBar && !showSettingsSheet && !isMyTicketsSheetOpen && displaySheets.isNotEmpty()
     val canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached
     val liveContentBottomPad = ManualEntryKeypadDockMetrics.estimatedDockHeight + Dimens.spacing16
+    val liveListLazyContentBottomPad = Dimens.spacing16
 
     // Room completion & side effects (no central IME/focus; active input handles its own).
     LaunchedEffect(roomStatus) {
@@ -389,6 +391,7 @@ fun LivePlayScreen(
                 onAddTicket = { isMyTicketsSheetOpen = true },
                 onOpenSettings = { showSettingsSheet = true },
                 onOpenInfo = { showInfoSheet = true },
+                onResetGame = onResetClick,
                 onLeaveRoom = { showLeaveRoomDialog = true },
                 showArchivedBadge = effectiveStatus == RoomStatus.FINISHED,
                 showSheetViewModeMenu = displaySheets.isNotEmpty(),
@@ -487,7 +490,7 @@ fun LivePlayScreen(
                         start = Dimens.screenHorizontalPadding,
                         end = Dimens.screenHorizontalPadding,
                         top = Dimens.spacing8,
-                        bottom = liveContentBottomPad
+                        bottom = liveListLazyContentBottomPad
                     )
                 ) {
                     item(key = "resume_banner") {
@@ -529,19 +532,22 @@ fun LivePlayScreen(
                         }
                     }
                     item(key = "sticky_content_gap") {
-                        Spacer(modifier = Modifier.height(Dimens.spacing12))
+                        Spacer(modifier = Modifier.height(Dimens.spacing5))
                     }
                     itemsIndexed(displaySheets, key = { _, sheet -> sheet.ticketId }) { index, sheet ->
                         Box(
                             modifier = Modifier
-                                .padding(bottom = Dimens.spacing16)
-                                .then(if (index == 0) Modifier else Modifier.padding(top = Dimens.spacing16))
+                                .padding(bottom = Dimens.spacing5)
+                                .then(if (index == 0) Modifier else Modifier.padding(top = Dimens.spacing5))
                         ) {
                             ListSheetRow(
                                 title = sheet.title,
-                                marked = "Marked: ${sheet.markedCount}/25",
+                                marked = "${sheet.markedCount}/25",
+                                serialNumber = sheet.serialNumber,
+                                losNumber = sheet.losNumber,
+                                scannedDate = formatPlayDate(sheet.playedAtMillis),
                                 cells = sheet.cells,
-                                onClick = { onOpenSheetDetail(sheet.ticketId) }
+                                onClick = { detailSheet = sheet }
                             )
                         }
                     }
@@ -572,7 +578,10 @@ fun LivePlayScreen(
                     )
                 }
                 BingoSheetsCarousel(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(top = Dimens.spacing12, bottom = Dimens.spacing12),
                     sheets = displaySheets,
                     initialSelectedTicketId = initialSelectedTicketId,
                     onSheetClick = { detailSheet = it }
@@ -685,7 +694,7 @@ private fun LivePlayBottomArea(
     ) {
         Column(verticalArrangement = Arrangement.Bottom) {
             LivePlayCallKeypad(
-                progressText = "${calledNumbers.size}/$MAX_LIVE_CALLS",
+                latestCalled = calledNumbers.lastOrNull(),
                 draft = inputText,
                 onDraftChange = onInputChange,
                 canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached,
@@ -1181,7 +1190,7 @@ private fun LiveCallerCard(
                 color = colorScheme.onPrimary.copy(alpha = 0.92f),
                 trackColor = colorScheme.onPrimary.copy(alpha = 0.22f)
             )
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = Dimens.liveCardNumberMinHeight)
@@ -1190,6 +1199,9 @@ private fun LiveCallerCard(
                     .border(1.dp, colorScheme.onPrimary.copy(alpha = 0.20f), RoundedCornerShape(Dimens.radiusSmall))
                     .padding(Dimens.spacing16)
             ) {
+                val dynamicNumberSize = (this@BoxWithConstraints.maxHeight.value * 0.22f)
+                    .coerceIn(48f, 120f)
+                    .sp
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1203,7 +1215,8 @@ private fun LiveCallerCard(
                             text = letter,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontFamily = LiveFonts.DMMono,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontSize = dynamicNumberSize * 0.45f
                             ),
                             color = colorScheme.onPrimary.copy(alpha = 0.9f)
                         )
@@ -1213,7 +1226,7 @@ private fun LiveCallerCard(
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontFamily = LiveFonts.DMMono,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 96.sp
+                            fontSize = dynamicNumberSize
                         ),
                         color = colorScheme.onPrimary,
                         modifier = Modifier.graphicsLayer(
@@ -1314,6 +1327,7 @@ private fun CallANumberCard(
                             .heightIn(min = 48.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        val inputFontSize = 28f.coerceIn(22f, 36f).sp
                         BasicTextField(
                             value = inputText,
                             onValueChange = { v ->
@@ -1323,10 +1337,10 @@ private fun CallANumberCard(
                             enabled = canAddNumber,
                             modifier = Modifier.fillMaxWidth().onFocusEvent { inputFocused = it.isFocused },
                             textStyle = TextStyle(
-                                fontSize = 24.sp,
+                                fontSize = inputFontSize,
                                 fontWeight = FontWeight.SemiBold,
                                 color = colorScheme.onSurface,
-                                lineHeight = 24.sp,
+                                lineHeight = inputFontSize,
                                 textAlign = TextAlign.Center,
                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                             ),
@@ -1343,9 +1357,9 @@ private fun CallANumberCard(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             style = TextStyle(
-                                                fontSize = 24.sp,
+                                                fontSize = inputFontSize,
                                                 fontWeight = FontWeight.SemiBold,
-                                                lineHeight = 24.sp,
+                                                lineHeight = inputFontSize,
                                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                                             )
                                         )
@@ -1493,8 +1507,8 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
                 onClick = onClick
             )
     ) {
-        val referenceWidth = 320.dp
-        val scale = (maxWidth / referenceWidth).coerceIn(0.6f, 1f)
+        val referenceWidth = 300.dp
+        val scale = (maxWidth / referenceWidth).coerceIn(0.65f, 1.15f)
         val outerDensity = LocalDensity.current
         val scaledDensity = remember(outerDensity, scale) {
             Density(density = outerDensity.density * scale, fontScale = outerDensity.fontScale * scale)
@@ -1507,7 +1521,7 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
                 ) {
                     Text(
                         text = sheet.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
@@ -1519,7 +1533,7 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
                     )
                     Text(
                         text = "Marked: ${sheet.markedCount}/25",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = if (isWin) WarningText else MaterialTheme.colorScheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -1545,38 +1559,145 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
     }
 }
 
+/** Live room sheet list row: flat panel — [surface] top (above page [background]), [surfaceContainer] strip, soft border (no elevation). */
 @Composable
-private fun ListSheetRow(title: String, marked: String, cells: List<BingoCellUi>, onClick: () -> Unit = {}) {
+private fun ListSheetRow(
+    title: String,
+    marked: String,
+    serialNumber: String?,
+    losNumber: String?,
+    scannedDate: String,
+    cells: List<BingoCellUi>,
+    onClick: () -> Unit = {}
+) {
     val miniGrid = if (cells.size == 25) cells.map { it.isMarked } else List(25) { false }
-    Row(
+    val safeSerial = serialNumber?.takeIf { it.isNotBlank() } ?: "--"
+    val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: "--"
+    val rowShape = RoundedCornerShape(Dimens.radiusSmall)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = Dimens.buttonHeight)
-            .semantics(mergeDescendants = true) { contentDescription = "$title, $marked. Double tap to open." }
-            .clip(RoundedCornerShape(Dimens.radiusCard))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(Dimens.radiusCard))
+            .semantics(mergeDescendants = true) { contentDescription = "$title, Marked $marked. Double tap to open." }
+            .clip(rowShape)
+            .border(
+                width = Dimens.cardBorderDefault,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                shape = rowShape
+            )
             .clickable(
                 indication = rememberRipple(),
                 interactionSource = remember { MutableInteractionSource() },
                 onClick = onClick
             )
-            .padding(Dimens.spacing16),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
     ) {
-        MiniBingoGrid(cells = miniGrid)
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)) {
-            Text(text = title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
-            Text(text = marked, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing5)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
+            ) {
+                MiniBingoGrid(cells = miniGrid)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Scanned: $scannedDate",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(Dimens.iconDefault),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 3.dp)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f))
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing4),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ListSheetInfoCell(
+                label = "SERIAL",
+                value = safeSerial,
+                modifier = Modifier.weight(1f)
+            )
+            ListSheetVerticalDivider()
+            ListSheetInfoCell(
+                label = "LOS",
+                value = safeLos,
+                modifier = Modifier.weight(1f)
+            )
+            ListSheetVerticalDivider()
+            ListSheetInfoCell(
+                label = "MARKED",
+                value = marked,
+                modifier = Modifier.weight(1f),
+                valueColor = MaterialTheme.colorScheme.primary,
+                valueFontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ListSheetInfoCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    valueFontWeight: FontWeight = FontWeight.Bold
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = valueFontWeight,
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
+}
+
+@Composable
+private fun ListSheetVerticalDivider() {
+    Box(
+        modifier = Modifier
+            .height(24.dp)
+            .width(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
+    )
 }
 
 @Composable
@@ -1614,108 +1735,238 @@ private fun SheetDetailBottomSheet(
     }
     val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
     val winResult = BingoWinChecker.check(markedSet)
-    val markedList = gridCells.take(25).map { it.isMarked }
-    val almostBingo = BingoWinChecker.bestAlmostBingo(markedList)
+    val scannedDate = formatPlayDate(sheet.playedAtMillis)
+    val metaSerial = sheet.serialNumber?.takeIf { it.isNotBlank() } ?: "--"
+    val metaLos = sheet.losNumber?.takeIf { it.isNotBlank() } ?: "--"
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(sheetState) {
+        runCatching { sheetState.expand() }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         windowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(bottom = Dimens.spacing16),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing12)
+                .padding(bottom = Dimens.spacing16)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            // Expanded presentation is state-driven; content remains constraint-driven.
+            val sectionSpacing = (maxHeight * 0.012f).coerceIn(4.dp, 8.dp)
+            val handleBlockHeight = (maxHeight * 0.01f).coerceIn(4.dp, 8.dp)
+            val infoBlockHeightEstimate = (maxHeight * 0.28f).coerceIn(88.dp, 132.dp)
+            val actionButtonHeight = Dimens.buttonHeight
+            val reservedHeight = handleBlockHeight + infoBlockHeightEstimate + actionButtonHeight + (sectionSpacing * 3)
+            val remainingGridHeight = (maxHeight - reservedHeight).coerceAtLeast(150.dp)
+            // Grid fit is responsive: use whichever constraint (width or height) is tighter.
+            val gridTargetFromWidth = maxWidth * 0.86f
+            val gridTargetFromHeight = remainingGridHeight * 0.82f
+            val compactGridWidth = minOf(gridTargetFromWidth, gridTargetFromHeight).coerceAtLeast(150.dp)
+            val unifiedShape = RoundedCornerShape(Dimens.radiusCard)
+            val unifiedBorder = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(top = Dimens.spacing4),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing)
             ) {
-                Text(
-                    text = sheet.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f).padding(end = Dimens.spacing8),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "Marked: ${sheet.markedCount}/25",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary,
+                Box(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(100.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(100.dp))
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                 )
-            }
-            if (!sheet.losNumber.isNullOrBlank() || !sheet.serialNumber.isNullOrBlank()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
+                Surface(
+                    modifier = Modifier
+                        .width(compactGridWidth)
+                        .align(Alignment.CenterHorizontally),
+                    shape = unifiedShape,
+                    color = Color.Transparent,
+                    border = androidx.compose.foundation.BorderStroke(
+                        Dimens.cardBorderDefault,
+                        unifiedBorder
+                    ),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp
                 ) {
-                    if (!sheet.losNumber.isNullOrBlank()) {
-                        Column {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "LOSNUMMER",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = sheet.losNumber,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
+                                text = sheet.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = Dimens.spacing8),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Marked ${sheet.markedCount}/25",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        RoundedCornerShape(100.dp)
+                                    )
+                                    .padding(horizontal = Dimens.spacing8, vertical = 3.dp)
                             )
                         }
-                    }
-                    if (!sheet.serialNumber.isNullOrBlank()) {
-                        Column {
-                            Text(
-                                text = "SERIENNUMMER",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SheetPreviewInfoCell(
+                                label = "SERIAL",
+                                value = metaSerial,
+                                modifier = Modifier.weight(1f)
                             )
-                            Text(
-                                text = sheet.serialNumber,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                            ListSheetVerticalDivider()
+                            SheetPreviewInfoCell(
+                                label = "LOS",
+                                value = metaLos,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ListSheetVerticalDivider()
+                            SheetPreviewInfoCell(
+                                label = "SCANNED",
+                                value = scannedDate,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(Dimens.cardBorderDefault)
+                                .background(unifiedBorder.copy(alpha = 0.9f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Dimens.spacing8, vertical = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            BingoCardGrid(
+                                cells = gridCells,
+                                modifier = Modifier.fillMaxWidth(),
+                                mode = BingoGridMode.PLAY,
+                                winningCells = winResult.winningCells,
+                                onCellClick = {}
                             )
                         }
                     }
                 }
-            }
-            if (winResult.isWin) {
-                BingoWinBanner(lineCount = winResult.winningLines.size)
-            }
-            if (almostBingo != null) {
-                AlmostBingoAlertRowV2(
-                    lineType = almostBingo.lineLabel,
-                    filled = almostBingo.marked,
-                    total = almostBingo.total,
-                    markedCells = markedSet,
-                    nearCells = emptySet(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            OutlinedButton(
-                onClick = onOpenFullDetail,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Dimens.radiusSmall)
-            ) {
-                Text("View full detail")
+
+                Button(
+                    onClick = onOpenFullDetail,
+                    modifier = Modifier
+                        .width(compactGridWidth)
+                        .align(Alignment.CenterHorizontally),
+                    shape = unifiedShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        "View full detail",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
             }
         }
     }
 }
+
+@Composable
+private fun SheetPreviewInfoCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = MaterialTheme.typography.titleLarge.fontSize * 1.02f
+            ),
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun SheetMetaField(
+    label: String,
+    value: String
+) {
+    Text(
+        text = label,
+        style = sheetMetaLabelTextStyle(),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+    Text(
+        text = value,
+        style = sheetMetaValueTextStyle(),
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+@Composable
+private fun sheetMetaLabelTextStyle(): TextStyle =
+    MaterialTheme.typography.labelSmall.copy(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = MaterialTheme.typography.labelSmall.fontSize * 1.15f,
+        letterSpacing = 0.sp
+    )
+
+@Composable
+private fun sheetMetaValueTextStyle(): TextStyle =
+    MaterialTheme.typography.bodyLarge.copy(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = MaterialTheme.typography.bodyLarge.fontSize * 1.5f,
+        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5f
+    )
 
 @Composable
 private fun RoomSettingsBottomSheet(

@@ -1,8 +1,5 @@
-# Next task — Device QA: manual entry title editing (no FocusRequester)
+﻿# Next task - Device QA: Live “Reset game” from ⋮ menu
 
-1. **Device:** tap pen icon → field appears, tap it → keyboard opens, type name → no crash
-2. **Device:** tap pen icon → type → press Done on keyboard → editing stops, keyboard hides
-3. **Device:** tap pen icon → tap a grid cell → editing stops, keyboard hides, cell selected
-4. **Device:** tap pen icon → tap outside card → editing stops
-5. **Device:** rapidly tap pen icon multiple times → stable, no crash
-6. **NOTE:** Field no longer auto-focuses when editing starts — user must tap the title text field to type. This is intentional (avoids all FocusRequester crashes).
+1. Open a live room, call a few numbers, open ⋮ → **Reset game** → confirm; verify call count is 0 and calling works again
+2. Optional: continue history card polish (HistorySheetCard) if anything feels off on device
+

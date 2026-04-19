@@ -72,7 +72,7 @@ fun BingoNumberBox(
     Box(modifier = mod, contentAlignment = Alignment.Center) {
         Text(
             text = numberText,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 18.sp),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 22.sp),
             color = textColor
         )
     }

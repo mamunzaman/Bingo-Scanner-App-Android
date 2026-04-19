@@ -33,8 +33,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Checkbox
@@ -78,6 +78,7 @@ import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.EmptyStateBlock
+import com.example.mamunbingoapp.ui.components.TicketGridThumbnailPreview
 import com.example.mamunbingoapp.ui.components.common.SearchFilterSortHeader
 import com.example.mamunbingoapp.ui.components.common.SearchHeaderVariant
 import com.example.mamunbingoapp.ui.model.TicketUiModel
@@ -133,7 +134,7 @@ fun MyTicketsBottomSheet(
                 )
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -436,28 +437,25 @@ private fun TicketRowCard(
         if (isInOtherRoom) append(", in ${otherRoomName ?: "another room"}")
         append(". $actionLabel button.")
     }
+    val serialValue = ticket.id.takeLast(6).uppercase()
+    val losValue = ticket.sessionId.takeLast(6).uppercase()
+    val markedValue = ticket.status?.takeIf { it.isNotBlank() } ?: "--"
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = Dimens.buttonHeight)
             .semantics(mergeDescendants = true) { contentDescription = summary }
-            .clip(cardShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .then(
-                if (isSelected) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, cardShape)
-                } else {
-                    Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, cardShape)
-                }
-            )
             .clickable(
                 indication = rememberRipple(),
                 interactionSource = remember { MutableInteractionSource() }
-            ) { if (selectionMode) onToggleSelect() }
-            .padding(Dimens.spacing16),
+            ) {
+                when {
+                    selectionMode -> onToggleSelect()
+                    canAct -> if (isInThisRoom) onGoLive() else onAddToRoom()
+                }
+            },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
     ) {
         if (selectionMode) {
             Checkbox(
@@ -466,66 +464,137 @@ private fun TicketRowCard(
                 modifier = Modifier.padding(end = Dimens.spacing4)
             )
         }
-        Box(
+        Column(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+                .weight(1f)
+                .clip(cardShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .then(
+                    if (isSelected) {
+                        Modifier.border(2.dp, MaterialTheme.colorScheme.primary, cardShape)
+                    } else {
+                        Modifier.border(
+                            Dimens.cardBorderDefault,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                            cardShape
+                        )
+                    }
+                )
         ) {
-            Icon(
-                imageVector = Icons.Default.ConfirmationNumber,
-                contentDescription = null,
-                modifier = Modifier.size(Dimens.iconDefault),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)) {
-            Text(
-                text = ticket.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = formatTicketDate(ticket.createdAt),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-            )
-            if (isInOtherRoom) {
-                Text(
-                    text = "Room: ${otherRoomName ?: "another room"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(top = 2.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing10),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12)
+            ) {
+                TicketGridThumbnailPreview(
+                    matchedCells = ticket.status?.toIntOrNull() ?: 0,
+                    modifier = Modifier.size(34.dp)
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = ticket.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = formatTicketDate(ticket.createdAt),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
+                    if (isInOtherRoom) {
+                        Text(
+                            text = "Room: ${otherRoomName ?: "another room"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.iconDefault),
+                    tint = if (canAct) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    }
                 )
             }
-        }
-        if (!selectionMode) {
-            Button(
-                onClick = { if (canAct) if (isInThisRoom) onGoLive() else onAddToRoom() },
-                modifier = Modifier.height(36.dp),
-                enabled = canAct,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Dimens.screenHorizontalPadding),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                shape = RoundedCornerShape(100.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing8),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (isInThisRoom) Icons.Default.PlayArrow else Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimens.iconCompact),
-                    tint = if (canAct) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                TicketInfoCell(
+                    label = "SERIAL",
+                    value = serialValue,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.width(Dimens.spacing8))
-                Text(actionLabel, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
+                VerticalInfoDivider()
+                TicketInfoCell(
+                    label = "LOS",
+                    value = losValue,
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalInfoDivider()
+                TicketInfoCell(
+                    label = "MARKED",
+                    value = markedValue,
+                    valueColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
+}
+
+@Composable
+private fun TicketInfoCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = valueColor
+        )
+    }
+}
+
+@Composable
+private fun VerticalInfoDivider() {
+    Box(
+        modifier = Modifier
+            .height(24.dp)
+            .width(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+    )
 }
 
 @Composable

@@ -4,8 +4,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.example.mamunbingoapp.core.BingoWinChecker
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,12 +18,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 
 enum class BingoGridMode { EDIT, PLAY, PREVIEW }
+
+private fun bingoNumberFontScaleForCellSize(cellSize: Dp): Float {
+    val numberFontSp = (cellSize.value * 0.48f).coerceIn(14f, 32f)
+    val baseNumberSp = 22f
+    return (numberFontSp / baseNumberSp).coerceIn(0.7f, 1.45f)
+}
 
 @Composable
 fun BingoGrid5x5(
@@ -218,6 +229,14 @@ private fun FixedPlayModeGrid(
     onCellClick: (Int) -> Unit,
     cellSpacing: Dp,
 ) {
+    val outerDensity = LocalDensity.current
+    val numberFontScale = remember(cellSize) { bingoNumberFontScaleForCellSize(cellSize) }
+    val numberScaledDensity = remember(outerDensity, numberFontScale) {
+        Density(
+            density = outerDensity.density,
+            fontScale = outerDensity.fontScale * numberFontScale
+        )
+    }
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.align(Alignment.Center),
@@ -229,15 +248,17 @@ private fun FixedPlayModeGrid(
                     row.forEachIndexed { colIndex, cell ->
                         val index = rowIndex * 5 + colIndex
                         Box(modifier = Modifier.size(cellSize)) {
-                            BingoCell(
-                                cell = cell,
-                                modifier = Modifier.fillMaxSize(),
-                                onClick = { onCellClick(index) }.takeIf { cell.isEditable && !cell.isDisabled },
-                                isWinning = index in winningCells,
-                                animateWinningPulse = index in newWinningCells,
-                                isNearWinning = index in nearWinningCells,
-                                animateNearWin = index in newNearWinningCells,
-                            )
+                            CompositionLocalProvider(LocalDensity provides numberScaledDensity) {
+                                BingoCell(
+                                    cell = cell,
+                                    modifier = Modifier.fillMaxSize(),
+                                    onClick = { onCellClick(index) }.takeIf { cell.isEditable && !cell.isDisabled },
+                                    isWinning = index in winningCells,
+                                    animateWinningPulse = index in newWinningCells,
+                                    isNearWinning = index in nearWinningCells,
+                                    animateNearWin = index in newNearWinningCells,
+                                )
+                            }
                         }
                     }
                 }
@@ -257,7 +278,16 @@ private fun PlayModeGrid(
     onCellClick: (Int) -> Unit,
     cellSpacing: Dp
 ) {
-    Box(modifier = modifier.fillMaxWidth().aspectRatio(1f)) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth().aspectRatio(1f)) {
+        val estimatedCellSize = ((maxWidth - (cellSpacing * 4)) / 5f).coerceAtLeast(20.dp)
+        val outerDensity = LocalDensity.current
+        val numberFontScale = remember(estimatedCellSize) { bingoNumberFontScaleForCellSize(estimatedCellSize) }
+        val numberScaledDensity = remember(outerDensity, numberFontScale) {
+            Density(
+                density = outerDensity.density,
+                fontScale = outerDensity.fontScale * numberFontScale
+            )
+        }
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(cellSpacing)
@@ -270,15 +300,17 @@ private fun PlayModeGrid(
                     row.forEachIndexed { colIndex, cell ->
                         val index = rowIndex * 5 + colIndex
                         Box(modifier = Modifier.weight(1f).aspectRatio(1f)) {
-                            BingoCell(
-                                cell = cell,
-                                modifier = Modifier.fillMaxSize(),
-                                onClick = { onCellClick(index) }.takeIf { cell.isEditable && !cell.isDisabled },
-                                isWinning = index in winningCells,
-                                animateWinningPulse = index in newWinningCells,
-                                isNearWinning = index in nearWinningCells,
-                                animateNearWin = index in newNearWinningCells
-                            )
+                            CompositionLocalProvider(LocalDensity provides numberScaledDensity) {
+                                BingoCell(
+                                    cell = cell,
+                                    modifier = Modifier.fillMaxSize(),
+                                    onClick = { onCellClick(index) }.takeIf { cell.isEditable && !cell.isDisabled },
+                                    isWinning = index in winningCells,
+                                    animateWinningPulse = index in newWinningCells,
+                                    isNearWinning = index in nearWinningCells,
+                                    animateNearWin = index in newNearWinningCells
+                                )
+                            }
                         }
                     }
                 }

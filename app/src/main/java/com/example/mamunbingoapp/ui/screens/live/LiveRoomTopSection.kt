@@ -172,7 +172,6 @@ private fun LiveBadge(
     dotAlpha: Float,
     colorScheme: ColorScheme
 ) {
-    val darkTheme = isSystemInDarkTheme()
     val infiniteTransition = rememberInfiniteTransition(label = "liveDotPulse")
     val dotPulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -195,8 +194,8 @@ private fun LiveBadge(
     val dotAlphaCombined = dotPulseAlpha * dotAlpha.coerceIn(0.75f, 1f)
     Surface(
         shape = LiveStatusPillShape,
-        color = liveBadgePillBackground(colorScheme, darkTheme),
-        border = BorderStroke(1.dp, liveBadgePillBorder(colorScheme, darkTheme)),
+        color = colorScheme.primary.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, colorScheme.primary.copy(alpha = 0.22f)),
         shadowElevation = 0.dp,
         tonalElevation = 0.dp
     ) {
@@ -220,7 +219,7 @@ private fun LiveBadge(
                     letterSpacing = 0.12.sp,
                     lineHeight = 12.sp
                 ),
-                color = lerp(colorScheme.primary, Color(0xFF1B5E20), 0.12f).copy(alpha = 0.98f)
+                color = colorScheme.primary
             )
         }
     }
@@ -1217,33 +1216,22 @@ fun LiveRoomWithHistoryCard(
     val historyCalls = uiState.calledNumbers.takeLast(MAX_LIVE_CALLS)
 
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
-    val sectionBrush = if (isSystemInDarkTheme()) {
-        Brush.verticalGradient(
-            colors = listOf(
-                colorScheme.surface,
-                colorScheme.surfaceVariant.copy(alpha = 0.28f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFFF6F8F4),
-                Color(0xFFF0F5EC)
-            )
-        )
-    }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = cardShape,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, colorScheme.outline.copy(alpha = 0.06f)),
+        color = colorScheme.surface,
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            colorScheme.outlineVariant.copy(alpha = 0.28f)
+        ),
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(brush = sectionBrush, shape = cardShape)
+                .clip(cardShape)
+                .background(colorScheme.surfaceContainerLowest)
         ) {
             Column(Modifier.padding(Dimens.spacing12)) {
                 LiveStatusHeaderRow(

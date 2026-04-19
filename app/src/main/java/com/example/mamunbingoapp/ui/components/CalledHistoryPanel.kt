@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,9 +17,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -48,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import kotlinx.coroutines.coroutineScope
@@ -91,20 +96,17 @@ fun CalledHistoryPanel(
     val listState = rememberLazyListState()
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
     var hasDoneInitialScroll by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val scrollBreathingPx = remember(density) { with(density) { (-10).dp.toPx().toInt() } }
-    LaunchedEffect(lastCalled, displayList.size) {
+    LaunchedEffect(displayList.size) {
         if (isEmpty) {
             hasDoneInitialScroll = false
             return@LaunchedEffect
         }
-        val index = lastCalled?.let { n -> displayList.indexOfLast { it == n } } ?: displayList.lastIndex
-        if (index < 0) return@LaunchedEffect
+        val index = displayList.lastIndex
         if (!hasDoneInitialScroll) {
-            listState.scrollToItem(index, scrollOffset = scrollBreathingPx)
+            listState.scrollToItem(index)
             hasDoneInitialScroll = true
         } else {
-            listState.animateScrollToItem(index, scrollOffset = scrollBreathingPx)
+            listState.animateScrollToItem(index)
         }
     }
     Column(
@@ -133,23 +135,63 @@ fun CalledHistoryPanel(
                     number = lastCalled,
                     colorScheme = colorScheme,
                     isFinished = isCallLimitReached,
+                    modifier = Modifier.zIndex(2f),
                 )
-                Spacer(modifier = Modifier.width(20.dp))
-                LazyRow(
-                    state = listState,
-                    flingBehavior = flingBehavior,
-                    contentPadding = PaddingValues(horizontal = Dimens.spacing12),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                Spacer(modifier = Modifier.width(0.dp))
+                val overlapOffset = 8.dp
+                BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .zIndex(1f)
                 ) {
-                    itemsIndexed(displayList, key = { _, num -> num }) { _, num ->
-                        HistoryCallCircle(
-                            number = num,
-                            isLatest = num == lastCalled,
-                            colorScheme = colorScheme,
-                        )
+                    val chipSize = 44.dp
+                    val chipSpacing = Dimens.spacing8
+                    val chipCount = displayList.size
+                    val totalSpacing = if (chipCount > 1) chipSpacing * (chipCount - 1) else 0.dp
+                    val estimatedContentWidth =
+                        (chipSize * chipCount) + totalSpacing
+                    val fitsWithoutScroll = estimatedContentWidth <= maxWidth
+
+                    if (fitsWithoutScroll) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .wrapContentWidth()
+                                    .offset(x = -overlapOffset),
+                                horizontalArrangement = Arrangement.spacedBy(chipSpacing),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                displayList.forEach { num ->
+                                    HistoryCallCircle(
+                                        number = num,
+                                        isLatest = num == lastCalled,
+                                        colorScheme = colorScheme,
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            LazyRow(
+                                state = listState,
+                                flingBehavior = flingBehavior,
+                                contentPadding = PaddingValues(start = 0.dp, end = 0.dp),
+                                horizontalArrangement = Arrangement.spacedBy(chipSpacing),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .offset(x = -overlapOffset),
+                            ) {
+                                itemsIndexed(displayList, key = { _, num -> num }) { _, num ->
+                                    HistoryCallCircle(
+                                        number = num,
+                                        isLatest = num == lastCalled,
+                                        colorScheme = colorScheme,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -163,6 +205,7 @@ private fun LatestCallCircle(
     number: Int?,
     colorScheme: ColorScheme,
     isFinished: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val scaleAnim = remember { Animatable(1f) }
     val alphaAnim = remember { Animatable(1f) }
@@ -212,7 +255,7 @@ private fun LatestCallCircle(
         listOf(Color(0xFF7ABF3F), Color(0xFF529628))
     }
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(72.dp)
             .scale(scaleAnim.value)
             .alpha(alphaAnim.value),
@@ -274,69 +317,53 @@ private fun HistoryCallCircle(
             wasLatest = false
         }
     }
-    val latestGradient = if (isSystemInDarkTheme()) {
-        Brush.verticalGradient(
-            colors = listOf(
-                colorScheme.primaryContainer.copy(alpha = 0.9f),
-                colorScheme.primaryContainer.copy(alpha = 0.78f)
-            )
-        )
+    val chipBg = if (isLatest) {
+        if (isSystemInDarkTheme()) {
+            colorScheme.primaryContainer.copy(alpha = 0.38f)
+        } else {
+            Color(0xFFEAF6EA)
+        }
+    } else if (isSystemInDarkTheme()) {
+        colorScheme.surfaceVariant.copy(alpha = 0.42f)
     } else {
-        Brush.verticalGradient(
-            colors = listOf(Color(0xFFEAF6EA), Color(0xFFDFF1DF))
-        )
+        Color(0xFFF3F4F2)
     }
-    val recentTextGreen = Color(0xFF4A8F2A)
-    val inactiveBorderLight = Color.Black.copy(alpha = 0.056f)
-    val inactiveBorder = if (isSystemInDarkTheme()) {
-        Color.White.copy(alpha = 0.07f)
+    val chipBorder = if (isLatest) {
+        if (isSystemInDarkTheme()) {
+            colorScheme.primary.copy(alpha = 0.46f)
+        } else {
+            Color(0xFF7FB063).copy(alpha = 0.75f)
+        }
     } else {
-        inactiveBorderLight
+        colorScheme.outlineVariant.copy(alpha = 0.52f)
     }
-    val latestRim = colorScheme.outline.copy(alpha = if (isSystemInDarkTheme()) 0.16f else 0.1f)
+    val chipText = if (isLatest) {
+        if (isSystemInDarkTheme()) {
+            colorScheme.onPrimaryContainer.copy(alpha = 0.96f)
+        } else {
+            Color(0xFF2F6D19)
+        }
+    } else if (isSystemInDarkTheme()) {
+        colorScheme.onSurface.copy(alpha = 0.74f)
+    } else {
+        Color.Black.copy(alpha = 0.66f)
+    }
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(44.dp)
             .alpha(rowAlpha.value)
             .clip(CircleShape)
-            .then(
-                if (isLatest) {
-                    Modifier
-                        .background(latestGradient)
-                        .border(1.dp, latestRim, CircleShape)
-                } else {
-                    Modifier
-                        .background(
-                            if (isSystemInDarkTheme()) {
-                                colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                            } else {
-                                Color(0xFFF5F3F0)
-                            }
-                        )
-                        .border(1.dp, inactiveBorder, CircleShape)
-                }
-            ),
+            .background(chipBg)
+            .border(1.dp, chipBorder, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = formatBingoNumber(number),
             style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = if (isLatest) FontWeight.SemiBold else FontWeight.Medium,
-                letterSpacing = if (isLatest) 0.35.sp else 0.25.sp,
+                letterSpacing = 0.2.sp,
             ),
-            color = if (isLatest) {
-                if (isSystemInDarkTheme()) {
-                    colorScheme.onPrimaryContainer.copy(alpha = 0.95f)
-                } else {
-                    recentTextGreen
-                }
-            } else {
-                if (isSystemInDarkTheme()) {
-                    colorScheme.onSurface.copy(alpha = 0.6f)
-                } else {
-                    Color.Black.copy(alpha = 0.5f)
-                }
-            },
+            color = chipText,
         )
     }
 }

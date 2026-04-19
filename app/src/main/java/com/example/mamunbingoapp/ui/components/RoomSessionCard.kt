@@ -1,72 +1,59 @@
 package com.example.mamunbingoapp.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import com.example.mamunbingoapp.ui.core.interaction.appClickable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MeetingRoom
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTonalElevationEnabled
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.core.AlmostBingoInfo
+import com.example.mamunbingoapp.core.MAX_CALLED_NUMBERS
+import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.IconContainerBg
+import com.example.mamunbingoapp.theme.PrimaryPressed
+import com.example.mamunbingoapp.theme.Secondary
+import com.example.mamunbingoapp.ui.model.RoomStatus
+import com.example.mamunbingoapp.ui.model.SheetStatus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.example.mamunbingoapp.core.AlmostBingoInfo
-import com.example.mamunbingoapp.core.MAX_CALLED_NUMBERS
-import com.example.mamunbingoapp.ui.components.BingoWinBanner
-import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.ui.model.RoomStatus
-import com.example.mamunbingoapp.ui.model.SheetStatus
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RoomSessionCard(
     title: String,
@@ -100,356 +87,180 @@ fun RoomSessionCard(
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(Dimens.radiusLarge)
-    val clampedCount = calledCount.coerceAtMost(totalCount)
-    val progressValue = if (totalCount > 0) (clampedCount.toFloat() / totalCount).coerceIn(0f, 1f) else 0f
-    val footerBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    val footerBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
 
-    val summary = "$title, $ticketsCount tickets, $clampedCount of $totalCount called. $actionText."
-    CompositionLocalProvider(LocalTonalElevationEnabled provides false) {
-    val cs = MaterialTheme.colorScheme
-    val cardOnClick: () -> Unit = when {
-        selectionMode && onSelectionToggle != null -> onSelectionToggle!!
-        onCardClick != null -> onCardClick!!
-        else -> fun() {}
+    val dateLabel = remember(addedAtMillis) {
+        addedAtMillis?.let { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(it)) }
+            ?: "Date unavailable"
     }
+    val safeTotal = totalCount.coerceAtLeast(1)
+    val safeCalled = calledCount.coerceIn(0, safeTotal)
+    val progressValue = (safeCalled.toFloat() / safeTotal.toFloat()).coerceIn(0f, 1f)
+    val roomLabel = addedToRoomName?.takeIf { it.isNotBlank() } ?: "Not in room"
+    val isActive = sheetStatus == SheetStatus.ACTIVE || statusText.equals("Active", ignoreCase = true)
+    val isJoinAction = actionText.equals("Join", ignoreCase = true)
+
+    val summary = "$title, $safeCalled of $safeTotal called."
+    val cardOnClick: (() -> Unit)? = when {
+        selectionMode && onSelectionToggle != null -> onSelectionToggle
+        onCardClick != null -> onCardClick
+        else -> null
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (isSelected) Modifier.border(2.dp, cs.primary, shape) else Modifier)
             .semantics(mergeDescendants = true) { contentDescription = summary },
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = cs.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.cardElevationSubtle),
-        onClick = cardOnClick
+        onClick = cardOnClick ?: {},
+        enabled = cardOnClick != null,
+        shape = RoundedCornerShape(Dimens.radiusCard),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().background(cs.surface)) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = Dimens.spacing16,
-                    end = Dimens.spacing16,
-                    top = Dimens.spacing16,
-                    bottom = 0.dp
-                )
-        ) {
-            Column(Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (selectionMode && onSelectionToggle != null) {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = { onSelectionToggle() },
-                            modifier = Modifier.padding(end = Dimens.spacing8)
-                        )
-                    }
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(Modifier.height(Dimens.spacing8))
-                if (!selectionMode) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8, Alignment.End),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8, Alignment.Top)
-                ) {
-                    if (onViewClick != null) {
-                        Button(
-                            onClick = onViewClick,
-                            modifier = Modifier.height(36.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            shape = RoundedCornerShape(100.dp),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                        ) {
-                            Text("View", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                    Button(
-                        onClick = onActionClick,
-                        modifier = Modifier.height(36.dp),
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(100.dp),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-                    ) {
-                        if (actionIcon != null) {
-                            Icon(
-                                imageVector = actionIcon,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.size(6.dp))
-                        }
-                        Text(
-                            text = actionText,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                }
-            }
-            Spacer(Modifier.height(Dimens.spacing16))
-            val gridCells = if (markedCells != null && markedCells.size == 25) markedCells else List(25) { it < markedCount.coerceIn(0, 25) }
-            val markedSet = gridCells.mapIndexed { i, b -> i.takeIf { b } }.filterNotNull().toSet()
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = Dimens.spacing4),
-                verticalAlignment = Alignment.Bottom
+                    .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing12),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                verticalAlignment = Alignment.Top
             ) {
                 Column(
-                    modifier = Modifier
-                        .widthIn(min = 96.dp, max = 120.dp)
-                        .padding(top = Dimens.spacing4)
-                ) {
-                    if (addedAtMillis != null) {
-                        val dateStr = remember(addedAtMillis) {
-                            SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(addedAtMillis))
-                        }
-                        val timeStr = remember(addedAtMillis) {
-                            SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(addedAtMillis))
-                        }
-                        Text(
-                            text = "Added $dateStr at $timeStr",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            softWrap = true
-                        )
-                    }
-                    Spacer(Modifier.height(Dimens.spacing8))
-Row(
-                            modifier = Modifier
-                                .wrapContentWidth()
-                                .clip(RoundedCornerShape(100.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(statusDotColor)
-                        )
-                        Text(
-                            text = statusText,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = statusDotColor,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (ocrSource == "GEMINI" || ocrSource == "ML_KIT") {
-                        Spacer(Modifier.height(Dimens.spacing4))
-                        Text(
-                            text = if (ocrSource == "GEMINI") "Gemini OCR" else "ML Kit OCR",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                            modifier = Modifier
-                                .wrapContentWidth()
-                                .clip(RoundedCornerShape(100.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4)
-                        )
-                        if (editedAfterOcr) {
-                            Spacer(Modifier.height(Dimens.spacing4))
-                            Text(
-                                text = "Edited after OCR",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                                modifier = Modifier
-                                    .wrapContentWidth()
-                                    .clip(RoundedCornerShape(100.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                    .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4)
-                            )
-                            if (ocrCorrectionCount > 0) {
-                                Spacer(Modifier.height(Dimens.spacing4))
-                                Text(
-                                    text = if (ocrCorrectionCount == 1) "1 OCR change" else "$ocrCorrectionCount OCR changes",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                                    modifier = Modifier
-                                        .wrapContentWidth()
-                                        .clip(RoundedCornerShape(100.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                        .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4)
-                                )
-                            }
-                        }
-                    }
-                }
-                Spacer(Modifier.width(Dimens.spacing12))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
                     ) {
-                        val metaColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                        if (addedToRoomName != null) {
-                            Icon(
-                                imageVector = Icons.Default.MeetingRoom,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = metaColor
-                            )
+                        if (selectionMode && onSelectionToggle != null) {
+                            Checkbox(checked = isSelected, onCheckedChange = { onSelectionToggle() })
+                        }
+                        Text(
+                            text = dateLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isActive) {
                             Text(
-                                text = "Added to $addedToRoomName",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = metaColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.ConfirmationNumber,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = metaColor
-                            )
-                            Text(
-                                text = "$ticketsCount Tickets",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = metaColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+                                text = "Active",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryPressed,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .background(IconContainerBg, RoundedCornerShape(100.dp))
+                                    .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4)
                             )
                         }
                     }
-                    if (bingoWinLineCount == null && almostBingo == null) {
-                        Spacer(modifier = Modifier.height(Dimens.spacing8))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progressValue },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(Dimens.spacing5),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+                        Text(
+                            text = "$safeCalled/$safeTotal",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "• $roomLabel",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+                }
+
+                if (!selectionMode) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                    ) {
+                        OutlinedButton(
+                            onClick = onViewClick ?: onCardClick ?: onActionClick,
+                            contentPadding = PaddingValues(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
+                            border = BorderStroke(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant)
                         ) {
-                            MiniBingoGrid(cells = gridCells)
+                            Text("View", maxLines = 1)
+                        }
+                        Button(
+                            onClick = if (isJoinAction) onActionClick else ({ /* no-op */ }), 
+                            enabled = isJoinAction,
+                            contentPadding = PaddingValues(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimens.iconCompact)
+                            )
+                            Spacer(modifier = Modifier.size(Dimens.spacing4))
+                            Text("Join", maxLines = 1)
                         }
                     }
                 }
             }
-            if (bingoWinLineCount != null && bingoWinLineCount >= 1) {
-                Spacer(modifier = Modifier.height(Dimens.spacing12))
-                BingoWinBanner(lineCount = bingoWinLineCount, modifier = Modifier.fillMaxWidth())
-            }
-            if (almostBingo != null) {
-                Spacer(modifier = Modifier.height(Dimens.spacing12))
-                AlmostBingoAlertRowV2(
-                    lineType = almostBingo.lineLabel,
-                    filled = almostBingo.marked,
-                    total = almostBingo.total,
-                    markedCells = markedSet,
-                    nearCells = emptySet(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
 
-        Spacer(modifier = Modifier.height(Dimens.spacing16))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(footerBorderColor)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .background(footerBgColor)
-                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing10),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val value = "$clampedCount\u00A0/\u00A0$totalCount"
-            val footerTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-            Text(
-                text = buildAnnotatedString {
-                    append("How many called: ")
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(value)
-                    }
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = footerTextColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 0.5.dp
             )
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 if (!selectionMode && onLeaveRoomClick != null) {
-                    Text(
-                        text = "leave room",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.appClickable { showLeaveConfirm = true }
-                    )
+                    TextButton(onClick = { showLeaveConfirm = true }) {
+                        Text("leave room")
+                    }
                 }
                 if (!selectionMode && onDeleteClick != null) {
-                    Box(
-                        modifier = Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                            .appClickable { showDeleteConfirm = true },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    IconButton(onClick = { showDeleteConfirm = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete room",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+                            contentDescription = "Delete sheet",
+                            tint = Secondary
                         )
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(Dimens.spacing4))
-
-        LinearProgressIndicator(
-            progress = { progressValue },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(RoundedCornerShape(999.dp)),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-        }
     }
+
     AppConfirmDialog(
         visible = showDeleteConfirm,
         title = "Delete Bingo Sheet?",
@@ -464,6 +275,7 @@ Row(
         onCancel = { showDeleteConfirm = false },
         onDismiss = { showDeleteConfirm = false }
     )
+
     AppConfirmDialog(
         visible = showLeaveConfirm,
         title = "Leave room?",
@@ -478,30 +290,4 @@ Row(
         onCancel = { showLeaveConfirm = false },
         onDismiss = { showLeaveConfirm = false }
     )
-    }
-}
-
-@Composable
-private fun MiniBingoGrid(cells: List<Boolean>) {
-    val shape = RoundedCornerShape(2.dp)
-    val list = if (cells.size >= 25) cells.take(25) else cells + List(25 - cells.size) { false }
-    Column(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-            .border(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f), RoundedCornerShape(4.dp))
-            .padding(2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        list.chunked(5).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                row.forEach { matched ->
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(if (matched) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, shape)
-                    )
-                }
-            }
-        }
-    }
 }

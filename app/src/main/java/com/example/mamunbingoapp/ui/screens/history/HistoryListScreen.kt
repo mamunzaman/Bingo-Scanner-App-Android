@@ -28,8 +28,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -55,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.mamunbingoapp.ui.components.EmptyHistoryActionCards
 import com.example.mamunbingoapp.ui.components.EmptyHistoryState
-import com.example.mamunbingoapp.ui.components.RoomSessionCard
+import com.example.mamunbingoapp.ui.screens.history.components.HistorySheetCard
 import com.example.mamunbingoapp.ui.components.common.SearchFilterSortHeader
 import com.example.mamunbingoapp.ui.components.common.SearchHeaderVariant
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -251,11 +249,11 @@ fun HistoryListScreen(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
+                                                            .fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
+                                                                .fillMaxWidth()
                                 .padding(top = Dimens.spacing8)
                         ) {
                             SearchFilterSortHeader(
@@ -284,7 +282,7 @@ fun HistoryListScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth()
+                                                                .fillMaxWidth()
                         ) {
                             Column(
                                 modifier = Modifier
@@ -314,7 +312,7 @@ fun HistoryListScreen(
                 BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
+                                                        .fillMaxWidth()
                 ) {
                     val listAreaHeight = maxHeight
                     val historyHeaderHeight = 136.dp
@@ -329,7 +327,7 @@ fun HistoryListScreen(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(top = historyHeaderHeight, bottom = Dimens.spacing16),
-                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
+                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing12)
                         ) {
             if (filteredSessions.isEmpty()) {
                     item(key = "empty") {
@@ -340,7 +338,7 @@ fun HistoryListScreen(
                             if (sessionsWithLive.isEmpty()) {
                                 Column(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                                                        .fillMaxWidth()
                                         .padding(horizontal = screenHPad),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
@@ -362,7 +360,7 @@ fun HistoryListScreen(
                             } else {
                                 Column(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                                                        .fillMaxWidth()
                                         .padding(horizontal = screenHPad)
                                         .padding(top = Dimens.spacing8)
                                 ) {
@@ -399,39 +397,17 @@ fun HistoryListScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = screenHPad)
                         ) {
-                            RoomSessionCard(
+                            HistorySheetCard(
                                 title = item.session.effectiveSheetName().ifEmpty { "Unnamed sheet" },
-                                statusText = statusText,
-                                statusDotColor = statusDotColor,
-                                ticketsCount = ticketsCount,
+                                isActive = sheetStatus == SheetStatus.ACTIVE,
                                 calledCount = calledCount,
-                                actionText = actionText,
-                                onActionClick = onAction,
-                                modifier = Modifier.fillMaxWidth(),
-                                onCardClick = if (selectionMode) null else { { onSessionClick(item.session.id, item.roomId) } },
-                                sheetStatus = sheetStatus,
-                                addedToRoomName = item.roomName,
-                                addedAtMillis = item.session.effectivePlayedAtMillis(),
                                 markedCount = maxOf(item.resolvedMarkedCount, item.resolvedCalledCount),
                                 markedCells = item.resolvedMarkedCells.takeIf { it.size == 25 },
-                                almostBingo = item.almostBingo,
-                                bingoWinLineCount = item.bingoWinLineCount,
-                                actionIcon = if (actionText == "Join") Icons.Default.PlayArrow else Icons.AutoMirrored.Filled.OpenInNew,
-                                onViewClick = if (selectionMode) null else if (item.isLive && item.roomId != null) {{ onSessionClick(item.session.id, item.roomId) }} else null,
-                                onDeleteClick = if (selectionMode) null else { { onDeleteSession(item.session.id) } },
-                                onLeaveRoomClick = if (selectionMode) null else if (item.roomId != null) { { onLeaveRoom(item.session.id) } } else null,
-                                ocrSource = item.session.ocrSource,
-                                editedAfterOcr = item.editedAfterOcr,
-                                ocrCorrectionCount = item.ocrCorrectionCount,
-                                selectionMode = selectionMode,
-                                isSelected = item.session.id in selectedSessionIds,
-                                onSelectionToggle = if (selectionMode) {
-                                    {
-                                        val id = item.session.id
-                                        selectedSessionIds =
-                                            if (id in selectedSessionIds) selectedSessionIds - id else selectedSessionIds + id
-                                    }
-                                } else null
+                                onViewClick = { onSessionClick(item.session.id, item.roomId) },
+                                onJoinClick = if (item.isLive && item.roomId != null) ({ onJoinLiveRoom(item.roomId!!) }) else ({ onSessionClick(item.session.id, item.roomId) }),
+                                onDelete = { onDeleteSession(item.session.id) },
+                                onLeaveRoom = if (item.roomId != null) ({ onLeaveRoom(item.session.id) }) else null,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                 }
@@ -440,12 +416,12 @@ fun HistoryListScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .fillMaxWidth()
+                                                                .fillMaxWidth()
                                 .zIndex(2f)
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
+                                                                    .fillMaxWidth()
                                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
                                     .padding(top = Dimens.spacing8)
                             ) {
@@ -479,7 +455,7 @@ fun HistoryListScreen(
                                                 end = Dimens.screenHorizontalPadding + Dimens.spacing16,
                                                 top = Dimens.spacing12 + Dimens.textFieldHeight
                                             )
-                                            .fillMaxWidth()
+                                                                            .fillMaxWidth()
                                             .height(1.dp)
                                             .background(
                                                 MaterialTheme.colorScheme.surface.copy(alpha = separatorMaskAlpha)
@@ -495,3 +471,12 @@ fun HistoryListScreen(
         )
     }
 }
+
+
+
+
+
+
+
+
+
