@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,8 +27,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,7 +45,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +55,8 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+
+private val CalledHistoryMainRowHeight = 72.dp
 
 /**
  * Where the panel sits horizontally: **[HistoryDetail]** matches live card (no duplicate horizontal padding; parent has screen padding).
@@ -121,14 +121,46 @@ fun CalledHistoryPanel(
             ),
     ) {
         if (isEmpty) {
-            EmptyStateBlock(
-                icon = Icons.Default.Numbers,
-                title = "No numbers called yet",
-                subtitle = "Called numbers will appear here during the game.",
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CalledHistoryMainRowHeight),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LatestCallCircle(
+                    number = null,
+                    colorScheme = colorScheme,
+                    isFinished = isCallLimitReached,
+                    modifier = Modifier.zIndex(2f),
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(start = Dimens.spacing12),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No numbers called yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "Called numbers will appear here during the game.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         } else {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CalledHistoryMainRowHeight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 LatestCallCircle(
@@ -256,7 +288,7 @@ private fun LatestCallCircle(
     }
     Box(
         modifier = modifier
-            .size(72.dp)
+            .size(CalledHistoryMainRowHeight)
             .scale(scaleAnim.value)
             .alpha(alphaAnim.value),
         contentAlignment = Alignment.Center,

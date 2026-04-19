@@ -1,5 +1,5 @@
-﻿# Next task - Device QA: Live “Reset game” from ⋮ menu
+﻿# Next task - Device QA: Live call strip height
 
-1. Open a live room, call a few numbers, open ⋮ → **Reset game** → confirm; verify call count is 0 and calling works again
-2. Optional: continue history card polish (HistorySheetCard) if anything feels off on device
+1. Fresh live room: confirm called-history row height matches before vs after first call (no layout jump)
+2. Optional: ⋮ **Reset game** flow smoke test
 
