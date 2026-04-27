@@ -1,6 +1,22 @@
 ﻿# Project status
 
-**Last update:** 2026-04-19 — `CalledHistoryPanel`: empty state uses same **72dp** row as active calls (`LatestCallCircle` + compact copy) so the live card does not jump when the first number is called. `./gradlew :app:compileDebugKotlin` OK.
+**Last update:** 2026-04-27 — **`BingoLiveCameraImportScreen` full-ticket CTA:** `animateFloatAsState` preview fade (220ms) + `AppPrimaryButton(loading)` + 240ms delay then existing `onScanFullTicket` (nav unchanged). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Live camera Bingo QR:** `bingoLiveCameraImport` (CameraX + `tryDecodeBingoQrFromInputImage`, throttled “no QR” log) before GMS; Scan/Jackpot/History **Take photo** open it; success → same Manual Entry route as import (incl. room). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **History Detail QR:** `TicketQrDialog` under `ui/components/qr/`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **History photo import:** ML Kit **QR** before **OCR** (`ImportTicketQrPreOcr` + `QrTicketCodec`). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Live sheet detail bingo** matches **History** (`BingoDetailGridCard` / compact row / win banner). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Live device QA complete**; **whole-app UI consistency audit** in `NEXT_TASK.md`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 (earlier) — **Handoff docs:** Regenerated `PROJECT_SNAPSHOT.md`, `LAST_SESSION.md`, `TECH_DEBT.md` from codebase scan; `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-20 — **Live cards-view overlay fix**: `LivePlayScreen` keeps the standard live bottom area visible for ⋮ bottom sheets (Info/Settings), so opening those sheets no longer reflows the cards-view background into a broken layout; root content animation remains removed. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-19 — `CalledHistoryPanel`: empty state uses same **72dp** row as active calls (`LatestCallCircle` + compact copy) so the live card does not jump when the first number is called. `./gradlew :app:compileDebugKotlin` OK.
 
 **Previous:** 2026-04-19 — Live play ⋮ menu: **Reset game** opens the existing reset confirm; on confirm, calls clear to 0 and play can continue (`LiveRoomTopBar` + `LivePlayScreen`). `./gradlew :app:assembleDebug` OK.
 
@@ -30,9 +46,10 @@
 
 **Previous:** 2026-04-08 â€” App-wide: screens with **`AppHeaderBackground`** use **`MaterialTheme.colorScheme.surface`** on root **`Scaffold`** or **`Box`/`Column`** (Profile, Settings, Manual Entry, Live rooms, Ticket detail, Live sheet detail, History photo import, legal, profile sub-screens, auth register/forgot, **`MyAccountScreen`**). **`HistoryDetailScreen`** same pattern. **`BingoSheetSection` `premiumLayered`**: **`shadowElevation` 0**; soft tonal outer/inner strokes; **`BingoCardGrid`** history compact enables it. **History detail** bingo: **`BingoCardGrid`** `historyDetailCompact` wraps sheet in **`width(bingoGridWidth + 32dp)`** centered; **`BingoGridCard`** no double-wrap on success. **`LabelValueInfoRow`** + **`LabelValueInfoRowVariant`** (Default / Compact): **`labelSmall`** muted **`onSurfaceVariant`**; **`outlineVariant`** divider; History **Ticket Information** uses it + **bodyMedium**/**SemiBold** values, Status **Primary** accent. **History detail** bingo slot: **`Column`** + **`weight(1f)`** â†’ **`BoxWithConstraints`** â†’ **`BingoGridCard`**; **`BingoCardGrid`** uses inner max minus sheet padding for cell sizing; cell = **min** of width- and height-derived size (**22â€“44dp**). No breakpoint / **`graphicsLayer`**. **History detail** `AppTopBar`: default title; live CTA + delete in **`actions`** row (`HistoryDetailHeaderActions`; under **360dp** screen: icon-only live). **History detail** `BingoCardGrid` **`historyDetailCompact`**: `BoxWithConstraints` width-based cell size (22â€“44dp), tight gaps; **`BingoGrid5x5`** **`fixedLayoutCellSize`** + **`FixedPlayModeGrid`** (no 1:1 aspect block). **History detail** top: compact spec â€” **IconContainerBg**/**Primary** active + live/leave pills; flat **TICKET INFORMATION** (**Outline** 9sp label, **OnSurface** rows, **Outline** hairlines); stats **`SpanStyle`** bold sheet count + tail; **WarningBorder** top strip + **WarningContainer** row + **28dp** **WarningIcon** slot + **`MiniBingoPreview`** + score pill (**OnPrimary** on **WarningIcon**); **`CalledHistoryPanel`** after strip (not in ticket block). **Live card:** light **F6F8F4 â†’ F0F5EC**; **no** shadow. **Pills:** **LIVE** â€” soft green fill + green rim; **6dp** dot **`Color.Red`**, infinite **scale 1â†’1.4** + **Î± 1â†”0.6** (**1200ms** `FastOutSlowIn`, reverse), Ã— parent **`dotAlpha`**; text **SemiBold**. **Counter** â€” lighter vs LIVE. **LazyRow:** **12dp** horizontal **contentPadding**; **`spacedBy(8dp)`**; **`rememberSnapFlingBehavior`**; **`animateScrollToItem`** with **~âˆ’10dp** `scrollOffset`. **`CalledHistoryPanelContext.HistoryDetail`** uses **`takeLast(MAX_LIVE_CALLS)`**. No **`LiveCallNumberCircles.kt`**.
 
-## Completed features`r`n`r`n- **CalledHistoryPanel stable height**: empty “no calls” UI matches active call row height (`CalledHistoryMainRowHeight` / `LatestCallCircle` size).
+## Completed features`r`n`r`n- **Live QR → GMS handoff polish:** `BingoLiveCameraImportScreen` “Full ticket scan” uses preview `graphicsLayer` alpha + primary button loading; back disabled during handoff; navigation callback unchanged.
+- **CalledHistoryPanel stable height**: empty “no calls” UI matches active call row height (`CalledHistoryMainRowHeight` / `LatestCallCircle` size).
 - **Live ⋮ Reset game**: top bar overflow includes **Reset game** (same flow as existing Reset — confirm dialog, `RoomRepository.resetCalledNumbers`, un-archive room).
-- **History list cards (`HistorySheetCard`)**: compact single-row panel UI (icon + title/ACTIVE + View/Join/Delete), no progress/footer/room/leave-row visuals; click behavior preserved.
+- **History list cards (`HistorySheetCard`)**: Live-style two-row panel; denser list spacing; overflow menu for join/leave/delete.
 - **Live play sheet detail preview (`SheetDetailBottomSheet`)**: left-aligned meta columns + clearer title vs label hierarchy while preserving unified grouped card + responsive full-grid fit.
 - **Shared `LabelValueInfoRow`**: reusable ticket-style label/value rows with optional compact vertical rhythm.
 - **History detail layout**: fixed column (no page scroll); root **`Scaffold`** **`surface`** page fill (no header/background seam); bingo slot **`weight(1f)`** + constraint-based cell size (no breakpoint **`graphicsLayer`**).
@@ -45,7 +62,7 @@
 - **Live Navigation header** (`LiveRoomsScreen`): `AppTopBar` `titleContent` = title + `Spacer(Modifier.weight(1f))` + 40dp primary `Add` (same pattern as History) â†’ `showCreateDialog = true`.
 - **Import Ticket UI**: shared **`ImportTicketMainContent`**; success â†’ **Manual Entry** prefill via nav (no inline review card); **`ScanResultSummaryCard`** on error/loading only.
 - **Import / History photo header polish**: **`AppHeaderBackground`** vertical greens (light) + quieter strokes; **`HeroBannerCard`** no shadow, tinted fill, **outline** rim + soft dashed; **`ImportTicketFailedScanContent`** / info row / prescan tips surfaces aligned; **`HistoryPhotoImportScreen`** content inset + calmer info icon.
-- **`TicketInfoCard`** / **`TicketInfoStatusChip`**: **#F7F8F6** fill, **black 0.05** border, **18dp** corners, no elevation; **`HistoryDetailScreen`** ticket block = divider-separated **label / value** rows (no chips); **`LiveSheetDetailScreen`** still uses **`TicketInfoCard`** where applicable.
+- **`TicketInfoCard`** / **`TicketInfoStatusChip`**: **#F7F8F6** fill, **black 0.05** border, **18dp** corners, no elevation; **`HistoryDetailScreen`** ticket block = divider-separated **label / value** rows (no chips); **`LiveSheetDetailScreen`** uses **`TicketInfoCard`** for ticket block; **bingo grid** uses same **`BingoDetailGridCard`** path as History detail.
 - **Import gallery / take photo**: Gallery pick â†’ **uCrop** (freestyle, 3:4, bottom controls on, ALL gestures, max scale 28) â†’ **`setGalleryPendingEdit`** â†’ **Apply** / **Discard** â†’ OCR. Camera/GMS unchanged.
 - **Live play header**: compact **`GreenCard`** / **`GreenCardCompact`** â€” neutral container, **LIVE** + bordered count chip; duplicate big-call UI removed in favor of **`CalledHistoryPanel`**.
 - **Live status pills** (`LiveRoomTopSection`): LIVE green-tint chip + green rim, stronger dot/text, slow dot breath; counter de-emphasized vs LIVE.
