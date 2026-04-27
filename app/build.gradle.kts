@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     id("com.google.devtools.ksp") version "2.3.6"
 }
 
@@ -61,6 +62,8 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.zxing.core)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(platform(libs.androidx.compose.bom))
@@ -87,6 +90,7 @@ dependencies {
     implementation("androidx.camera:camera-view:1.5.0")
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
     implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation("com.github.yalantis:ucrop:2.2.8")
     testImplementation(libs.junit)

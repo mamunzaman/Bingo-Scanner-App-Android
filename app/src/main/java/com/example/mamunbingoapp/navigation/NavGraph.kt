@@ -26,6 +26,7 @@ import com.example.mamunbingoapp.ui.screens.ForgotPasswordScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryDetailScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryListScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryPhotoImportScreen
+import com.example.mamunbingoapp.ui.screens.camera.BingoLiveCameraImportScreen
 import com.example.mamunbingoapp.ui.screens.LoginScreen
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryScreen
 import com.example.mamunbingoapp.ui.screens.MainTabsScreen
@@ -67,9 +68,11 @@ import com.example.mamunbingoapp.history.HistoryOcrSource
 /**
  * Scan / import navigation map (which composable owns which flow):
  *
- * 1) **Scan tab Launch camera / Jackpot “Scan Sheet”** — GMS launcher on `main` sets pending URI key and navigates to `historyPhotoImport`; that route consumes it once and calls `onPhotoTaken` + `analyzeTicketFromUri` (same pairing as in-screen Take Photo).
+ * 1) **Scan tab / Jackpot “Scan Sheet”** — `bingoLiveCameraImport` (CameraX + QR frames) or document scan: live Bingo QR **→** Manual Entry; otherwise GMS `historyPhotoImport` pending URI + `onPhotoTaken` + `analyzeTicketFromUri` (in-screen Take Photo matches).
  *
- * 2) **History take-photo import** — `HistoryListScreen` → `historyPhotoImport` → `HistoryPhotoImportScreen`.
+ * 2) **History take-photo import** — `HistoryListScreen` → `historyPhotoImport` → `HistoryPhotoImportScreen`; **Take photo** opens `bingoLiveCameraImport` first, same as (1).
+ *
+ * **Analysis:** `ImportTicketViewModel.analyzeTicketFromUri` runs ML Kit **QR** first (`MAMUN_BINGO_TICKET:` + [QrTicketCodec]); on success it skips **OCR** and pre-fills like a strong scan. Otherwise the existing **OCR** path is unchanged.
  *
  * **Gallery** on that screen: **PickVisualMedia** → in-app preview → Apply → `onPhotoTaken` + `analyzeTicketFromUri`; Discard cancels pending pick. **Take photo** remains GMS via `onTakePhotoClick`.
  *
@@ -290,28 +293,16 @@ fun NavGraph(
                     }
                 }
             }
-            val launchImportTicketCameraFromMain = rememberImportTicketGmsDocumentScanLauncher(
-                onScanResultOk = { uri ->
-                    if (uri != null) {
-                        runCatching {
-                            navController.getBackStackEntry("main").savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] =
-                                uri.toString()
-                        }
-                        Log.d(
-                            SCAN_ENTRY_HANDOFF_TAG,
-                            "handoff src=MainTabs(ScanCamera|JackpotScanSheet) dest=historyPhotoImport (pending URI, ImportTicket Take Photo launcher)"
-                        )
-                        navController.navigate("historyPhotoImport")
-                    }
-                },
-            )
+            val launchBingoLiveCameraFromMain: () -> Unit = {
+                navController.navigate("bingoLiveCameraImport")
+            }
             MainTabsScreen(
                 selectedTab = selectedTab,
                 onTabSelected = { tabsViewModel.setSelectedTab(it) },
                 onNavigateToLiveRoom = { roomId -> navController.navigate("livePlayRoom/$roomId") },
                 onNavigateToLiveRooms = {},
-                onNavigateToHistoryPhotoImport = launchImportTicketCameraFromMain,
-                onJackpotScanSheet = launchImportTicketCameraFromMain,
+                onNavigateToHistoryPhotoImport = launchBingoLiveCameraFromMain,
+                onJackpotScanSheet = launchBingoLiveCameraFromMain,
                 onNavigateToManualEntry = { navController.navigate("manualEntry") },
                 onNavigateToManualEntryWithScannedNumbers = { numbers ->
                     val roomId = lastActiveRoomId
@@ -333,6 +324,63 @@ fun NavGraph(
                         popUpTo("main") { inclusive = true }
                     }
                 }
+            )
+        }
+        composable("bingoLiveCameraImport") {
+            val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
+            val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
+            val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
+            val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
+            val launchGmsForTicketPhoto = rememberImportTicketGmsDocumentScanLauncher(
+                onScanResultOk = { uri ->
+                    if (uri != null) {
+                        runCatching {
+                            navController.getBackStackEntry("main")
+                                .savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
+                        }
+                    }
+                    Log.d(
+                        SCAN_ENTRY_HANDOFF_TAG,
+                        "handoff src=bingoLiveCameraImport dest=historyPhotoImport (GmsDocumentScanner)"
+                    )
+                    navController.navigate("historyPhotoImport") {
+                        popUpTo("bingoLiveCameraImport") { inclusive = true }
+                    }
+                },
+                onActivityMissing = {
+                    Log.d("ImportTicketGmsScan", "document scanner activity missing for bingo live camera handoff")
+                },
+                onScannerStartFailed = {
+                    Log.d("ImportTicketGmsScan", "document scanner start failed from bingo live camera")
+                },
+            )
+            BingoLiveCameraImportScreen(
+                onBingoQrDecoded = { nums, serial, los ->
+                    val route = if (!lastActiveRoomId.isNullOrBlank()) {
+                        buildManualEntryForRoomRoute(
+                            lastActiveRoomId!!,
+                            nums,
+                            serialNumber = serial,
+                            losNumber = los,
+                        )
+                    } else {
+                        buildManualEntryRoute(
+                            nums,
+                            ocrSource = null,
+                            ocrConfidence = null,
+                            prefillAsRowMajor = true,
+                            serialNumber = serial,
+                            losNumber = los,
+                        )
+                    }
+                    Log.d(
+                        SCAN_ENTRY_HANDOFF_TAG,
+                        "handoff src=bingoLiveCameraImport dest=manualEntry prefill from live QR (room=$lastActiveRoomId)"
+                    )
+                    navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
+                },
+                onScanFullTicket = launchGmsForTicketPhoto,
+                onBack = { navController.popBackStack() },
             )
         }
         composable("livePlayRoom/{roomId}") { backStackEntry ->
@@ -794,9 +842,9 @@ fun NavGraph(
                         onTakePhotoClick = {
                             Log.d(
                                 SCAN_ENTRY_HANDOFF_TAG,
-                                "handoff src=HistoryPhotoImportScreen(ui_take_photo) dest=GmsDocumentScanner"
+                                "handoff src=HistoryPhotoImportScreen(ui_take_photo) dest=bingoLiveCameraImport"
                             )
-                            launchGmsDocumentScan()
+                            navController.navigate("bingoLiveCameraImport")
                         },
                         onSaveClick = {},
                         onSaveAndRoomClick = {},
@@ -969,7 +1017,9 @@ fun NavGraph(
                 sheetName = ticketData?.sheetName ?: "Unnamed sheet",
                 playedAtMillis = ticketData?.playedAtMillis ?: System.currentTimeMillis(),
                 cells = ticketData?.cells ?: fallbackCells,
-                calledNumbers = ticketData?.calledNumbers ?: emptyList()
+                calledNumbers = ticketData?.calledNumbers ?: emptyList(),
+                serialNumber = ticketData?.serialNumber,
+                losNumber = ticketData?.losNumber
             )
         }
     }

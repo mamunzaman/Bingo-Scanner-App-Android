@@ -1283,9 +1283,9 @@ fun LiveRoomTopSection(
             modifier = modifier
         )
     } else {
-        GreenCard(
-            calledCount = uiState.calledNumbers.size,
-            dotAlpha = dotAlpha,
+            GreenCard(
+                calledCount = uiState.calledNumbers.size,
+                dotAlpha = dotAlpha,
             colorScheme = colorScheme,
             modifier = modifier.fillMaxWidth()
         )
@@ -1469,9 +1469,9 @@ private fun GreenCardCompact(
         LiveStatusHeaderRow(
             calledCount = calledCount,
             dotAlpha = dotAlpha,
-            colorScheme = colorScheme,
+                colorScheme = colorScheme,
             horizontalInset = Dimens.spacing16,
-        )
+            )
     }
 }
 

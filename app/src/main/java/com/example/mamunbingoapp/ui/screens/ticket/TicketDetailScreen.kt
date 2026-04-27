@@ -20,8 +20,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -63,6 +65,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Error
+import com.example.mamunbingoapp.domain.model.QrTicketPayload
+import com.example.mamunbingoapp.domain.qr.QrTicketCodec
+import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
+import com.example.mamunbingoapp.ui.components.qr.TicketQrDialog
+import com.example.mamunbingoapp.ui.components.qr.cellsToQrGrid5x5
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
@@ -87,6 +96,8 @@ fun TicketDetailScreen(
     playedAtMillis: Long = System.currentTimeMillis(),
     cells: List<BingoCellUi> = emptyList(),
     calledNumbers: List<Int> = emptyList(),
+    serialNumber: String? = null,
+    losNumber: String? = null,
     viewModel: TicketDetailViewModel? = null
 ) {
     val roomsViewModel: LiveRoomsViewModel = viewModel()
@@ -109,6 +120,9 @@ fun TicketDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAlreadyInRoomDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showRoomPicker by remember { mutableStateOf(false) }
+    var showQrDialog by remember { mutableStateOf(false) }
+    var qrErrorMessage by remember { mutableStateOf<String?>(null) }
+    var qrBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
     AppConfirmDialog(
         visible = showDeleteDialog,
@@ -161,6 +175,17 @@ fun TicketDetailScreen(
             onDismiss = { showRoomPicker = false }
         )
     }
+    if (showQrDialog) {
+        TicketQrDialog(
+            bitmap = qrBitmap,
+            errorMessage = qrErrorMessage,
+            onDismiss = {
+                showQrDialog = false
+                qrBitmap = null
+                qrErrorMessage = null
+            }
+        )
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -182,7 +207,55 @@ fun TicketDetailScreen(
                 AppTopBar(
                     title = "Ticket Detail",
                     showBack = true,
-                    onBackClick = onBack
+                    onBackClick = onBack,
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    val grid = withContext(Dispatchers.Default) {
+                                        cellsToQrGrid5x5(cells)
+                                    }
+                                    val encoded = runCatching {
+                                        QrTicketCodec.encode(
+                                            QrTicketPayload(
+                                                grid = grid,
+                                                serial = serialNumber,
+                                                los = losNumber,
+                                            )
+                                        )
+                                    }
+                                    if (encoded.isFailure) {
+                                        qrBitmap = null
+                                        qrErrorMessage = encoded.exceptionOrNull()?.message
+                                            ?: "Could not encode ticket for QR"
+                                        showQrDialog = true
+                                        return@launch
+                                    }
+                                    val bmp = withContext(Dispatchers.Default) {
+                                        QrTicketImageGenerator.generateBitmap(encoded.getOrThrow())
+                                    }
+                                    bmp.fold(
+                                        onSuccess = {
+                                            qrErrorMessage = null
+                                            qrBitmap = it
+                                            showQrDialog = true
+                                        },
+                                        onFailure = { e ->
+                                            qrBitmap = null
+                                            qrErrorMessage = e.message ?: "Could not generate QR image"
+                                            showQrDialog = true
+                                        }
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.QrCode2,
+                                contentDescription = "Show QR",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 )
                 Column(
             modifier = Modifier

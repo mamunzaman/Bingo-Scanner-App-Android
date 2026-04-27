@@ -44,7 +44,7 @@ import com.example.mamunbingoapp.viewmodel.ScanResultUiState
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 
 /**
- * **Route:** `historyPhotoImport` — **Take photo** = GMS (from parent); **Gallery** = picker → uCrop (3:4) → in-app preview → Apply runs OCR. Save → `manualEntry` when numbers exist (e.g. live-scan prefill).
+ * **Route:** `historyPhotoImport` — **Take photo** = `bingoLiveCameraImport` (live QR + optional GMS) from parent; **Gallery** = picker → uCrop (3:4) → in-app preview → Apply, except a **valid app Bingo QR** on the image auto-commits (no Apply). **Analysis** runs app **QR** before **OCR**; valid ticket QR skips OCR. Save → `manualEntry` when numbers exist (e.g. live-scan prefill).
  */
 @Composable
 fun HistoryPhotoImportScreen(

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -101,16 +102,21 @@ import com.example.mamunbingoapp.ui.components.CalledHistoryPanelContext
 import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.ui.components.LabelValueInfoRow
 import com.example.mamunbingoapp.ui.components.LabelValueInfoRowVariant
-import com.example.mamunbingoapp.ui.components.BingoCardGrid
-import com.example.mamunbingoapp.ui.components.MiniBingoPreview
-import com.example.mamunbingoapp.ui.components.BingoGridMode
-import com.example.mamunbingoapp.ui.components.BingoSheetSection
+import com.example.mamunbingoapp.ui.components.BingoDetailGridCard
+import com.example.mamunbingoapp.ui.components.CompactAlmostBingoRow
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
 import com.example.mamunbingoapp.ui.components.StatusPill
 import com.example.mamunbingoapp.data.LiveRoom
 import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.example.mamunbingoapp.domain.model.QrTicketPayload
+import com.example.mamunbingoapp.domain.qr.QrTicketCodec
+import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
+import com.example.mamunbingoapp.ui.components.qr.TicketQrDialog
+import com.example.mamunbingoapp.ui.components.qr.cellsToQrGrid5x5
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.ui.model.SheetStatus
 import java.text.SimpleDateFormat
@@ -157,6 +163,9 @@ fun HistoryDetailScreen(
     var showRoomPicker by remember { mutableStateOf(false) }
     var showCreateRoomDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showQrDialog by remember { mutableStateOf(false) }
+    var qrErrorMessage by remember { mutableStateOf<String?>(null) }
+    var qrBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var deletedAwaitingSnackbar by remember { mutableStateOf(false) }
     var cachedSession by remember { mutableStateOf<HistorySession?>(null) }
     var cachedAssignedRoomId by remember { mutableStateOf<String?>(null) }
@@ -301,6 +310,17 @@ fun HistoryDetailScreen(
             onDismiss = { showCreateRoomDialog = false }
         )
     }
+    if (showQrDialog) {
+        TicketQrDialog(
+            bitmap = qrBitmap,
+            errorMessage = qrErrorMessage,
+            onDismiss = {
+                showQrDialog = false
+                qrBitmap = null
+                qrErrorMessage = null
+            }
+        )
+    }
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -382,6 +402,51 @@ fun HistoryDetailScreen(
                                             showRoomPicker = true
                                         }
                                     }
+                                }
+                            },
+                            onShowQrClick = {
+                                scope.launch {
+                                    val cellsList = displayCells
+                                    if (cellsList == null) {
+                                        qrBitmap = null
+                                        qrErrorMessage = "No saved grid to encode for this sheet."
+                                        showQrDialog = true
+                                        return@launch
+                                    }
+                                    val grid = withContext(Dispatchers.Default) {
+                                        cellsToQrGrid5x5(cellsList)
+                                    }
+                                    val encoded = runCatching {
+                                        QrTicketCodec.encode(
+                                            QrTicketPayload(
+                                                grid = grid,
+                                                serial = sessionForDisplay.serialNumber,
+                                                los = sessionForDisplay.losNumber,
+                                            )
+                                        )
+                                    }
+                                    if (encoded.isFailure) {
+                                        qrBitmap = null
+                                        qrErrorMessage = encoded.exceptionOrNull()?.message
+                                            ?: "Could not encode ticket for QR"
+                                        showQrDialog = true
+                                        return@launch
+                                    }
+                                    val bmp = withContext(Dispatchers.Default) {
+                                        QrTicketImageGenerator.generateBitmap(encoded.getOrThrow())
+                                    }
+                                    bmp.fold(
+                                        onSuccess = {
+                                            qrErrorMessage = null
+                                            qrBitmap = it
+                                            showQrDialog = true
+                                        },
+                                        onFailure = { e ->
+                                            qrBitmap = null
+                                            qrErrorMessage = e.message ?: "Could not generate QR image"
+                                            showQrDialog = true
+                                        }
+                                    )
                                 }
                             },
                             onDeleteClick = { showDeleteDialog = true },
@@ -466,7 +531,7 @@ fun HistoryDetailScreen(
                                 verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
                             ) {
                                 if (almostBingoInfo != null && displayCells != null && displayCells.size >= 25) {
-                                    HistoryDetailCompactAlmostBingoRow(
+                                    CompactAlmostBingoRow(
                                         lineType = almostBingoInfo.lineLabel,
                                         filled = almostBingoInfo.marked,
                                         total = almostBingoInfo.total,
@@ -498,7 +563,7 @@ fun HistoryDetailScreen(
                                     .fillMaxWidth()
                             ) {
                                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                                    BingoGridCard(
+                                    BingoDetailGridCard(
                                         cells = displayCells,
                                         winningCells = if (winResult?.isWin == true) winResult.winningCells else emptySet(),
                                         historyDetailOuterMaxWidth = maxWidth,
@@ -910,93 +975,6 @@ private fun HistoryDetailCompactTicketSection(
     }
 }
 
-@Composable
-private fun HistoryDetailCompactAlmostBingoRow(
-    lineType: String,
-    filled: Int,
-    total: Int,
-    markedCells: Set<Int>,
-    compactVertical: Boolean = false,
-) {
-    val need = total - filled
-    val subtitle = "$lineType · need $need more number${if (need == 1) "" else "s"}"
-    val alertShape = RoundedCornerShape(Dimens.radiusCard)
-    val rowPadV = if (compactVertical) Dimens.spacing4 else Dimens.spacing8
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(alertShape)
-            .background(WarningContainer, alertShape)
-            .border(
-                Dimens.cardBorderDefault,
-                WarningBorder.copy(alpha = 0.2f),
-                alertShape,
-            ),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(WarningBorder.copy(alpha = 0.35f)),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = rowPadV, horizontal = Dimens.spacing12),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(Dimens.radiusBingoCell))
-                    .background(WarningIcon)
-                    .padding(2.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                MiniBingoPreview(
-                    markedCells = markedCells,
-                    nearCells = emptySet(),
-                    modifier = Modifier.fillMaxSize(),
-                    gap = 1.dp,
-                    cellRadius = 2.dp,
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = Dimens.spacing8),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                Text(
-                    text = "Almost Bingo!",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = WarningText,
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 10.sp,
-                    color = WarningSubText,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(Dimens.progressBarRadius))
-                    .background(WarningIcon)
-                    .padding(vertical = 2.dp, horizontal = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "$filled/$total",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = OnPrimary,
-                )
-            }
-        }
-    }
-}
-
 private fun historyDetailStatusLabel(status: SheetStatus): String = when (status) {
     SheetStatus.ACTIVE -> "Live"
     SheetStatus.COMPLETED -> "Completed"
@@ -1009,6 +987,7 @@ private fun HistoryDetailHeaderActions(
     iconOnlyActions: Boolean,
     liveActionLabel: String,
     onLiveAction: () -> Unit,
+    onShowQrClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     Row(
@@ -1049,6 +1028,13 @@ private fun HistoryDetailHeaderActions(
                 )
             }
         }
+        IconButton(onClick = onShowQrClick) {
+            Icon(
+                imageVector = Icons.Filled.QrCode2,
+                contentDescription = "Show QR",
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         IconButton(onClick = onDeleteClick) {
             Icon(
                 imageVector = Icons.Default.Delete,
@@ -1059,41 +1045,3 @@ private fun HistoryDetailHeaderActions(
     }
 }
 
-@Composable
-private fun BingoGridCard(
-    cells: List<BingoCellUi>?,
-    winningCells: Set<Int> = emptySet(),
-    historyDetailOuterMaxWidth: Dp? = null,
-    historyDetailOuterMaxHeight: Dp? = null,
-) {
-    val sheetInset = Dimens.spacing16 * 2
-    val innerContentMaxWidth = historyDetailOuterMaxWidth?.let { (it - sheetInset).coerceAtLeast(1.dp) }
-    val innerContentMaxHeight = historyDetailOuterMaxHeight?.let { (it - sheetInset).coerceAtLeast(1.dp) }
-    if (cells == null || cells.size != 25) {
-        BingoSheetSection(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No grid saved for this session",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                )
-            }
-        }
-    } else {
-        BingoCardGrid(
-            cells = cells,
-            modifier = Modifier.fillMaxSize(),
-            mode = BingoGridMode.PREVIEW,
-            winningCells = winningCells,
-            onCellClick = {},
-            historyDetailCompact = true,
-            historyDetailContentMaxWidth = innerContentMaxWidth,
-            historyDetailContentMaxHeight = innerContentMaxHeight,
-        )
-    }
-}

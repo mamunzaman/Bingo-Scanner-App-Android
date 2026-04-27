@@ -22,15 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 
-/**
- * Bottom docked actions for bulk selection in History / My Tickets.
- * Optional: [showAddToRoom] add unassigned tickets to the current live room (tonal).
- * [showRemoveFromRoom] / [onRemoveFromRoomClick]: leave room only.
- * Delete: permanent history removal.
- */
 @Composable
 fun BulkSelectionActionBar(
     modifier: Modifier = Modifier,
+    showJoinLive: Boolean = false,
+    joinLiveEnabled: Boolean = false,
+    joinLiveCount: Int = 0,
+    onJoinLiveClick: () -> Unit = {},
     showAddToRoom: Boolean = false,
     addToRoomEnabled: Boolean = false,
     addCount: Int = 0,
@@ -53,27 +51,43 @@ fun BulkSelectionActionBar(
             .fillMaxWidth()
             .border(
                 width = Dimens.cardBorderDefault,
-                color = cs.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha),
+                color = cs.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
                 shape = dockShape
             ),
         shape = dockShape,
-        tonalElevation = Dimens.cardElevationSubtle,
-        shadowElevation = Dimens.cardElevationSubtle,
-        color = cs.surfaceContainerHigh
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = cs.surfaceContainerLow
     ) {
         Column(
-            modifier = Modifier.padding(
-                horizontal = Dimens.screenHorizontalPadding,
-                vertical = Dimens.spacing12
-            )
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing10)
         ) {
+            if (showJoinLive) {
+                FilledTonalButton(
+                    onClick = onJoinLiveClick,
+                    enabled = joinLiveEnabled,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.radiusMedium),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = cs.primaryContainer,
+                        contentColor = cs.onPrimaryContainer
+                    )
+                ) {
+                    Text(
+                        text = if (joinLiveCount > 0) "Join live ($joinLiveCount)"
+                        else "Join live"
+                    )
+                }
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
+            }
             if (showAddToRoom) {
                 FilledTonalButton(
                     onClick = onAddToRoomClick,
                     enabled = addToRoomEnabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = Dimens.spacing12)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.radiusMedium)
                 ) {
                     Text(
                         text = if (addCount > 0) "Add to room ($addCount)"
@@ -83,17 +97,16 @@ fun BulkSelectionActionBar(
                 Spacer(modifier = Modifier.height(Dimens.spacing8))
             }
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = if (showAddToRoom) 0.dp else Dimens.spacing12),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (showRemoveFromRoom) {
                     OutlinedButton(
                         onClick = onRemoveFromRoomClick,
                         enabled = removeFromRoomEnabled,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(Dimens.radiusMedium)
                     ) {
                         Text(
                             text = if (removeCount > 0) "Remove from room ($removeCount)"
@@ -105,9 +118,10 @@ fun BulkSelectionActionBar(
                     onClick = onDeleteFromHistoryClick,
                     enabled = deleteEnabled,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(Dimens.radiusMedium),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
+                        containerColor = cs.error,
+                        contentColor = cs.onError
                     )
                 ) {
                     Text(

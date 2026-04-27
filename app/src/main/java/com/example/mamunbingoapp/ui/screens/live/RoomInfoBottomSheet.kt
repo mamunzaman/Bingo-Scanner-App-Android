@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +60,7 @@ fun RoomInfoBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         windowInsets = WindowInsets(0, 0, 0, 0),
+        shape = BottomSheetDefaults.ExpandedShape,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(
@@ -66,7 +68,7 @@ fun RoomInfoBottomSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .imePadding()
-                .padding(24.dp)
+                .padding(Dimens.spacing24)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

@@ -70,8 +70,6 @@ import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
-import com.example.mamunbingoapp.core.SheetStatusResolver
-import com.example.mamunbingoapp.ui.model.SheetStatus
 @Composable
 fun HistoryListScreen(
     onBack: () -> Unit,
@@ -104,6 +102,9 @@ fun HistoryListScreen(
         selectedSessionIds.filter { sid ->
             filteredSessions.any { it.session.id == sid && it.roomId != null }
         }.toSet()
+    }
+    val selectedSessionsInLive = remember(selectedSessionIds, filteredSessions) {
+        filteredSessions.filter { it.session.id in selectedSessionIds && it.roomId != null }
     }
     val combinedFilterOptions = buildList {
         add(HistoryFilter.ALL.displayName)
@@ -139,6 +140,16 @@ fun HistoryListScreen(
             if (selectionMode && filteredSessions.isNotEmpty()) {
                 BulkSelectionActionBar(
                     modifier = Modifier.navigationBarsPadding(),
+                    showJoinLive = true,
+                    joinLiveEnabled = selectedSessionsInLive.isNotEmpty(),
+                    joinLiveCount = selectedSessionsInLive.size,
+                    onJoinLiveClick = {
+                        selectedSessionsInLive.firstOrNull()?.roomId?.let { roomId ->
+                            onJoinLiveRoom(roomId)
+                            selectionMode = false
+                            selectedSessionIds = emptySet()
+                        }
+                    },
                     showRemoveFromRoom = filteredSessions.any { it.roomId != null },
                     removeFromRoomEnabled = selectedSessionIdsInRoom.isNotEmpty(),
                     removeCount = selectedSessionIdsInRoom.size,
@@ -182,33 +193,58 @@ fun HistoryListScreen(
                         }
                     },
                     actions = {
-                        if (!selectionMode) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (filteredSessions.isNotEmpty()) {
-                                    TextButton(onClick = {
-                                        selectionMode = true
-                                        selectedSessionIds = emptySet()
-                                    }) {
-                                        Text("Select")
+                        when {
+                            selectionMode -> {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4)
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            selectedSessionIds =
+                                                filteredSessions.map { it.session.id }.toSet()
+                                        },
+                                        enabled = filteredSessions.isNotEmpty() &&
+                                            selectedSessionIds.size < filteredSessions.size
+                                    ) {
+                                        Text("Select all")
+                                    }
+                                    TextButton(
+                                        onClick = { selectedSessionIds = emptySet() },
+                                        enabled = selectedSessionIds.isNotEmpty()
+                                    ) {
+                                        Text("Clear")
                                     }
                                 }
-                                IconButton(
-                                    onClick = onAddFromPhotoClick,
-                                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary),
-                                        contentAlignment = Alignment.Center
+                            }
+                            else -> {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (filteredSessions.isNotEmpty()) {
+                                        TextButton(onClick = {
+                                            selectionMode = true
+                                            selectedSessionIds = emptySet()
+                                        }) {
+                                            Text("Select")
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = onAddFromPhotoClick,
+                                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add from photo",
-                                            modifier = Modifier.size(24.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimary
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Add from photo",
+                                                modifier = Modifier.size(24.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -326,7 +362,7 @@ fun HistoryListScreen(
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = historyHeaderHeight, bottom = Dimens.spacing16),
+                            contentPadding = PaddingValues(top = historyHeaderHeight, bottom = Dimens.spacing8),
                             verticalArrangement = Arrangement.spacedBy(Dimens.spacing12)
                         ) {
             if (filteredSessions.isEmpty()) {
@@ -375,23 +411,13 @@ fun HistoryListScreen(
                     }
                 } else {
                     items(filteredSessions) { item ->
-                        val ticketsCount = item.session.sheetsCount.coerceAtLeast(1)
-                        val calledCount = item.resolvedCalledCount.coerceAtLeast(0)
-                        val sheetStatus = SheetStatusResolver.resolve(
-                            assignedRoomId = item.roomId,
-                            calledCount = calledCount
+                        val markedForCard = maxOf(
+                            item.resolvedMarkedCount,
+                            item.session.sheetsPlayed.firstOrNull()?.markedCount ?: 0
                         )
-                        val (statusText, statusDotColor) = when (sheetStatus) {
-                            SheetStatus.ACTIVE -> "Active" to MaterialTheme.colorScheme.primary
-                            SheetStatus.COMPLETED -> "Completed" to MaterialTheme.colorScheme.onSurfaceVariant
-                            SheetStatus.IN_PROGRESS -> "In Progress" to MaterialTheme.colorScheme.onSurfaceVariant
-                            SheetStatus.IDLE -> "Saved" to MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                        val (actionText, onAction) = if (item.isLive && item.roomId != null) {
-                            "Join" to { onJoinLiveRoom(item.roomId!!) }
-                        } else {
-                            "View" to { onSessionClick(item.session.id, item.roomId) }
-                        }
+                        val playedAt = item.session.effectivePlayedAtMillis()
+                        val dateLabelPrefix =
+                            if (item.session.ocrSource.isNullOrBlank()) "Saved" else "Scanned"
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -399,14 +425,24 @@ fun HistoryListScreen(
                         ) {
                             HistorySheetCard(
                                 title = item.session.effectiveSheetName().ifEmpty { "Unnamed sheet" },
-                                isActive = sheetStatus == SheetStatus.ACTIVE,
-                                calledCount = calledCount,
-                                markedCount = maxOf(item.resolvedMarkedCount, item.resolvedCalledCount),
+                                playedAtMillis = playedAt,
+                                dateLabelPrefix = dateLabelPrefix,
+                                serialNumber = item.session.serialNumber,
+                                losNumber = item.session.losNumber,
+                                markedCount = markedForCard,
                                 markedCells = item.resolvedMarkedCells.takeIf { it.size == 25 },
                                 onViewClick = { onSessionClick(item.session.id, item.roomId) },
                                 onJoinClick = if (item.isLive && item.roomId != null) ({ onJoinLiveRoom(item.roomId!!) }) else ({ onSessionClick(item.session.id, item.roomId) }),
                                 onDelete = { onDeleteSession(item.session.id) },
                                 onLeaveRoom = if (item.roomId != null) ({ onLeaveRoom(item.session.id) }) else null,
+                                selectionMode = selectionMode,
+                                selected = item.session.id in selectedSessionIds,
+                                onSelectionToggle = {
+                                    val id = item.session.id
+                                    selectedSessionIds =
+                                        if (id in selectedSessionIds) selectedSessionIds - id
+                                        else selectedSessionIds + id
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }

@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -111,6 +110,7 @@ import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.ImportTicketFailedScanContent
@@ -468,12 +468,8 @@ fun ImportTicketScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Box(modifier = Modifier.statusBarsPadding()) {
+    AppHeaderPageLayout(
+        topBar = {
             AppTopBar(
                 title = "Import Ticket",
                 showBack = true,
@@ -485,37 +481,39 @@ fun ImportTicketScreen(
                     }
                 }
             )
+        },
+        content = {
+            val contentPadding = Modifier
+                .padding(horizontal = Dimens.screenHorizontalPadding)
+                .padding(top = Dimens.spacing16, bottom = Dimens.spacing24)
+            val scrollModifier = if (allowScroll) Modifier.verticalScroll(scrollState) else Modifier
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .then(scrollModifier)
+                    .then(contentPadding)
+            ) {
+                ImportTicketMainContent(
+                    selectedUri = displayUri,
+                    galleryPendingEditUri = galleryPendingUri,
+                    scanResult = scanResult,
+                    isAnalyzing = isAnalyzing,
+                    imageSource = imageSource,
+                    idleHint = idleHint,
+                    onTakePhoto = { if (isDirty) pendingReplaceAction = PendingReplace.TakePhoto else onTakePhoto() },
+                    onPickFromGallery = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else pickImageFromGallery() },
+                    onSecondaryOutlinedClick = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else pickImageFromGallery() },
+                    onGalleryApply = { l, t, r, b -> viewModel.applyGalleryPendingEdit(context, l, t, r, b) },
+                    onGalleryCancel = { viewModel.cancelGalleryPendingEdit() },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            if (showBottomBar) {
+                AppBottomBar(selectedTab = AppTab.Scan, onTabSelected = {})
+            }
         }
-        val contentPadding = Modifier
-            .padding(horizontal = Dimens.screenHorizontalPadding)
-            .padding(top = Dimens.spacing16, bottom = Dimens.spacing24)
-        val scrollModifier = if (allowScroll) Modifier.verticalScroll(scrollState) else Modifier
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .then(scrollModifier)
-                .then(contentPadding)
-        ) {
-            ImportTicketMainContent(
-                selectedUri = displayUri,
-                galleryPendingEditUri = galleryPendingUri,
-                scanResult = scanResult,
-                isAnalyzing = isAnalyzing,
-                imageSource = imageSource,
-                idleHint = idleHint,
-                onTakePhoto = { if (isDirty) pendingReplaceAction = PendingReplace.TakePhoto else onTakePhoto() },
-                onPickFromGallery = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else pickImageFromGallery() },
-                onSecondaryOutlinedClick = { if (isDirty) pendingReplaceAction = PendingReplace.PickGallery else pickImageFromGallery() },
-                onGalleryApply = { l, t, r, b -> viewModel.applyGalleryPendingEdit(context, l, t, r, b) },
-                onGalleryCancel = { viewModel.cancelGalleryPendingEdit() },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        if (showBottomBar) {
-            AppBottomBar(selectedTab = AppTab.Scan, onTabSelected = {})
-        }
-    }
+    )
     AppConfirmDialog(
         visible = showDiscardDialog,
         title = "Discard scan?",

@@ -118,9 +118,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -161,6 +164,11 @@ import com.example.mamunbingoapp.ui.components.BingoGridMode
 import com.example.mamunbingoapp.ui.components.AlmostBingoAlertRowV2
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
 import com.example.mamunbingoapp.ui.components.LivePlayCallKeypad
+import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
+import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
+import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
+import com.example.mamunbingoapp.ui.components.MiniBingoGrid
+import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryKeypadDockMetrics
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
@@ -246,6 +254,10 @@ fun LivePlayScreen(
     var showDeleteRoomConfirm by remember { mutableStateOf(false) }
     var showConfetti by remember { mutableStateOf(false) }
     var detailSheet by remember { mutableStateOf<LiveSheetUi?>(null) }
+    var listSelectionMode by rememberSaveable { mutableStateOf(false) }
+    var selectedTicketIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showLiveListBulkLeaveConfirm by remember { mutableStateOf(false) }
+    var showLiveListBulkDeleteConfirm by remember { mutableStateOf(false) }
     var lastStatus by rememberSaveable { mutableStateOf<RoomStatus?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val haptics = LocalHapticFeedback.current
@@ -253,10 +265,16 @@ fun LivePlayScreen(
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val displaySheets = sheets
-    val inputBarVisible = showBottomBar && !showSettingsSheet && !isMyTicketsSheetOpen && displaySheets.isNotEmpty()
     val canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached
-    val liveContentBottomPad = ManualEntryKeypadDockMetrics.estimatedDockHeight + Dimens.spacing16
-    val liveListLazyContentBottomPad = Dimens.spacing16
+    val liveContentBottomPad = ManualEntryKeypadDockMetrics.estimatedDockHeight + Dimens.spacing8
+    val liveListLazyContentBottomPad = Dimens.spacing8
+
+    LaunchedEffect(selectedView) {
+        if (!selectedView) {
+            listSelectionMode = false
+            selectedTicketIds = emptySet()
+        }
+    }
 
     // Room completion & side effects (no central IME/focus; active input handles its own).
     LaunchedEffect(roomStatus) {
@@ -342,6 +360,34 @@ fun LivePlayScreen(
             onDismiss = { showDeleteRoomConfirm = false }
         )
     }
+    LeaveRoomBulkConfirmDialog(
+        visible = showLiveListBulkLeaveConfirm,
+        count = selectedTicketIds.size,
+        onDismiss = { showLiveListBulkLeaveConfirm = false },
+        onConfirm = {
+            RoomRepository.unassignTickets(selectedTicketIds)
+            listSelectionMode = false
+            selectedTicketIds = emptySet()
+            showLiveListBulkLeaveConfirm = false
+            scope.launch {
+                snackbarHostState.showSnackbar("Removed from room")
+            }
+        }
+    )
+    DeleteFromHistoryBulkConfirmDialog(
+        visible = showLiveListBulkDeleteConfirm,
+        count = selectedTicketIds.size,
+        onDismiss = { showLiveListBulkDeleteConfirm = false },
+        onConfirm = {
+            HistoryRepository.deleteSessions(selectedTicketIds)
+            listSelectionMode = false
+            selectedTicketIds = emptySet()
+            showLiveListBulkDeleteConfirm = false
+            scope.launch {
+                snackbarHostState.showSnackbar("Deleted from history")
+            }
+        }
+    )
     if (showCallCompleteDialog) {
         AlertDialog(
             onDismissRequest = onCallCompleteDismiss,
@@ -387,7 +433,14 @@ fun LivePlayScreen(
         topBar = {
             LiveRoomTopBar(
                 title = room?.name ?: "Live Play",
-                onBack = onBack,
+                onBack = {
+                    if (listSelectionMode) {
+                        listSelectionMode = false
+                        selectedTicketIds = emptySet()
+                    } else {
+                        onBack()
+                    }
+                },
                 onAddTicket = { isMyTicketsSheetOpen = true },
                 onOpenSettings = { showSettingsSheet = true },
                 onOpenInfo = { showInfoSheet = true },
@@ -397,11 +450,35 @@ fun LivePlayScreen(
                 showSheetViewModeMenu = displaySheets.isNotEmpty(),
                 listViewSelected = selectedView,
                 onSelectCardsView = { selectedView = false },
-                onSelectListView = { selectedView = true }
+                onSelectListView = { selectedView = true },
+                showListBulkSelect = selectedView && displaySheets.isNotEmpty(),
+                listSelectionMode = listSelectionMode,
+                listSelectedCount = selectedTicketIds.size,
+                listSelectAllEnabled = selectedTicketIds.size < displaySheets.size,
+                onEnterListSelection = {
+                    listSelectionMode = true
+                    selectedTicketIds = emptySet()
+                },
+                onListSelectAll = {
+                    selectedTicketIds = displaySheets.map { it.ticketId }.toSet()
+                },
+                onListClearSelection = { selectedTicketIds = emptySet() }
             )
         },
         bottomBar = {
-            if (showBottomBar && !showSettingsSheet && !isMyTicketsSheetOpen) {
+            if (listSelectionMode && selectedView && displaySheets.isNotEmpty()) {
+                BulkSelectionActionBar(
+                    modifier = Modifier.navigationBarsPadding(),
+                    showJoinLive = false,
+                    showRemoveFromRoom = true,
+                    removeFromRoomEnabled = selectedTicketIds.isNotEmpty(),
+                    removeCount = selectedTicketIds.size,
+                    deleteEnabled = selectedTicketIds.isNotEmpty(),
+                    deleteCount = selectedTicketIds.size,
+                    onRemoveFromRoomClick = { showLiveListBulkLeaveConfirm = true },
+                    onDeleteFromHistoryClick = { showLiveListBulkDeleteConfirm = true }
+                )
+            } else if (showBottomBar && !isMyTicketsSheetOpen) {
                 LivePlayBottomArea(
                     displaySheets = displaySheets,
                     calledNumbers = calledNumbers,
@@ -429,8 +506,7 @@ fun LivePlayScreen(
     ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .animateContentSize(),
+            .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
     ) {
         MyTicketsBottomSheet(
@@ -547,7 +623,15 @@ fun LivePlayScreen(
                                 losNumber = sheet.losNumber,
                                 scannedDate = formatPlayDate(sheet.playedAtMillis),
                                 cells = sheet.cells,
-                                onClick = { detailSheet = sheet }
+                                onClick = { detailSheet = sheet },
+                                selectionMode = listSelectionMode,
+                                selected = sheet.ticketId in selectedTicketIds,
+                                onSelectionToggle = {
+                                    val id = sheet.ticketId
+                                    selectedTicketIds =
+                                        if (id in selectedTicketIds) selectedTicketIds - id
+                                        else selectedTicketIds + id
+                                }
                             )
                         }
                     }
@@ -581,7 +665,7 @@ fun LivePlayScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(top = Dimens.spacing12, bottom = Dimens.spacing12),
+                        .padding(top = Dimens.spacing12, bottom = Dimens.spacing8),
                     sheets = displaySheets,
                     initialSelectedTicketId = initialSelectedTicketId,
                     onSheetClick = { detailSheet = it }
@@ -1559,7 +1643,7 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
     }
 }
 
-/** Live room sheet list row: flat panel — [surface] top (above page [background]), [surfaceContainer] strip, soft border (no elevation). */
+/** Live room sheet list row: header row + full-bleed footer strip (matches History list cards). */
 @Composable
 private fun ListSheetRow(
     title: String,
@@ -1568,36 +1652,67 @@ private fun ListSheetRow(
     losNumber: String?,
     scannedDate: String,
     cells: List<BingoCellUi>,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onSelectionToggle: () -> Unit = {}
 ) {
     val miniGrid = if (cells.size == 25) cells.map { it.isMarked } else List(25) { false }
     val safeSerial = serialNumber?.takeIf { it.isNotBlank() } ?: "--"
     val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: "--"
     val rowShape = RoundedCornerShape(Dimens.radiusSmall)
+    val borderWidth = if (selectionMode && selected) 2.dp else Dimens.cardBorderDefault
+    val borderColor = if (selectionMode && selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+    }
+    val rowGo = {
+        if (selectionMode) onSelectionToggle() else onClick()
+    }
+    val headerClick = Modifier.clickable(
+        indication = rememberRipple(),
+        interactionSource = remember { MutableInteractionSource() },
+        onClick = rowGo
+    )
+    val footerClick = Modifier.clickable(
+        indication = rememberRipple(),
+        interactionSource = remember { MutableInteractionSource() },
+        onClick = rowGo
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = "$title, Marked $marked. Double tap to open." }
+            .semantics(mergeDescendants = true) {
+                contentDescription = if (selectionMode) {
+                    "$title, ${if (selected) "selected" else "not selected"}. Double tap to toggle."
+                } else {
+                    "$title, Marked $marked. Double tap to open."
+                }
+            }
             .clip(rowShape)
-            .border(
-                width = Dimens.cardBorderDefault,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                shape = rowShape
-            )
-            .clickable(
-                indication = rememberRipple(),
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = onClick
-            )
+            .border(width = borderWidth, color = borderColor, shape = rowShape)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing5)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            if (selectionMode) {
+                Checkbox(
+                    checked = selected,
+                    onCheckedChange = { onSelectionToggle() },
+                    modifier = Modifier.padding(start = Dimens.spacing4),
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+            }
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .weight(1f)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing5)
+                    .then(headerClick),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
             ) {
@@ -1627,15 +1742,16 @@ private fun ListSheetRow(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 3.dp)
+                .padding(vertical = 2.dp)
                 .height(1.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f))
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha))
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing4),
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing4)
+                .then(footerClick),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ListSheetInfoCell(
@@ -1979,6 +2095,7 @@ private fun RoomSettingsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         windowInsets = WindowInsets(0, 0, 0, 0),
+        shape = BottomSheetDefaults.ExpandedShape,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(
@@ -1986,11 +2103,16 @@ private fun RoomSettingsBottomSheet(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .imePadding()
-                .padding(24.dp),
+                .padding(Dimens.spacing24),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Room settings", style = MaterialTheme.typography.titleMedium)
-            HorizontalDivider()
+            Text(
+                "Room settings",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Auto-call numbers")
                 Switch(
@@ -2017,30 +2139,6 @@ private fun RoomSettingsBottomSheet(
                 shape = RoundedCornerShape(Dimens.radiusCard)
             ) {
                 Text("Delete Room", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
-            }
-        }
-    }
-}
-
-@Composable
-private fun MiniBingoGrid(cells: List<Boolean>) {
-    val shape = RoundedCornerShape(2.dp)
-    Column(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
-            .padding(2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        cells.chunked(5).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                row.forEach { matched ->
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(if (matched) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, shape)
-                    )
-                }
             }
         }
     }

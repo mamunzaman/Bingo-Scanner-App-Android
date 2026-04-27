@@ -43,6 +43,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -118,23 +119,8 @@ fun MyTicketsBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         windowInsets = WindowInsets(0, 0, 0, 0),
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp, bottom = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(32.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                )
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
+        shape = BottomSheetDefaults.ExpandedShape,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         Column(
             modifier = Modifier
@@ -146,7 +132,8 @@ fun MyTicketsBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(sheetHeight)
-                    .padding(horizontal = Dimens.screenHorizontalPadding),
+                    .padding(horizontal = Dimens.spacing24)
+                    .padding(top = Dimens.spacing24),
                 roomId = roomId,
                 onDismiss = onDismiss,
                 onAddToRoom = {

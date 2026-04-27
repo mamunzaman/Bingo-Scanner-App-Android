@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,6 +41,7 @@ import com.example.mamunbingoapp.viewmodel.JackpotViewModel
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -60,54 +60,54 @@ fun JackpotScreen(
     val sheetCount by viewModel.sheetCount.collectAsState()
     val calledCount by viewModel.calledCount.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        AppTopBar(
-            title = stringResource(R.string.live_nav_title)
-        )
-        if (sheetCount == 0) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(Dimens.screenHorizontalPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No Bingo Sheets Yet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+    AppHeaderPageLayout(
+        topBar = {
+            AppTopBar(
+                title = stringResource(R.string.live_nav_title)
+            )
+        },
+        content = {
+            if (sheetCount == 0) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(Dimens.screenHorizontalPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No Bingo Sheets Yet",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = Dimens.screenHorizontalPadding)
+                        .padding(top = 24.dp, bottom = Dimens.spacing16)
+                ) {
+                    StartResumeCard(
+                        sheetCount = sheetCount,
+                        calledCount = calledCount,
+                        onClick = onStartResumeLive
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    LiveNavActionGrid(
+                        onScanSheet = onScanSheet,
+                        onManualEntry = onManualEntry,
+                        onHistory = onHistory,
+                        onGoLivePlay = onGoLivePlay
+                    )
+                }
             }
-        } else {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Dimens.screenHorizontalPadding)
-                    .padding(top = 24.dp, bottom = Dimens.spacing16)
-            ) {
-                StartResumeCard(
-                    sheetCount = sheetCount,
-                    calledCount = calledCount,
-                    onClick = onStartResumeLive
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                LiveNavActionGrid(
-                    onScanSheet = onScanSheet,
-                    onManualEntry = onManualEntry,
-                    onHistory = onHistory,
-                    onGoLivePlay = onGoLivePlay
-                )
+            if (showBottomBar) {
+                AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
             }
         }
-        if (showBottomBar) {
-            AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
-        }
-    }
+    )
 }
 
 @Composable

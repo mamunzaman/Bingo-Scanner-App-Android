@@ -13,6 +13,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.history.HistoryOcrSource
 import com.example.mamunbingoapp.scanner.BingoNumberAnalyzer
 import com.example.mamunbingoapp.scanner.ImportTicketImageOcr
+import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
+import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromImageUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -121,6 +123,16 @@ internal fun finalUiGridRowMajor(numbers: List<Int>): List<Int> {
     return if (t.size < 25) t + List(25 - t.size) { 0 } else t
 }
 
+/**
+ * Set on [ScanResultUiState.Success]. [QR] is used for static-image decodes, gallery auto-probe, and
+ * the same data shape as [com.example.mamunbingoapp.ui.screens.camera.BingoLiveCameraImportScreen] (navigates
+ * to Manual Entry directly, not through this VM).
+ */
+enum class ImportScanSource {
+    PHOTO_OCR,
+    QR,
+}
+
 private fun logFinalUiGridHandoff(finalRowMajor: List<Int>) {
     val displayedCount = finalRowMajor.count { it != 0 }
     val distinctDisplayedCount = finalRowMajor.filter { it in 1..75 }.distinct().size
@@ -139,6 +151,7 @@ sealed class ScanResultUiState {
         val losNumber: String? = null,
         val serialNumber: String? = null,
         val ocrSource: HistoryOcrSource? = null,
+        val scanSource: ImportScanSource = ImportScanSource.PHOTO_OCR,
     ) : ScanResultUiState()
     data class Error(
         val message: String,
@@ -175,12 +188,16 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
 
     private var analysisJob: Job? = null
     private var galleryApplyJob: Job? = null
+    /** Probes gallery pick for app QR before Apply; cancelled on Apply, cancel, or new pick. */
+    private var galleryQrProbeJob: Job? = null
 
     /**
      * Updates selection to [ScanResultUiState.Idle] (image preview only). UI shows analyzing overlay only after [analyzeTicketFromUri] sets [ScanResultUiState.Loading].
      */
     fun onPhotoTaken(uri: Uri) {
         analysisJob?.cancel()
+        galleryQrProbeJob?.cancel()
+        galleryQrProbeJob = null
         _galleryPendingEditUri.value = null
         _selectedImageUri.value = uri
         _candidateNumbers.value = emptyList()
@@ -188,22 +205,46 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _scanResult.value = ScanResultUiState.Idle
     }
 
-    /** After gallery flow (picker + optional external crop); does not run OCR until [applyGalleryPendingEdit]. */
+    /** After gallery flow (picker + optional external crop). Tries app QR in the background; on success clears pending and sets [ImportScanSource.QR] without Apply. */
     fun setGalleryPendingEdit(uri: Uri) {
         analysisJob?.cancel()
+        galleryQrProbeJob?.cancel()
         _galleryPendingEditUri.value = uri
         _scanResult.value = ScanResultUiState.Idle
         _candidateNumbers.value = emptyList()
         _candidateBuckets.value = emptyMap()
+        val app = getApplication<Application>().applicationContext
+        galleryQrProbeJob = viewModelScope.launch {
+            val qrPre = withContext(Dispatchers.IO) {
+                tryDecodeBingoQrFromImageUri(app, uri)
+            }
+            if (_galleryPendingEditUri.value != uri) return@launch
+            if (qrPre !is ImportTicketQrPreOcr.Decoded) return@launch
+            _galleryPendingEditUri.value = null
+            _selectedImageUri.value = uri
+            setScanResult(
+                ScanResultUiState.Success(
+                    numbers = qrPre.numbers,
+                    losNumber = qrPre.los,
+                    serialNumber = qrPre.serial,
+                    ocrSource = null,
+                    scanSource = ImportScanSource.QR,
+                ),
+            )
+        }
     }
 
     fun cancelGalleryPendingEdit() {
         galleryApplyJob?.cancel()
         galleryApplyJob = null
+        galleryQrProbeJob?.cancel()
+        galleryQrProbeJob = null
         _galleryPendingEditUri.value = null
     }
 
     fun applyGalleryPendingEdit(context: Context, trimLeft: Float, trimTop: Float, trimRight: Float, trimBottom: Float) {
+        galleryQrProbeJob?.cancel()
+        galleryQrProbeJob = null
         val uri = _galleryPendingEditUri.value ?: return
         val app = context.applicationContext
         val l = trimLeft.coerceIn(0f, GalleryManualTrim.TRIM_SLIDER_MAX)
@@ -242,6 +283,25 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
             _scanResult.value = ScanResultUiState.Loading
+            val qrPre = withContext(Dispatchers.IO) {
+                tryDecodeBingoQrFromImageUri(context.applicationContext, uri)
+            }
+            if (uri != _selectedImageUri.value) return@launch
+            when (qrPre) {
+                is ImportTicketQrPreOcr.Decoded -> {
+                    setScanResult(
+                        ScanResultUiState.Success(
+                            numbers = qrPre.numbers,
+                            losNumber = qrPre.los,
+                            serialNumber = qrPre.serial,
+                            ocrSource = null,
+                            scanSource = ImportScanSource.QR,
+                        ),
+                    )
+                    return@launch
+                }
+                is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
+            }
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     ImportTicketImageOcr.analyzeUri(
@@ -270,6 +330,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                                     losNumber = outcome.losNumber?.takeIf { it.isNotBlank() },
                                     serialNumber = outcome.serialNumber?.takeIf { it.isNotBlank() },
                                     ocrSource = HistoryOcrSource.ML_KIT,
+                                    scanSource = ImportScanSource.PHOTO_OCR,
                                 ),
                             )
                     }
@@ -324,6 +385,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 losNumber = losNumber?.takeIf { it.isNotBlank() },
                 serialNumber = serialNumber?.takeIf { it.isNotBlank() },
                 ocrSource = null,
+                scanSource = ImportScanSource.PHOTO_OCR,
             ),
         )
         _prefilledSource.value = source
@@ -333,6 +395,8 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
     fun clear() {
         analysisJob?.cancel()
         analysisJob = null
+        galleryQrProbeJob?.cancel()
+        galleryQrProbeJob = null
         _galleryPendingEditUri.value = null
         _selectedImageUri.value = null
         _scanResult.value = ScanResultUiState.Idle
@@ -344,6 +408,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         analysisJob?.cancel()
+        galleryQrProbeJob?.cancel()
         super.onCleared()
     }
 }

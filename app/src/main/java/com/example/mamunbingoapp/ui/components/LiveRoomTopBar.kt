@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +57,13 @@ fun LiveRoomTopBar(
     listViewSelected: Boolean = false,
     onSelectCardsView: () -> Unit = {},
     onSelectListView: () -> Unit = {},
+    showListBulkSelect: Boolean = false,
+    listSelectionMode: Boolean = false,
+    listSelectedCount: Int = 0,
+    onEnterListSelection: () -> Unit = {},
+    onListSelectAll: () -> Unit = {},
+    onListClearSelection: () -> Unit = {},
+    listSelectAllEnabled: Boolean = true
 ) {
     var menuExpanded by rememberSaveable { mutableStateOf(false) }
     val iconColor = MaterialTheme.colorScheme.onSurface
@@ -64,6 +72,14 @@ fun LiveRoomTopBar(
         showBack = true,
         onBackClick = onBack,
         titleContent = {
+            if (listSelectionMode) {
+                Text(
+                    text = if (listSelectedCount == 0) "Select items" else "$listSelectedCount selected",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
+                )
+            } else {
             Row(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -106,8 +122,28 @@ fun LiveRoomTopBar(
                     }
                 }
             }
+            }
         },
         actions = {
+            if (listSelectionMode) {
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier.padding(end = Dimens.spacing4)
+                ) {
+                    TextButton(
+                        onClick = onListSelectAll,
+                        enabled = showListBulkSelect && listSelectAllEnabled
+                    ) {
+                        Text("Select all")
+                    }
+                    TextButton(
+                        onClick = onListClearSelection,
+                        enabled = listSelectedCount > 0
+                    ) {
+                        Text("Clear")
+                    }
+                }
+            } else {
             IconButton(
                 onClick = onAddTicket,
                 modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
@@ -125,6 +161,11 @@ fun LiveRoomTopBar(
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
+                }
+            }
+            if (showListBulkSelect) {
+                TextButton(onClick = onEnterListSelection) {
+                    Text("Select")
                 }
             }
             Box {
@@ -212,6 +253,7 @@ fun LiveRoomTopBar(
                         onClick = { menuExpanded = false; onLeaveRoom() }
                     )
                 }
+            }
             }
         }
     )
