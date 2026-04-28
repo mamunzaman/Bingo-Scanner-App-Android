@@ -2,6 +2,7 @@ package com.example.mamunbingoapp.scanner
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Rect
 import android.util.Log
 import kotlin.math.abs
 import kotlin.math.max
@@ -223,7 +224,10 @@ object BingoNumberAnalyzer {
         return buckets.map { it.toList() }
     }
 
-    fun tryDetectBingoGridCropForOcr(src: Bitmap): Bitmap? {
+    /**
+     * Same heuristics as [tryDetectBingoGridCropForOcr]; [Rect.right]/[Rect.bottom] are **exclusive** (as for [Bitmap.createBitmap] w/h).
+     */
+    fun tryDetectBingoGridCropRectForOcr(src: Bitmap): Rect? {
         val w = src.width
         val h = src.height
         if (w < 80 || h < 80) return null
@@ -348,11 +352,44 @@ object BingoNumberAnalyzer {
         if (areaFrac < 0.12f || areaFrac > 0.90f) return null
         if (cw < w * 0.22f || ch < h * 0.12f) return null
 
-        return try {
-            val out = Bitmap.createBitmap(src, left, top, cw, ch)
+        return Rect(left, top, right, bottom).also {
             Log.d(
                 SCANNER_TAG,
-                "gridCrop analyzer src=${w}x${h} rect=[$left,$top][$right,$bottom] out=${cw}x${ch} regionBottomMax=$regionBottomMax",
+                "gridCropRect src=${w}x${h} rect=[$left,$top][$right,$bottom] w=${it.width()} h=${it.height()} regionBottomMax=$regionBottomMax",
+            )
+        }
+    }
+
+    fun tryDetectBingoGridCropForOcr(src: Bitmap): Bitmap? {
+        val r = tryDetectBingoGridCropRectForOcr(src) ?: return null
+        return try {
+            Bitmap.createBitmap(src, r.left, r.top, r.width(), r.height())
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Camera still only: [tryDetectBingoGridCropRectForOcr] expanded by [paddingFraction] of source size, with extra
+     * bias on the left to keep the LOS/Serial strip. Does not force aspect ratio; returns null if detection fails.
+     */
+    fun tryPaddedBingoGridCropForCameraOcr(src: Bitmap, paddingFraction: Float = 0.12f): Bitmap? {
+        val r = tryDetectBingoGridCropRectForOcr(src) ?: return null
+        val w = src.width
+        val h = src.height
+        val padW = (w * paddingFraction).toInt().coerceAtLeast(1)
+        val padH = (h * paddingFraction).toInt().coerceAtLeast(1)
+        val extraLeft = (w * 0.05f).toInt()
+        val left = (r.left - padW - extraLeft).coerceIn(0, w - 2)
+        val top = (r.top - padH).coerceIn(0, h - 2)
+        val right = (r.right + padW).coerceIn(left + 2, w)
+        val bottom = (r.bottom + padH).coerceIn(top + 2, h)
+        return try {
+            val out = Bitmap.createBitmap(src, left, top, right - left, bottom - top)
+            Log.d(
+                SCANNER_TAG,
+                "paddedGridCropForCamera src=${w}x${h} out=${out.width}x${out.height} padFr=$paddingFraction " +
+                    "rect=[$left,$top][$right,$bottom]",
             )
             out
         } catch (_: Exception) {

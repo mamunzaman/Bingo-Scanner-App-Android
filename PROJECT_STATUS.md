@@ -1,6 +1,14 @@
 ﻿# Project status
 
-**Last update:** 2026-04-27 — **`BingoLiveCameraImportScreen` full-ticket CTA:** `animateFloatAsState` preview fade (220ms) + `AppPrimaryButton(loading)` + 240ms delay then existing `onScanFullTicket` (nav unchanged). `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-04-27 — **Live sheet preview bottom sheet — ticket QR:** `SheetDetailBottomSheet` (`LivePlayScreen`) header **QrCode2** 48dp → `TicketQrDialog` (encode `QrTicketPayload` from preview `cells` + `serial`/`los`, `QrTicketCodec` + `QrTicketImageGenerator` on **Default** dispatcher); **`TicketQrDialog`** optional **`isLoading`**. No scroll, no in-sheet QR, **“View full detail”** unchanged. **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **`AppPrimaryButton` loading state:** `loading` uses centered **Row** (18dp `CircularProgressIndicator`, 2dp stroke, 8dp gap, **onPrimary** label from `text`); while loading, **disabled** colors keep primary + onPrimary (no washed-out capture CTA). Camera label **“Capturing”** (not ellipsis). **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Live import camera — capture feedback:** `BingoLiveCameraImportScreen` — ~120ms **shutter** white flash (0→0.8→0), **preview/viewfinder** scale pulse (1→0.97→1) via `Animatable` + `graphicsLayer`, `Scan ticket` + `loading` + back **disabled** while `capturing`; `takePicture` + QR path unchanged. **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Custom CameraX + frame crop — stable (device QA + build):** (1) **QR auto-import** — OK. (2) **Scan ticket** — CameraX still **cropped to green frame** (`CameraXCaptureCrop` / `VIEWFINDER_*`), `historyPhotoImport` — OK. (3) **GMS fallback** — OK. (4) **Gallery / uCrop editor** — unchanged, OK. **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **`BingoLiveCameraImportScreen` full-ticket CTA:** `animateFloatAsState` preview fade (220ms) + `AppPrimaryButton(loading)` + 240ms delay then existing `onScanFullTicket` (nav unchanged). `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-04-27 — **Live camera Bingo QR:** `bingoLiveCameraImport` (CameraX + `tryDecodeBingoQrFromInputImage`, throttled “no QR” log) before GMS; Scan/Jackpot/History **Take photo** open it; success → same Manual Entry route as import (incl. room). `./gradlew :app:assembleDebug` OK.
 
@@ -46,7 +54,11 @@
 
 **Previous:** 2026-04-08 â€” App-wide: screens with **`AppHeaderBackground`** use **`MaterialTheme.colorScheme.surface`** on root **`Scaffold`** or **`Box`/`Column`** (Profile, Settings, Manual Entry, Live rooms, Ticket detail, Live sheet detail, History photo import, legal, profile sub-screens, auth register/forgot, **`MyAccountScreen`**). **`HistoryDetailScreen`** same pattern. **`BingoSheetSection` `premiumLayered`**: **`shadowElevation` 0**; soft tonal outer/inner strokes; **`BingoCardGrid`** history compact enables it. **History detail** bingo: **`BingoCardGrid`** `historyDetailCompact` wraps sheet in **`width(bingoGridWidth + 32dp)`** centered; **`BingoGridCard`** no double-wrap on success. **`LabelValueInfoRow`** + **`LabelValueInfoRowVariant`** (Default / Compact): **`labelSmall`** muted **`onSurfaceVariant`**; **`outlineVariant`** divider; History **Ticket Information** uses it + **bodyMedium**/**SemiBold** values, Status **Primary** accent. **History detail** bingo slot: **`Column`** + **`weight(1f)`** â†’ **`BoxWithConstraints`** â†’ **`BingoGridCard`**; **`BingoCardGrid`** uses inner max minus sheet padding for cell sizing; cell = **min** of width- and height-derived size (**22â€“44dp**). No breakpoint / **`graphicsLayer`**. **History detail** `AppTopBar`: default title; live CTA + delete in **`actions`** row (`HistoryDetailHeaderActions`; under **360dp** screen: icon-only live). **History detail** `BingoCardGrid` **`historyDetailCompact`**: `BoxWithConstraints` width-based cell size (22â€“44dp), tight gaps; **`BingoGrid5x5`** **`fixedLayoutCellSize`** + **`FixedPlayModeGrid`** (no 1:1 aspect block). **History detail** top: compact spec â€” **IconContainerBg**/**Primary** active + live/leave pills; flat **TICKET INFORMATION** (**Outline** 9sp label, **OnSurface** rows, **Outline** hairlines); stats **`SpanStyle`** bold sheet count + tail; **WarningBorder** top strip + **WarningContainer** row + **28dp** **WarningIcon** slot + **`MiniBingoPreview`** + score pill (**OnPrimary** on **WarningIcon**); **`CalledHistoryPanel`** after strip (not in ticket block). **Live card:** light **F6F8F4 â†’ F0F5EC**; **no** shadow. **Pills:** **LIVE** â€” soft green fill + green rim; **6dp** dot **`Color.Red`**, infinite **scale 1â†’1.4** + **Î± 1â†”0.6** (**1200ms** `FastOutSlowIn`, reverse), Ã— parent **`dotAlpha`**; text **SemiBold**. **Counter** â€” lighter vs LIVE. **LazyRow:** **12dp** horizontal **contentPadding**; **`spacedBy(8dp)`**; **`rememberSnapFlingBehavior`**; **`animateScrollToItem`** with **~âˆ’10dp** `scrollOffset`. **`CalledHistoryPanelContext.HistoryDetail`** uses **`takeLast(MAX_LIVE_CALLS)`**. No **`LiveCallNumberCircles.kt`**.
 
-## Completed features`r`n`r`n- **Live QR → GMS handoff polish:** `BingoLiveCameraImportScreen` “Full ticket scan” uses preview `graphicsLayer` alpha + primary button loading; back disabled during handoff; navigation callback unchanged.
+## Completed features`r`n`r`n- **Import — all 3 options:** Live **QR** auto-detect; **Scan ticket** CameraX + **viewfinder-matched crop** → `historyPhotoImport` OCR; **GMS** internal fallback; **gallery/editor** (Apply / uCrop) — device QA + build OK.
+- **Live import camera — full-ticket still:** `ImageCapture` on `BingoLiveCameraImportScreen` + `FileProvider` → same pending-URI + `historyPhotoImport` as GMS; QR `ImageAnalysis` path unchanged; GMS secondary.
+- **Live import camera — capture feedback (premium):** shutter flash + viewfinder scale pulse + button/back disabled + “Capturing…” during capture (`BingoLiveCameraImportScreen`); no capture/QR logic change.
+- **Planning (2026-04-27):** Custom CameraX full-ticket scanner phased plan (4 phases, GMS + current OCR until stable); `NEXT_TASK.md` / `LAST_SESSION.md`.
+- **Live QR → GMS handoff polish:** `BingoLiveCameraImportScreen` “Full ticket scan” uses preview `graphicsLayer` alpha + primary button loading; back disabled during handoff; navigation callback unchanged.
 - **CalledHistoryPanel stable height**: empty “no calls” UI matches active call row height (`CalledHistoryMainRowHeight` / `LatestCallCircle` size).
 - **Live ⋮ Reset game**: top bar overflow includes **Reset game** (same flow as existing Reset — confirm dialog, `RoomRepository.resetCalledNumbers`, un-archive room).
 - **History list cards (`HistorySheetCard`)**: Live-style two-row panel; denser list spacing; overflow menu for join/leave/delete.
@@ -72,9 +84,12 @@
 
 ## In progress
 
-- Device QA: verify `AppHeaderPageLayout` on Home, HistoryList, Profile, Settings, MyAccount, LiveRooms â€” no gray seam, no flat white header.
+- Device QA: `BingoLiveCameraImportScreen` **Scan ticket** — feel shutter + scale, confirm no QR regression; GMS + gallery still OK. Build: `./gradlew :app:assembleDebug`.
+- Device QA: `AppHeaderPageLayout` on Home, HistoryList, Profile, Settings, MyAccount, LiveRooms — no gray seam, no flat white header.
 
 ## Pending tasks
+
+- **Roadmap (see `NEXT_TASK` table):** optional Phase 3 **crop/confirm** UI, Phase 4 **drop GMS** after sustained QA — **do not** remove GMS or OCR early.
 
 - Revisit **Settings â†’ Live header style** (orphaned for live header) â€” remove UI or repurpose.
 - Device QA: **PickVisualMedia** Gallery + GMS Take photo on `historyPhotoImport`; NavGraph pending-URI handoff from main/Jackpot.

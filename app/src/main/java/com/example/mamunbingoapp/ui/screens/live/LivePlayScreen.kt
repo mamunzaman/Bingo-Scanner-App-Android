@@ -66,6 +66,7 @@ import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ShoppingBasket
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -142,7 +143,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.example.mamunbingoapp.domain.model.QrTicketPayload
+import com.example.mamunbingoapp.domain.qr.QrTicketCodec
+import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
+import com.example.mamunbingoapp.ui.components.qr.TicketQrDialog
+import com.example.mamunbingoapp.ui.components.qr.cellsToQrGrid5x5
+import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.mamunbingoapp.theme.Dimens
@@ -1855,6 +1864,11 @@ private fun SheetDetailBottomSheet(
     val metaSerial = sheet.serialNumber?.takeIf { it.isNotBlank() } ?: "--"
     val metaLos = sheet.losNumber?.takeIf { it.isNotBlank() } ?: "--"
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    var showTicketQr by remember { mutableStateOf(false) }
+    var ticketQrLoading by remember { mutableStateOf(false) }
+    var ticketQrBitmap: Bitmap? by remember { mutableStateOf(null) }
+    var ticketQrError: String? by remember { mutableStateOf(null) }
 
     LaunchedEffect(sheetState) {
         runCatching { sheetState.expand() }
@@ -1934,10 +1948,69 @@ private fun SheetDetailBottomSheet(
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .padding(end = Dimens.spacing8),
+                                    .padding(end = Dimens.spacing4),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        showTicketQr = true
+                                        ticketQrLoading = true
+                                        ticketQrBitmap = null
+                                        ticketQrError = null
+                                        if (gridCells.isEmpty() || gridCells.size < 25) {
+                                            ticketQrError = "This sheet is not ready to share as a QR code yet."
+                                            ticketQrLoading = false
+                                            return@launch
+                                        }
+                                        val grid = withContext(Dispatchers.Default) {
+                                            cellsToQrGrid5x5(gridCells)
+                                        }
+                                        val serial = sheet.serialNumber?.trim()?.takeIf { it.isNotBlank() }
+                                        val los = sheet.losNumber?.trim()?.takeIf { it.isNotBlank() }
+                                        val encoded = runCatching {
+                                            QrTicketCodec.encode(
+                                                QrTicketPayload(
+                                                    grid = grid,
+                                                    serial = serial,
+                                                    los = los,
+                                                )
+                                            )
+                                        }
+                                        if (encoded.isFailure) {
+                                            ticketQrBitmap = null
+                                            ticketQrError = encoded.exceptionOrNull()?.message
+                                                ?: "Could not encode this sheet for QR."
+                                            ticketQrLoading = false
+                                            return@launch
+                                        }
+                                        val bmp = withContext(Dispatchers.Default) {
+                                            QrTicketImageGenerator.generateBitmap(encoded.getOrThrow())
+                                        }
+                                        ticketQrLoading = false
+                                        bmp.fold(
+                                            onSuccess = {
+                                                ticketQrError = null
+                                                ticketQrBitmap = it
+                                            },
+                                            onFailure = { e ->
+                                                ticketQrBitmap = null
+                                                ticketQrError = e.message
+                                                    ?: "Could not build the QR image."
+                                            }
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.size(48.dp),
+                                enabled = !ticketQrLoading
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.QrCode2,
+                                    contentDescription = "Show ticket QR",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Text(
                                 text = "Marked ${sheet.markedCount}/25",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
@@ -2013,6 +2086,19 @@ private fun SheetDetailBottomSheet(
                 }
             }
         }
+    }
+    if (showTicketQr) {
+        TicketQrDialog(
+            isLoading = ticketQrLoading,
+            bitmap = ticketQrBitmap,
+            errorMessage = ticketQrError,
+            onDismiss = {
+                showTicketQr = false
+                ticketQrLoading = false
+                ticketQrBitmap = null
+                ticketQrError = null
+            }
+        )
     }
 }
 

@@ -379,6 +379,19 @@ fun NavGraph(
                     )
                     navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
                 },
+                onFullTicketPhotoCaptured = { uri ->
+                    runCatching {
+                        navController.getBackStackEntry("main")
+                            .savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
+                    }
+                    Log.d(
+                        SCAN_ENTRY_HANDOFF_TAG,
+                        "handoff src=bingoLiveCameraImport dest=historyPhotoImport (CameraX still)"
+                    )
+                    navController.navigate("historyPhotoImport") {
+                        popUpTo("bingoLiveCameraImport") { inclusive = true }
+                    }
+                },
                 onScanFullTicket = launchGmsForTicketPhoto,
                 onBack = { navController.popBackStack() },
             )

@@ -1,14 +1,29 @@
 ﻿# Next task
 
-**Goal:** Pick **one** cluster from the audit below (e.g. `JackpotScreen` + `AppHeaderPageLayout`, or sheet `containerColor` + handle) and apply a **minimal** patch.
+**Goal:** **Device verify** live play **sheet detail** bottom sheet: **QR** icon → dialog (loading, error, image); full detail button + grid size unchanged. Optional: re-verify import camera.
 
-**Verify:** `./gradlew :app:assembleDebug`; quick visual on touched screen(s).
+**Verify:** `./gradlew :app:assembleDebug`; open live room → pick sheet card → **Show ticket QR**; **View full detail** still works.
 
-**Done this session:** `BingoLiveCameraImportScreen` — “Full ticket scan” handoff: preview fade + `AppPrimaryButton` loading (~240ms) before GMS; `BackHandler` off during exit. Earlier: `bingoLiveCameraImport` QR + document path, gallery QR, `TicketQrDialog`.
+**Done (status):** Custom **CameraX** with **viewfinder-matched crop** marked **stable**; all 3 import paths + gallery **OK** in device QA; build OK. See `PROJECT_STATUS.md`.
+
+---
+
+## Roadmap: pro-level unified full-ticket scan (CameraX, replace GMS later)
+
+**Problem:** GMS Document Scanner is a black box — no live QR detection, limited camera control. **Custom CameraX** enables a single pro UX. **Do not** drop the current OCR stack or GMS handoff until the new path is stable on devices.
+
+| Phase | Scope |
+|-------|--------|
+| **1** | **Custom CameraX capture screen** — live preview, QR auto-detect (reused), manual capture, output bitmap/URI. |
+| **2** | **Ticket photo → existing OCR** — feed capture into `historyPhotoImport` / `ImportTicketViewModel`; **no OCR rewrite**. |
+| **3** | **Crop/confirm screen** — replace GMS crop behavior **gradually**; **leave gallery + uCrop** flow unchanged. |
+| **4** | **Remove GMS scanner** only after **device QA** on the custom flow passes. |
 
 ---
 
 ## UI consistency audit — 2026-04-27 (read-only, code-sampled)
+
+*Backlog: pick one cluster for a minimal patch when not on CameraX work.*
 
 ### Headers — Home, Live, History, Settings, Import, Detail
 
@@ -60,5 +75,5 @@
 
 ## After the next patch
 
-1. Re-run the same **visual** checklist on device after the patch.
+1. After **scanner transition / capture feedback** work: re-check **QR**, **Scan ticket** (frame crop), **GMS**, **gallery** on device. For **UI audit** patches: same visual checklist.
 2. Keep `./gradlew :app:assembleDebug` green after any change.

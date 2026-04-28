@@ -29,6 +29,17 @@ import kotlin.math.max
 private const val FINAL_UI_GRID_LOG = "ImportTicketFinalUi"
 private const val IMPORT_TICKET_GALLERY_LOG = "ImportTicketGallery"
 
+/**
+ * [BingoLiveCameraImportScreen] still files use this temp prefix; gallery flow does not.
+ * TODO: Re-enable with [ImportTicketImageOcr.analyzeUri] `preCropCameraForStripOcr` after device QA; current path breaks custom capture.
+ */
+@Suppress("unused")
+private fun isCameraXStillCaptureUri(uri: Uri): Boolean {
+    val p = uri.path
+    if (p != null && p.contains("live_full_ticket_capture_")) return true
+    return uri.lastPathSegment?.contains("live_full_ticket_capture_") == true
+}
+
 /** Gallery-only manual trim (percent per edge, max [TRIM_SLIDER_MAX]); shared by preview and apply. */
 object GalleryManualTrim {
     const val TRIM_SLIDER_MAX = 0.25f
@@ -302,12 +313,14 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 }
                 is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
             }
+            // TODO: Re-enable camera-only padded crop after device QA: preCropCameraForStripOcr = isCameraXStillCaptureUri(uri) && !bypassInternalGridCrop
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     ImportTicketImageOcr.analyzeUri(
                         context.applicationContext,
                         uri,
                         bypassInternalGridCrop = bypassInternalGridCrop,
+                        preCropCameraForStripOcr = false,
                     )
                 }
             }

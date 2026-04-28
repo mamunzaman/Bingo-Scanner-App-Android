@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +44,7 @@ fun TicketQrDialog(
     bitmap: android.graphics.Bitmap?,
     errorMessage: String?,
     onDismiss: () -> Unit,
+    isLoading: Boolean = false,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -72,6 +74,11 @@ fun TicketQrDialog(
             )
             Spacer(modifier = Modifier.height(Dimens.spacing16))
             when {
+                isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
                 errorMessage != null -> {
                     Text(
                         text = errorMessage,

@@ -69,14 +69,29 @@ object ImportTicketImageOcr {
     private const val CONSENSUS_SANITY_MAX_DUPLICATE_PENALTY = 4
     private const val CONSENSUS_SANITY_MAX_COLUMN_VIOLATIONS = 2
 
-    /** Gallery apply: pass [bypassInternalGridCrop] true to skip [gridCropForNumberRegion]. */
+    /**
+     * Gallery apply: pass [bypassInternalGridCrop] true to skip [gridCropForNumberRegion].
+     * [preCropCameraForStripOcr]: when true, runs [BingoNumberAnalyzer.tryPaddedBingoGridCropForCameraOcr] on the
+     * full bitmap and feeds the cropped (or on failure, original) image to the same [analyzeBitmap] path — use only
+     * for in-app **CameraX still** URIs, not gallery.
+     * TODO: VM currently forces false (rollback); re-enable after device QA.
+     */
     fun analyzeUri(
         context: Context,
         uri: Uri,
         bypassInternalGridCrop: Boolean = false,
+        preCropCameraForStripOcr: Boolean = false,
     ): HistoryImportOcrOutcome {
         val bitmap = loadBitmapDownsampled(context, uri, maxSide = 1600)
             ?: error("Could not load image")
+        if (preCropCameraForStripOcr && !bypassInternalGridCrop) {
+            val pre = BingoNumberAnalyzer.tryPaddedBingoGridCropForCameraOcr(bitmap)
+            val toAnalyze = pre ?: bitmap
+            if (pre != null && pre !== bitmap) {
+                if (!bitmap.isRecycled) bitmap.recycle()
+            }
+            return analyzeBitmap(context.applicationContext, toAnalyze, bypassInternalGridCrop)
+        }
         return analyzeBitmap(context.applicationContext, bitmap, bypassInternalGridCrop)
     }
 
