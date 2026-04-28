@@ -1,5 +1,35 @@
 ﻿# Last session
 
+## 2026-04-27 — `mamunbingo://import-ticket` + deep-link ticket QR
+
+- **`QrTicketCodec`:** `encodeDeepLink`, `decode` accepts prefix + URI, `isLikelyBingoTicketQrString` for ML Kit; **generate** QR with deep link (History / Ticket / Live). **`ImportTicketDeepLinkViewModel`** + **`MainActivity`** `onNewIntent`; **`NavGraph`** `ImportTicketDeepLinkHandler` → `buildManualEntryRoute` (row major, los/serial) after non-auth route. **Manifest** `singleTask` + `VIEW` `mamunbingo` / `import-ticket`. **`./gradlew :app:assembleDebug`** OK.
+
+---
+
+## 2026-04-27 — Live keypad: snackbar for invalid (same path as duplicate)
+
+- **`LiveCallInputBar`:** `callEnabled` when `draft.trim()` non-empty (so **Add** runs validation); **empty** still no Add. **`LivePlayScreen` `handleCallClick`:** `n == null` → *Invalid Bingo number*; out of 1..75 → *Enter a number between 1 and 75*; duplicate snackbar + **`SnackbarDuration.Short`**. **Build** OK.
+
+---
+
+## 2026-04-27 — **Keep screen on** setting (DataStore + Settings + Live)
+
+- **`SettingsRepository`:** `keep_screen_on_during_game` (default true), Flow + `setKeepScreenOnDuringGame`. **`SettingsViewModel`:** `keepScreenOnDuringGame` + setter. **Settings** (profile): **LIVE PLAY** section, **StayCurrentPortrait** icon, title/subtitle as spec. **`LivePlayScreen`:** `collectAsStateWithLifecycle` + `DisposableEffect(keepScreenOnDuringGame)` — add flag only if true; **onDispose** always clear. **`./gradlew :app:assembleDebug`** OK.
+
+---
+
+## 2026-04-27 — `LivePlayScreen` keep screen on
+
+- **`FLAG_KEEP_SCREEN_ON`** via `activity?.window` in `DisposableEffect(Unit)`; **`onDispose`** clears. **Only** this screen. **`./gradlew :app:assembleDebug`** OK.
+
+---
+
+## 2026-04-27 — Live play keypad haptics (`LiveCallInputBar.kt`)
+
+- Digits: **`TextHandleMove`** only when a digit is **appended** (not when draft is already 2 chars). **Add (return):** removed duplicate haptic; success still from **`LivePlayScreen`** `handleCallClick` when the call is **accepted** (or random). **`./gradlew :app:assembleDebug`** OK.
+
+---
+
 ## 2026-04-27 — Live `SheetDetailBottomSheet` — QR in dialog (not in sheet)
 
 - **Header:** `Icons.Filled.QrCode2` at **48dp** (between title and **Marked n/25**), opens **`TicketQrDialog`**. Payload: **`cellsToQrGrid5x5(gridCells)`**, `serial` / `los` from `LiveSheetUi`, **`QrTicketCodec.encode`** + **`QrTicketImageGenerator.generateBitmap`**. **`TicketQrDialog`:** added **`isLoading`** (spinner) before error/bitmap. No bottom-sheet scroll, no embedded QR. **Files:** `LivePlayScreen.kt` (private `SheetDetailBottomSheet`), `TicketQrDialog.kt`. **`./gradlew :app:assembleDebug`** OK.

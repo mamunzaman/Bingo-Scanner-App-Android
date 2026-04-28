@@ -1,7 +1,9 @@
 package com.example.mamunbingoapp
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import androidx.activity.viewModels
 import com.example.mamunbingoapp.data.DemoSeeder
 import com.example.mamunbingoapp.data.db.DatabaseProvider
 import androidx.activity.ComponentActivity
@@ -32,8 +34,17 @@ import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.viewmodel.ThemeMode
 import com.example.mamunbingoapp.viewmodel.ThemeViewModel
+import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val importDeepLinkViewModel: ImportTicketDeepLinkViewModel by viewModels()
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        importDeepLinkViewModel.setFromIntent(intent)
+    }
 
     override fun onStart() {
         super.onStart()
@@ -47,6 +58,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        importDeepLinkViewModel.setFromIntent(intent)
         DatabaseProvider.init(applicationContext)
         com.example.mamunbingoapp.data.SettingsRepository.init(applicationContext)
         lifecycleScope.launch(Dispatchers.IO) { DemoSeeder.seedIfNeeded() }
@@ -87,7 +99,10 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxWidth()
                                 .fillMaxHeight(0.42f)
                         )
-                        NavGraph(themeViewModel = themeViewModel)
+                        NavGraph(
+                            themeViewModel = themeViewModel,
+                            importDeepLinkViewModel = importDeepLinkViewModel
+                        )
                     }
                 }
             }

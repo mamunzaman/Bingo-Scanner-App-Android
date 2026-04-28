@@ -54,6 +54,13 @@ import com.example.mamunbingoapp.ui.screens.profile.SettingsScreen
 import com.example.mamunbingoapp.ui.screens.profile.SupportScreen
 import androidx.compose.runtime.collectAsState
 import androidx.activity.compose.BackHandler
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mamunbingoapp.domain.qr.QrTicketCodec
+import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
+import com.example.mamunbingoapp.viewmodel.MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
+import com.example.mamunbingoapp.viewmodel.validFilledCellCount
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -72,7 +79,7 @@ import com.example.mamunbingoapp.history.HistoryOcrSource
  *
  * 2) **History take-photo import** — `HistoryListScreen` → `historyPhotoImport` → `HistoryPhotoImportScreen`; **Take photo** opens `bingoLiveCameraImport` first, same as (1).
  *
- * **Analysis:** `ImportTicketViewModel.analyzeTicketFromUri` runs ML Kit **QR** first (`MAMUN_BINGO_TICKET:` + [QrTicketCodec]); on success it skips **OCR** and pre-fills like a strong scan. Otherwise the existing **OCR** path is unchanged.
+ * **Analysis:** `ImportTicketViewModel.analyzeTicketFromUri` runs ML Kit **QR** first (legacy `MAMUN_BINGO_TICKET:` or `mamunbingo://import-ticket?` + [QrTicketCodec]); on success it skips **OCR** and pre-fills like a strong scan. Otherwise the existing **OCR** path is unchanged.
  *
  * **Gallery** on that screen: **PickVisualMedia** → in-app preview → Apply → `onPhotoTaken` + `analyzeTicketFromUri`; Discard cancels pending pick. **Take photo** remains GMS via `onTakePhotoClick`.
  *
@@ -207,12 +214,58 @@ private fun parseManualEntryForRoomFromNav(backStackEntry: NavBackStackEntry): M
     )
 }
 
+private fun isBlockingRouteForImportDeepLink(route: String?): Boolean {
+    if (route == null) return true
+    if (route == "splash" || route == "onboarding") return true
+    if (route.startsWith("auth/")) return true
+    return false
+}
+
+@Composable
+private fun ImportTicketDeepLinkHandler(
+    navController: NavHostController,
+    importDeepLinkViewModel: ImportTicketDeepLinkViewModel,
+) {
+    val pending by importDeepLinkViewModel.pendingImportTicket.collectAsStateWithLifecycle()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val route = backStackEntry?.destination?.route
+    LaunchedEffect(pending, route) {
+        val u = pending ?: return@LaunchedEffect
+        if (isBlockingRouteForImportDeepLink(route)) return@LaunchedEffect
+        val payload = QrTicketCodec.decode(u.toString()).getOrNull() ?: run {
+            importDeepLinkViewModel.consume()
+            return@LaunchedEffect
+        }
+        importDeepLinkViewModel.consume()
+        val nums = QrTicketCodec.rowMajorFromQrGrid5x5(payload.grid)
+        if (validFilledCellCount(nums) < MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV) {
+            return@LaunchedEffect
+        }
+        val target = buildManualEntryRoute(
+            nums,
+            ocrSource = null,
+            ocrConfidence = null,
+            prefillAsRowMajor = true,
+            losNumber = payload.los,
+            serialNumber = payload.serial
+        )
+        runCatching {
+            navController.navigate(target) { launchSingleTop = true }
+        }
+    }
+}
+
 @Composable
 fun NavGraph(
     themeViewModel: ThemeViewModel,
-    startDestination: String = "splash"
+    startDestination: String = "splash",
+    importDeepLinkViewModel: ImportTicketDeepLinkViewModel,
 ) {
     val navController = rememberNavController()
+    ImportTicketDeepLinkHandler(
+        navController = navController,
+        importDeepLinkViewModel = importDeepLinkViewModel
+    )
     var photoImportLeaveHandler by remember { mutableStateOf<((() -> Unit) -> Unit)?>(null) }
     LaunchedEffect(navController) {
         snapshotFlow { navController.currentBackStackEntry?.destination?.route }

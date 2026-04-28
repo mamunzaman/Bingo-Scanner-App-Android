@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -117,6 +118,7 @@ fun SettingsScreen(
     )
     val themeMode by themeViewModel.themeMode.collectAsState(ThemeMode.SYSTEM)
     val showDemoData by viewModel.showDemoData.collectAsState()
+    val keepScreenOnDuringGame by viewModel.keepScreenOnDuringGame.collectAsState()
     val pushNotifications by viewModel.pushNotifications.collectAsState()
     val dailyReminders by viewModel.dailyReminders.collectAsState()
     val faceIdTouchId by viewModel.faceIdTouchId.collectAsState()
@@ -151,6 +153,15 @@ fun SettingsScreen(
                     subtitle = "Include demo sessions in History and ticket picker",
                     checked = showDemoData,
                     onCheckedChange = { viewModel.setShowDemoData(it) }
+                )
+            }
+            SettingsSection(title = "LIVE PLAY") {
+                SettingsToggleRow(
+                    icon = Icons.Filled.StayCurrentPortrait,
+                    title = "Keep screen on during game",
+                    subtitle = "Prevents your phone from locking while playing live Bingo.",
+                    checked = keepScreenOnDuringGame,
+                    onCheckedChange = { viewModel.setKeepScreenOnDuringGame(it) }
                 )
             }
             SettingsSection(title = "APPEARANCE") {

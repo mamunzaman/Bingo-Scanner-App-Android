@@ -417,7 +417,7 @@ fun HistoryDetailScreen(
                                         cellsToQrGrid5x5(cellsList)
                                     }
                                     val encoded = runCatching {
-                                        QrTicketCodec.encode(
+                                        QrTicketCodec.encodeDeepLink(
                                             QrTicketPayload(
                                                 grid = grid,
                                                 serial = sessionForDisplay.serialNumber,

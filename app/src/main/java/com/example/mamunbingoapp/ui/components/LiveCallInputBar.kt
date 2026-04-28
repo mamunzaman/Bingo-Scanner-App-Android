@@ -76,10 +76,10 @@ fun LivePlayCallKeypad(
     val pillShape = RoundedCornerShape(Dimens.radiusMedium)
     val confirmDiameter = Dimens.buttonHeight
     val haptic = LocalHapticFeedback.current
-    val parsed = draft.trim().toIntOrNull()
-    val isValidNumber = parsed != null && parsed in 1..75
     val actionsEnabled = !actionInProgress
-    val callEnabled = canAddNumber && isValidNumber && actionsEnabled
+    // Allow Add when there is text so invalid/edge values can be submitted; empty stays off (no feedback on type-only).
+    val hasNonBlankInput = draft.trim().isNotEmpty()
+    val callEnabled = canAddNumber && actionsEnabled && hasNonBlankInput
     val topRowHeight = Dimens.inputBarHeight - Dimens.spacing8
     val compactActionSize = topRowHeight
     val hasDraft = draft.isNotEmpty()
@@ -135,8 +135,9 @@ fun LivePlayCallKeypad(
 
     fun appendDigit(d: Int) {
         if (!canAddNumber || !actionsEnabled) return
+        if (draft.length >= 2) return
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        if (draft.length < 2) onDraftChange(draft + d)
+        onDraftChange(draft + d)
     }
 
     Surface(
@@ -288,10 +289,7 @@ fun LivePlayCallKeypad(
                             enabled = callEnabled,
                             interactionSource = callInteraction,
                             indication = null
-                        ) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onCallClick()
-                        }
+                        ) { onCallClick() }
                         .semantics { contentDescription = "Call number" },
                     contentAlignment = Alignment.Center
                 ) {

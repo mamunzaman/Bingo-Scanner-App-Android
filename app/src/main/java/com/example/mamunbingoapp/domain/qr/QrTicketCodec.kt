@@ -1,5 +1,6 @@
 package com.example.mamunbingoapp.domain.qr
 
+import android.net.Uri
 import android.util.Base64
 import com.example.mamunbingoapp.domain.model.QrTicketPayload
 import java.nio.charset.StandardCharsets
@@ -7,6 +8,10 @@ import kotlinx.serialization.json.Json
 
 object QrTicketCodec {
     const val PREFIX = "MAMUN_BINGO_TICKET:"
+
+    const val DEEP_LINK_SCHEME = "mamunbingo"
+    const val DEEP_LINK_HOST = "import-ticket"
+    const val DEEP_LINK_DATA_PARAM = "data"
 
     private val json = Json {
         encodeDefaults = true
@@ -29,13 +34,54 @@ object QrTicketCodec {
         return "$PREFIX$b64"
     }
 
+    /** For new QR images: lets the system Camera app open the app via [android.intent.action.VIEW]. */
+    fun encodeDeepLink(payload: QrTicketPayload): String {
+        requireValidPayloadOrThrow(payload)
+        val body = json.encodeToString(QrTicketPayload.serializer(), payload)
+        val b64 = Base64.encodeToString(
+            body.toByteArray(StandardCharsets.UTF_8),
+            base64Flags
+        )
+        return Uri.Builder()
+            .scheme(DEEP_LINK_SCHEME)
+            .authority(DEEP_LINK_HOST)
+            .appendQueryParameter(DEEP_LINK_DATA_PARAM, b64)
+            .build()
+            .toString()
+    }
+
+    /**
+     * True if the string may be a Mamun ticket QR: legacy text prefix, or [encodeDeepLink] URI.
+     */
+    fun isLikelyBingoTicketQrString(raw: String): Boolean {
+        val t = raw.trim()
+        if (t.startsWith(PREFIX)) return true
+        if (!t.contains("://")) return false
+        return runCatching {
+            val u = Uri.parse(t)
+            DEEP_LINK_SCHEME.equals(u.scheme, true) &&
+                DEEP_LINK_HOST.equals(u.host, true) &&
+                !u.getQueryParameter(DEEP_LINK_DATA_PARAM).isNullOrBlank()
+        }.getOrDefault(false)
+    }
+
     fun decode(raw: String): Result<QrTicketPayload> = runCatching {
-        if (!raw.startsWith(PREFIX)) {
-            error("expected prefix $PREFIX")
-        }
-        val b64 = raw.removePrefix(PREFIX)
-        if (b64.isBlank()) {
-            error("empty payload")
+        val t = raw.trim()
+        val b64: String = when {
+            t.startsWith(PREFIX) -> {
+                t.removePrefix(PREFIX).trim().takeIf { it.isNotEmpty() } ?: error("empty payload")
+            }
+            isLikelyBingoTicketQrString(t) -> {
+                val u = Uri.parse(t)
+                if (!DEEP_LINK_SCHEME.equals(u.scheme, true) || !DEEP_LINK_HOST.equals(u.host, true)) {
+                    error("invalid deep link")
+                }
+                u.getQueryParameter(DEEP_LINK_DATA_PARAM)
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: error("missing data")
+            }
+            else -> error("unknown QR format")
         }
         val decoded = Base64.decode(b64, base64Flags)
         val text = String(decoded, StandardCharsets.UTF_8)

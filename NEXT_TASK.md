@@ -1,8 +1,8 @@
 ﻿# Next task
 
-**Goal:** **Device verify** live play **sheet detail** bottom sheet: **QR** icon → dialog (loading, error, image); full detail button + grid size unchanged. Optional: re-verify import camera.
+**Goal:** **Device verify** live play: **screen stays on** during session; **keypad** haptics; **sheet** QR. Optional: import camera.
 
-**Verify:** `./gradlew :app:assembleDebug`; open live room → pick sheet card → **Show ticket QR**; **View full detail** still works.
+**Verify:** `./gradlew :app:assembleDebug`; live room: keypad + QR + call flow.
 
 **Done (status):** Custom **CameraX** with **viewfinder-matched crop** marked **stable**; all 3 import paths + gallery **OK** in device QA; build OK. See `PROJECT_STATUS.md`.
 

@@ -216,7 +216,7 @@ fun TicketDetailScreen(
                                         cellsToQrGrid5x5(cells)
                                     }
                                     val encoded = runCatching {
-                                        QrTicketCodec.encode(
+                                        QrTicketCodec.encodeDeepLink(
                                             QrTicketPayload(
                                                 grid = grid,
                                                 serial = serialNumber,

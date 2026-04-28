@@ -81,6 +81,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -134,9 +136,11 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlin.random.Random
 import kotlinx.coroutines.delay
@@ -178,6 +182,7 @@ import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialo
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.MiniBingoGrid
 import com.example.mamunbingoapp.data.HistoryRepository
+import com.example.mamunbingoapp.data.SettingsRepository
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryKeypadDockMetrics
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
@@ -273,6 +278,18 @@ fun LivePlayScreen(
     val roomStatus = effectiveStatus
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val keepScreenOnDuringGame by SettingsRepository.keepScreenOnDuringGameFlow
+        .collectAsStateWithLifecycle(initialValue = true)
+    DisposableEffect(keepScreenOnDuringGame) {
+        if (keepScreenOnDuringGame) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
     val displaySheets = sheets
     val canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached
     val liveContentBottomPad = ManualEntryKeypadDockMetrics.estimatedDockHeight + Dimens.spacing8
@@ -758,8 +775,13 @@ private fun LivePlayBottomArea(
             }
             RoomStatus.RUNNING -> {
                 if (raw.isNotEmpty()) {
-                    if (n == null || n !in 1..75) {
-                        scope.launch { snackbarHostState.showSnackbar("Enter a number from 1 to 75", duration = SnackbarDuration.Short) }
+                    if (n == null) {
+                        scope.launch { snackbarHostState.showSnackbar("Invalid Bingo number", duration = SnackbarDuration.Short) }
+                        releaseGuard()
+                        return
+                    }
+                    if (n !in 1..75) {
+                        scope.launch { snackbarHostState.showSnackbar("Enter a number between 1 and 75", duration = SnackbarDuration.Short) }
                         releaseGuard()
                         return
                     }
@@ -768,7 +790,12 @@ private fun LivePlayBottomArea(
                             onInputChange("")
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
-                            scope.launch { snackbarHostState.showSnackbar("${bingoLetter(n)}-$n already called") }
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "${bingoLetter(n)}-$n already called",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
                             releaseGuard()
                         }
                     }
@@ -1970,7 +1997,7 @@ private fun SheetDetailBottomSheet(
                                         val serial = sheet.serialNumber?.trim()?.takeIf { it.isNotBlank() }
                                         val los = sheet.losNumber?.trim()?.takeIf { it.isNotBlank() }
                                         val encoded = runCatching {
-                                            QrTicketCodec.encode(
+                                            QrTicketCodec.encodeDeepLink(
                                                 QrTicketPayload(
                                                     grid = grid,
                                                     serial = serial,

@@ -1,6 +1,16 @@
 ﻿# Project status
 
-**Last update:** 2026-04-27 — **Live sheet preview bottom sheet — ticket QR:** `SheetDetailBottomSheet` (`LivePlayScreen`) header **QrCode2** 48dp → `TicketQrDialog` (encode `QrTicketPayload` from preview `cells` + `serial`/`los`, `QrTicketCodec` + `QrTicketImageGenerator` on **Default** dispatcher); **`TicketQrDialog`** optional **`isLoading`**. No scroll, no in-sheet QR, **“View full detail”** unchanged. **Build:** `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-04-27 — **Ticket QR deep link:** `mamunbingo://import-ticket?data=…` + `QrTicketCodec.encodeDeepLink` / unified `decode` (legacy `MAMUN_BINGO_TICKET:` kept); **Manifest** VIEW + **`singleTask` `MainActivity`**; **`ImportTicketDeepLinkViewModel`** → **`NavGraph`** → **Manual Entry** prefill; new QRs use deep link. **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Live keypad invalid input:** `LiveCallInputBar` **Add** enabled for any **non-blank** draft (empty still off); `handleCallClick` snackbars: **Invalid Bingo number** (unparseable), **Enter a number between 1 and 75** (out of range); duplicate line uses **`Short`** like invalid. **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Keep screen on (optional):** DataStore **`keep_screen_on_during_game`** (default **true**); **Settings** → **LIVE PLAY** toggle; **`LivePlayScreen`** applies **`FLAG_KEEP_SCREEN_ON`** only when on, always **clears** on dispose / when off. **Build:** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-04-27 — **Live play — keep screen on (always):** supersedes with setting above.
+
+**Previous:** 2026-04-27 — **Live play keypad:** `LiveCallInputBar` — digit / **Add** haptic behavior. **Build** OK.
+
+**Previous:** 2026-04-27 — **Live sheet preview bottom sheet — ticket QR:** `SheetDetailBottomSheet` (`LivePlayScreen`) header **QrCode2** 48dp → `TicketQrDialog` (encode `QrTicketPayload` from preview `cells` + `serial`/`los`, `QrTicketCodec` + `QrTicketImageGenerator` on **Default** dispatcher); **`TicketQrDialog`** optional **`isLoading`**. No scroll, no in-sheet QR, **“View full detail”** unchanged. **Build:** `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-04-27 — **`AppPrimaryButton` loading state:** `loading` uses centered **Row** (18dp `CircularProgressIndicator`, 2dp stroke, 8dp gap, **onPrimary** label from `text`); while loading, **disabled** colors keep primary + onPrimary (no washed-out capture CTA). Camera label **“Capturing”** (not ellipsis). **Build:** `./gradlew :app:assembleDebug` OK.
 

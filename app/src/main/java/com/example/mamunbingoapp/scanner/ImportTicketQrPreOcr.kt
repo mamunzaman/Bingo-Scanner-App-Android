@@ -57,12 +57,12 @@ private fun decodeBingoFromBarcodes(
         logNoBingo()
         return ImportTicketQrPreOcr.NoBingoQrContinueOcr
     }
-    var hadPrefix = false
+    var hadMamunCandidate = false
     for (b in task) {
         val raw = b.rawValue?.trim().orEmpty()
         if (raw.isEmpty()) continue
-        if (!raw.startsWith(QrTicketCodec.PREFIX)) continue
-        hadPrefix = true
+        if (!QrTicketCodec.isLikelyBingoTicketQrString(raw)) continue
+        hadMamunCandidate = true
         val payload = QrTicketCodec.decode(raw)
         if (payload.isFailure) {
             Log.w(TAG, "app prefix present, decode failed: ${payload.exceptionOrNull()?.message}")
@@ -82,7 +82,7 @@ private fun decodeBingoFromBarcodes(
             los = p.los?.takeIf { it.isNotBlank() },
         )
     }
-    if (hadPrefix) {
+    if (hadMamunCandidate) {
         return ImportTicketQrPreOcr.NoBingoQrContinueOcr
     }
     logNoBingo()

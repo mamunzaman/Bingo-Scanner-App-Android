@@ -14,8 +14,15 @@ class SettingsViewModel : ViewModel() {
     val showDemoData: StateFlow<Boolean> = SettingsRepository.showDemoDataFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val keepScreenOnDuringGame: StateFlow<Boolean> = SettingsRepository.keepScreenOnDuringGameFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     fun setShowDemoData(value: Boolean) {
         viewModelScope.launch { SettingsRepository.setShowDemoData(value) }
+    }
+
+    fun setKeepScreenOnDuringGame(value: Boolean) {
+        viewModelScope.launch { SettingsRepository.setKeepScreenOnDuringGame(value) }
     }
 
     private val _pushNotifications = MutableStateFlow(true)
