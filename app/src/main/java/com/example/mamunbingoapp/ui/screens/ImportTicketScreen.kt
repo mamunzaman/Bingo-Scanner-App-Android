@@ -13,7 +13,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
@@ -118,9 +117,6 @@ import com.example.mamunbingoapp.viewmodel.GalleryManualTrim
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -343,52 +339,6 @@ fun rememberImportTicketGalleryImagePickLauncher(
     return remember(pickLauncher, cropLauncher, scope) {
         {
             pickLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
-        }
-    }
-}
-
-/**
- * GMS document scanner: Import Ticket **Take photo**, Jackpot “Scan Sheet”, and scan-tab handoff — not used for Gallery.
- */
-@Composable
-fun rememberImportTicketGmsDocumentScanLauncher(
-    onScanResultOk: (Uri?) -> Unit,
-    onActivityMissing: () -> Unit = {},
-    onScannerStartFailed: () -> Unit = {},
-): () -> Unit {
-    val context = LocalContext.current
-    val scannerOptions = remember {
-        GmsDocumentScannerOptions.Builder()
-            .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE)
-            .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
-            .setPageLimit(1)
-            .build()
-    }
-    val scannerClient = remember { GmsDocumentScanning.getClient(scannerOptions) }
-    val scanDocument = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(result.data)
-            val scannedPageUri = scanResult?.pages?.firstOrNull()?.imageUri
-            onScanResultOk(scannedPageUri)
-        }
-    }
-    return remember(scannerClient, context) {
-        {
-            val activity = context.findActivity()
-            if (activity == null) {
-                onActivityMissing()
-            } else {
-                scannerClient.getStartScanIntent(activity)
-                    .addOnSuccessListener { intentSender ->
-                        scanDocument.launch(IntentSenderRequest.Builder(intentSender).build())
-                    }
-                    .addOnFailureListener { e ->
-                        Log.d("ImportTicketGmsScan", "document scanner launch failed: ${e.message}")
-                        onScannerStartFailed()
-                    }
-            }
         }
     }
 }

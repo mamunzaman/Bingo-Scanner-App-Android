@@ -119,8 +119,8 @@ import com.example.mamunbingoapp.viewmodel.ManualEntryUiAction
 import com.example.mamunbingoapp.viewmodel.ManualEntryUiEvent
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.viewmodel.ManualEntryViewModel
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.PlatformTextStyle
 import android.util.Log
@@ -1535,8 +1535,8 @@ private fun RoomPickerBottomSheet(
     onRoomSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {

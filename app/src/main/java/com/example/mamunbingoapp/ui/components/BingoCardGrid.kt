@@ -31,10 +31,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -277,6 +280,12 @@ fun ManualEntryBingoCard(
         fontWeight = FontWeight.Bold,
         color = OnPrimary
     )
+    val titleFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(isEditingSheetName) {
+        if (isEditingSheetName) {
+            runCatching { titleFocusRequester.requestFocus() }
+        }
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -435,7 +444,8 @@ fun ManualEntryBingoCard(
                                     value = sheetName,
                                     onValueChange = onSheetNameChange,
                                     modifier = Modifier
-                                        .fillMaxWidth(),
+                                        .fillMaxWidth()
+                                        .focusRequester(titleFocusRequester),
                                     textStyle = sheetTitleStyle.copy(
                                         color = OnPrimary,
                                         fontWeight = FontWeight.Normal

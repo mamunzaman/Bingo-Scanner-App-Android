@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -95,6 +96,21 @@ fun TicketQrDialog(
                             .clip(RoundedCornerShape(Dimens.spacing8))
                     )
                 }
+            }
+            if (bitmap != null && errorMessage == null && !isLoading) {
+                Text(
+                    text = "Scan with another phone camera, then tap the link to open in Mamun Bingo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = Dimens.spacing8,
+                            end = Dimens.spacing8,
+                            top = Dimens.spacing8,
+                        )
+                )
             }
             Spacer(modifier = Modifier.height(Dimens.spacing16))
             TextButton(onClick = onDismiss) {

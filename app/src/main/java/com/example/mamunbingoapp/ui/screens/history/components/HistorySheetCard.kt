@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -40,6 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.MiniBingoGrid
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,6 +63,8 @@ fun HistorySheetCard(
     onLeaveRoom: (() -> Unit)? = null,
     selectionMode: Boolean = false,
     selected: Boolean = false,
+    inRoom: Boolean = false,
+    roomName: String? = null,
     onSelectionToggle: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -76,14 +81,16 @@ fun HistorySheetCard(
         else -> List(25) { it < markedNumerator }
     }
     val rowShape = RoundedCornerShape(Dimens.radiusCard)
+    val leadingSlotWidth = 42.dp
     var menuExpanded by remember { mutableStateOf(false) }
-    val borderWidth = when {
-        selectionMode && selected -> 2.dp
-        else -> Dimens.cardBorderDefault
-    }
     val borderColor = when {
-        selectionMode && selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+        selectionMode && selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
+    }
+    val selectedTintBg: Modifier = if (selectionMode && selected) {
+        Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.10f))
+    } else {
+        Modifier
     }
     val rowClick = {
         if (selectionMode) onSelectionToggle() else onViewClick()
@@ -100,7 +107,7 @@ fun HistorySheetCard(
         onClick = rowClick
     )
 
-    Column(
+    AppSectionSurface(
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
@@ -110,45 +117,78 @@ fun HistorySheetCard(
                     "$title, Marked $marked. Double tap to open."
                 }
             }
-            .clip(rowShape)
-            .border(width = borderWidth, color = borderColor, shape = rowShape)
+            .clip(rowShape),
+        shape = rowShape,
+        borderColor = borderColor,
+        shadowElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (selectionMode) {
-                Checkbox(
-                    checked = selected,
-                    onCheckedChange = { onSelectionToggle() },
-                    modifier = Modifier.padding(start = Dimens.spacing4),
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary
+                Box(
+                    modifier = Modifier
+                        .width(leadingSlotWidth)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .then(selectedTintBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = { onSelectionToggle() },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary
+                        )
                     )
-                )
+                }
             }
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .background(MaterialTheme.colorScheme.surface)
+                    .then(selectedTintBg)
                     .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing4)
                     .then(headerClick),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12)
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10)
             ) {
                 MiniBingoGrid(cells = miniGrid)
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4)
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (inRoom) {
+                            val pillText = if (!roomName.isNullOrBlank()) "In: $roomName" else "In room"
+                            Text(
+                                text = pillText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(Dimens.radiusPill)
+                                    )
+                                    .padding(horizontal = Dimens.spacing8, vertical = 2.dp)
+                            )
+                        }
+                    }
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,
@@ -156,6 +196,15 @@ fun HistorySheetCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (selectionMode && inRoom) {
+                        Text(
+                            text = "Already added — remove first to move rooms",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             if (!selectionMode) {
@@ -204,17 +253,16 @@ fun HistorySheetCard(
                 }
             }
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp)
-                .height(1.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha))
+        AppInsetDivider(
+            modifier = Modifier.padding(vertical = 2.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
+            thickness = 1.dp,
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .then(selectedTintBg)
                 .padding(horizontal = Dimens.spacing12, vertical = 3.dp)
                 .then(footerClick),
             verticalAlignment = Alignment.CenterVertically

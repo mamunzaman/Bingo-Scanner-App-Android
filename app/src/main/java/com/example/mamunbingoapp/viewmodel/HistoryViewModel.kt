@@ -17,7 +17,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 enum class HistorySortOption(val displayName: String) {
@@ -115,6 +117,13 @@ private data class HistoryFilterInputs(
 
 class HistoryViewModel : ViewModel() {
     val sessions: StateFlow<List<HistorySession>> = HistoryRepository.sessionsFlow
+
+    val liveRooms: StateFlow<List<LiveRoom>> = RoomRepository.getRooms()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val sessionsWithLiveStatus: StateFlow<List<HistorySessionUi>> = combine(
         combine(
@@ -279,6 +288,24 @@ class HistoryViewModel : ViewModel() {
     )
 
     suspend fun getSession(id: String): HistorySession? = HistoryRepository.getById(id)
+
+    /**
+     * Adds eligible sessions to [roomId]. Sessions already assigned to any room are silently
+     * skipped to prevent duplicates. State refreshes automatically via the DB flow.
+     */
+    fun addSessionsToRoom(roomId: String, sessionIds: Collection<String>) {
+        viewModelScope.launch {
+            val allSessions = sessions.first()
+            sessionIds.forEach { sid ->
+                val session = allSessions.firstOrNull { it.id == sid } ?: return@forEach
+                val ticketId = session.ticketId
+                val alreadyAssigned = RoomRepository.findAssignedRoomId(ticketId) != null
+                if (!alreadyAssigned) {
+                    RoomRepository.assignTicketToRoom(roomId, ticketId)
+                }
+            }
+        }
+    }
 }
 
 private fun matchesFilter(

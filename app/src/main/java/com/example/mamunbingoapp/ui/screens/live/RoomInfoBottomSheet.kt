@@ -17,12 +17,14 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,6 +45,7 @@ private fun formatDate(millis: Long?): String {
     return SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date(millis))
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomInfoBottomSheet(
     onDismiss: () -> Unit,
@@ -57,7 +60,7 @@ fun RoomInfoBottomSheet(
 ) {
     val context = LocalContext.current
     val shareText = if (roomId.isNotBlank()) "Join my Bingo room: $roomName - $roomId" else roomName.ifBlank { "" }
-    ModalBottomSheet(
+    AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         windowInsets = WindowInsets(0, 0, 0, 0),
         shape = BottomSheetDefaults.ExpandedShape,
@@ -78,7 +81,7 @@ fun RoomInfoBottomSheet(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Text(
                 text = roomName.ifBlank { "—" },
                 style = MaterialTheme.typography.headlineSmall,
@@ -134,12 +137,12 @@ fun RoomInfoBottomSheet(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Text(
+            AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            AppSectionTitle(
                 text = "Session",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                uppercase = false,
+                usePrimaryColor = false,
+                modifier = Modifier.padding(top = 4.dp),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -171,7 +174,7 @@ fun RoomInfoBottomSheet(
                     Text(if (live) "Live" else "Not live", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)

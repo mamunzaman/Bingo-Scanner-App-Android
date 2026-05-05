@@ -4,9 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -16,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +32,7 @@ fun BulkSelectionActionBar(
     addToRoomEnabled: Boolean = false,
     addCount: Int = 0,
     onAddToRoomClick: () -> Unit = {},
+    inRoomInfoText: String? = null,
     showRemoveFromRoom: Boolean,
     removeFromRoomEnabled: Boolean,
     removeCount: Int,
@@ -62,7 +62,13 @@ fun BulkSelectionActionBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing10)
+                .padding(
+                    start = Dimens.spacing16,
+                    end = Dimens.spacing16,
+                    top = Dimens.spacing12,
+                    bottom = Dimens.spacing16
+                ),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing10)
         ) {
             if (showJoinLive) {
                 FilledTonalButton(
@@ -80,7 +86,15 @@ fun BulkSelectionActionBar(
                         else "Join live"
                     )
                 }
-                Spacer(modifier = Modifier.height(Dimens.spacing8))
+            }
+            if (!inRoomInfoText.isNullOrBlank()) {
+                Text(
+                    text = inRoomInfoText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = cs.onSurfaceVariant.copy(alpha = 0.65f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             if (showAddToRoom) {
                 FilledTonalButton(
@@ -90,11 +104,10 @@ fun BulkSelectionActionBar(
                     shape = RoundedCornerShape(Dimens.radiusMedium)
                 ) {
                     Text(
-                        text = if (addCount > 0) "Add to room ($addCount)"
-                        else "Add to room"
+                        text = if (addCount > 0) "Add eligible ($addCount)"
+                        else "Add eligible"
                     )
                 }
-                Spacer(modifier = Modifier.height(Dimens.spacing8))
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -106,7 +119,11 @@ fun BulkSelectionActionBar(
                         onClick = onRemoveFromRoomClick,
                         enabled = removeFromRoomEnabled,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(Dimens.radiusMedium)
+                        shape = RoundedCornerShape(Dimens.radiusMedium),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            disabledContainerColor = cs.surfaceContainerHighest,
+                            disabledContentColor = cs.onSurfaceVariant.copy(alpha = 0.55f)
+                        )
                     ) {
                         Text(
                             text = if (removeCount > 0) "Remove from room ($removeCount)"
@@ -121,7 +138,9 @@ fun BulkSelectionActionBar(
                     shape = RoundedCornerShape(Dimens.radiusMedium),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = cs.error,
-                        contentColor = cs.onError
+                        contentColor = cs.onError,
+                        disabledContainerColor = cs.surfaceContainerHighest,
+                        disabledContentColor = cs.onSurfaceVariant.copy(alpha = 0.55f)
                     )
                 ) {
                     Text(

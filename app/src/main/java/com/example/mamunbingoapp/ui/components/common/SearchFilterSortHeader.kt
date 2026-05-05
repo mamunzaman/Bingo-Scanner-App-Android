@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -45,6 +44,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
 
 sealed interface SearchHeaderVariant {
     data object SearchOnly : SearchHeaderVariant
@@ -133,10 +133,11 @@ fun SearchFilterSortHeader(
             }
 
             if (showSecondRow) {
-                HorizontalDivider(
+                AppInsetDivider(
+                    startInset = innerHPad,
+                    endInset = innerHPad,
                     color = MaterialTheme.colorScheme.outlineVariant,
                     thickness = 1.dp,
-                    modifier = Modifier.padding(horizontal = innerHPad)
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

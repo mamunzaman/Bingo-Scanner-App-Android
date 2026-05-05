@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -52,17 +52,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.data.dev.DevReset
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Secondary
 import com.example.mamunbingoapp.theme.SecondaryContainer
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppIconContainer
+import com.example.mamunbingoapp.ui.components.AppIconTile
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
@@ -155,62 +158,86 @@ fun SettingsScreen(
                     onCheckedChange = { viewModel.setShowDemoData(it) }
                 )
             }
-            SettingsSection(title = "LIVE PLAY") {
+            SettingsGroupedSection(title = "LIVE PLAY") {
                 SettingsToggleRow(
                     icon = Icons.Filled.StayCurrentPortrait,
                     title = "Keep screen on during game",
                     subtitle = "Prevents your phone from locking while playing live Bingo.",
                     checked = keepScreenOnDuringGame,
-                    onCheckedChange = { viewModel.setKeepScreenOnDuringGame(it) }
+                    onCheckedChange = { viewModel.setKeepScreenOnDuringGame(it) },
+                    groupedInCard = true,
                 )
             }
-            SettingsSection(title = "APPEARANCE") {
+            SettingsGroupedSection(title = "APPEARANCE") {
                 SettingsThemeRow(
                     icon = Icons.Default.Smartphone,
                     title = "System",
                     selected = themeMode == ThemeMode.SYSTEM,
-                    onClick = { themeViewModel.setThemeMode(ThemeMode.SYSTEM) }
+                    onClick = { themeViewModel.setThemeMode(ThemeMode.SYSTEM) },
+                    groupedInCard = true,
+                )
+                AppInsetDivider(
+                    startInset = settingsInsetDividerStart,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
                 )
                 SettingsThemeRow(
                     icon = Icons.Default.LightMode,
                     title = "Light",
                     selected = themeMode == ThemeMode.LIGHT,
-                    onClick = { themeViewModel.setThemeMode(ThemeMode.LIGHT) }
+                    onClick = { themeViewModel.setThemeMode(ThemeMode.LIGHT) },
+                    groupedInCard = true,
+                )
+                AppInsetDivider(
+                    startInset = settingsInsetDividerStart,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
                 )
                 SettingsThemeRow(
                     icon = Icons.Default.DarkMode,
                     title = "Dark",
                     selected = themeMode == ThemeMode.DARK,
-                    onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) }
+                    onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) },
+                    groupedInCard = true,
                 )
             }
-            SettingsSection(title = "NOTIFICATIONS") {
+            SettingsGroupedSection(title = "NOTIFICATIONS") {
                 SettingsToggleRow(
                     icon = Icons.Default.Notifications,
                     title = "Push Notifications",
                     subtitle = "Game updates and rewards",
                     checked = pushNotifications,
-                    onCheckedChange = { viewModel.setPushNotifications(it) }
+                    onCheckedChange = { viewModel.setPushNotifications(it) },
+                    groupedInCard = true,
+                )
+                AppInsetDivider(
+                    startInset = settingsInsetDividerStart,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
                 )
                 SettingsToggleRow(
                     icon = Icons.Default.Alarm,
                     title = "Daily Reminders",
                     subtitle = "Never miss your daily eco-task",
                     checked = dailyReminders,
-                    onCheckedChange = { viewModel.setDailyReminders(it) }
+                    onCheckedChange = { viewModel.setDailyReminders(it) },
+                    groupedInCard = true,
                 )
             }
-            SettingsSection(title = "SECURITY") {
+            SettingsGroupedSection(title = "SECURITY") {
                 SettingsToggleRow(
                     icon = Icons.Default.Fingerprint,
                     title = "FaceID / TouchID",
                     checked = faceIdTouchId,
-                    onCheckedChange = { viewModel.setFaceIdTouchId(it) }
+                    onCheckedChange = { viewModel.setFaceIdTouchId(it) },
+                    groupedInCard = true,
+                )
+                AppInsetDivider(
+                    startInset = settingsInsetDividerStart,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
                 )
                 SettingsNavRow(
                     icon = Icons.Default.Lock,
                     title = "Change Password",
-                    onClick = onChangePassword
+                    onClick = onChangePassword,
+                    groupedInCard = true,
                 )
             }
             SettingsSection(title = "PRIVACY") {
@@ -311,25 +338,53 @@ fun SettingsScreen(
     }
 }
 
+private val settingsGroupedCardShape = RoundedCornerShape(Dimens.radiusLarge)
+
 @Composable
 private fun SettingsSection(
     title: String,
     content: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.padding(top = 24.dp)) {
-        Text(
+        AppSectionTitle(
             text = title,
-            style = AppTextStyles.sectionLabel,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 8.dp)
+            uppercase = false,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            modifier = Modifier.padding(top = 8.dp, bottom = 6.dp),
         )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(Dimens.radiusSmall))
-        ) {
-            content()
-        }
+        AppSectionSurface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = settingsGroupedCardShape,
+            content = content,
+        )
+    }
+}
+
+private val settingsIconTileSize = 42.dp
+private val settingsInsetDividerStart =
+    Dimens.spacing16 + settingsIconTileSize + Dimens.spacing12
+
+@Composable
+private fun SettingsGroupedSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.padding(top = Dimens.spacing24)) {
+        AppSectionTitle(
+            text = title,
+            uppercase = false,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            modifier = Modifier.padding(
+                start = Dimens.spacing4,
+                top = Dimens.spacing8,
+                bottom = 6.dp,
+            ),
+        )
+        AppSectionSurface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = settingsGroupedCardShape,
+            content = content,
+        )
     }
 }
 
@@ -340,23 +395,36 @@ private fun SettingsToggleRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    groupedInCard: Boolean = false,
 ) {
+    val horizontal = if (groupedInCard) Dimens.spacing16 else Dimens.screenHorizontalPadding
+    val textStart = if (groupedInCard) Dimens.spacing12 else Dimens.screenHorizontalPadding
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (groupedInCard) Modifier.heightIn(min = 72.dp) else Modifier)
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) { onCheckedChange(!checked) }
-            .padding(horizontal = Dimens.screenHorizontalPadding, vertical = 16.dp),
+            .padding(horizontal = horizontal, vertical = if (groupedInCard) Dimens.spacing8 else Dimens.spacing16),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+        if (groupedInCard) {
+            AppIconTile(
+                icon = icon,
+                size = settingsIconTileSize,
+                iconSize = 22.dp,
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f),
+            )
+        } else {
+            AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+        }
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = Dimens.screenHorizontalPadding)
+                .padding(start = textStart)
         ) {
             Text(
                 text = title,
@@ -388,26 +456,39 @@ private fun SettingsThemeRow(
     icon: ImageVector,
     title: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    groupedInCard: Boolean = false,
 ) {
+    val horizontal = if (groupedInCard) Dimens.spacing16 else Dimens.screenHorizontalPadding
+    val textStart = if (groupedInCard) Dimens.spacing12 else Dimens.screenHorizontalPadding
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (groupedInCard) Modifier.heightIn(min = 72.dp) else Modifier)
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) { onClick() }
-            .padding(horizontal = Dimens.screenHorizontalPadding, vertical = 16.dp),
+            .padding(horizontal = horizontal, vertical = if (groupedInCard) Dimens.spacing8 else Dimens.spacing16),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+        if (groupedInCard) {
+            AppIconTile(
+                icon = icon,
+                size = settingsIconTileSize,
+                iconSize = 22.dp,
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f),
+            )
+        } else {
+            AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .weight(1f)
-                .padding(start = Dimens.screenHorizontalPadding)
+                .padding(start = textStart)
         )
         if (selected) {
             Icon(
@@ -426,25 +507,39 @@ private fun SettingsNavRow(
     title: String,
     subtitle: String? = null,
     showChevron: Boolean = true,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    groupedInCard: Boolean = false,
 ) {
+    val horizontal = if (groupedInCard) Dimens.spacing16 else Dimens.screenHorizontalPadding
+    val textStart =
+        if (icon != null) (if (groupedInCard) Dimens.spacing12 else Dimens.screenHorizontalPadding) else 0.dp
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (groupedInCard) Modifier.heightIn(min = 72.dp) else Modifier)
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) { onClick() }
-            .padding(horizontal = Dimens.screenHorizontalPadding, vertical = 16.dp),
+            .padding(horizontal = horizontal, vertical = if (groupedInCard) Dimens.spacing8 else Dimens.spacing16),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
-            AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+            if (groupedInCard) {
+                AppIconTile(
+                    icon = icon,
+                    size = settingsIconTileSize,
+                    iconSize = 22.dp,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f),
+                )
+            } else {
+                AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+            }
         }
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = if (icon != null) Dimens.screenHorizontalPadding else 0.dp)
+                .padding(start = textStart)
         ) {
             Text(
                 text = title,

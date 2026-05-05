@@ -1,11 +1,11 @@
 package com.example.mamunbingoapp.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -46,8 +45,10 @@ import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppCard
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppSectionHeader
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.JackpotHeroCard
@@ -192,20 +193,22 @@ private fun QuickActionButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(
+        AppCard(
             modifier = Modifier
                 .size(56.dp)
-                .iosElevatedShadow(shape = CircleShape)
-                .background(MaterialTheme.colorScheme.surface, CircleShape)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
+                .clip(CircleShape),
+            onClick = onClick,
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.primary
-            )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         Text(
             text = label,
@@ -222,56 +225,61 @@ private fun GreenImpactCard(
     modifier: Modifier = Modifier
 ) {
     val progress = 0.75f
-    Box(
+    AppSectionSurface(
         modifier = modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.large)
-            .background(GreenImpactBg)
+            .background(GreenImpactBg),
+        color = GreenImpactBg,
+        shape = MaterialTheme.shapes.large,
+        shadowElevation = 0.dp,
     ) {
-        Icon(
-            imageVector = Icons.Filled.Forest,
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .size(180.dp)
-                .offset(x = 40.dp, y = 40.dp),
-            tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
-        )
-        Column(
-            modifier = Modifier.padding(Dimens.spacing16)
-        ) {
-            Text(
-                text = stringResource(R.string.home_green_impact),
-                style = AppTextStyles.sectionTitle,
-                color = MaterialTheme.colorScheme.surface
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.home_trees_planted, treesPlanted),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Box(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Icon(
+                imageVector = Icons.Filled.Forest,
+                contentDescription = null,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    .align(Alignment.BottomEnd)
+                    .size(180.dp)
+                    .offset(x = 40.dp, y = 40.dp),
+                tint = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+            )
+            Column(
+                modifier = Modifier.padding(Dimens.spacing16)
             ) {
+                Text(
+                    text = stringResource(R.string.home_green_impact),
+                    style = AppTextStyles.sectionTitle,
+                    color = MaterialTheme.colorScheme.surface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.home_trees_planted, treesPlanted),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(progress.coerceIn(0f, 1f))
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primary)
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress.coerceIn(0f, 1f))
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.home_milestone, treesToMilestone),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_milestone, treesToMilestone),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-            )
         }
     }
 }
@@ -283,34 +291,36 @@ private fun EcoNewsItem(
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(12.dp)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .iosElevatedShadow(shape = shape)
-            .background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+    AppSectionSurface(
+        modifier = modifier.fillMaxWidth(),
+        shape = shape,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 4.dp)
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
-            Text(
-                text = meta,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = meta,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

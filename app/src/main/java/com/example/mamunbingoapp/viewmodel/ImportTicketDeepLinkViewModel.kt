@@ -15,12 +15,8 @@ class ImportTicketDeepLinkViewModel : ViewModel() {
     fun setFromIntent(intent: Intent?) {
         if (intent?.action != Intent.ACTION_VIEW) return
         val data = intent.data ?: return
-        if (QrTicketCodec.DEEP_LINK_SCHEME.equals(data.scheme, true) &&
-            QrTicketCodec.DEEP_LINK_HOST == data.host
-        ) {
-            if (!data.getQueryParameter(QrTicketCodec.DEEP_LINK_DATA_PARAM).isNullOrBlank()) {
-                _pending.value = data
-            }
+        if (QrTicketCodec.isImportTicketDeepLinkUri(data)) {
+            _pending.value = data
         }
     }
 

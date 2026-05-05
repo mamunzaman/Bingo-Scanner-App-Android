@@ -52,7 +52,7 @@ Kotlin **Jetpack Compose** + **Material 3** bingo ticket app. Package: `com.exam
 
 ## Shared UI (`ui/components/`)
 
-Reused building blocks: **`AppTopBar`**, **`AppBottomBar`**, **`AppTab`**, **`BingoCardGrid`**, **`BingoGrid5x5`**, **`BingoHeaderRow`**, **`LiveCallInputBar`**, **`CalledHistoryPanel`**, **`RoomSessionCard`**, **`SearchFilterSortHeader`**, **`HeroBannerCard`**, import: **`ScanResultSummaryCard`**, **`ImportTicketLosSerialCard`**, **`ImportTicketScanResultContent`**, etc.
+Reused building blocks: **`AppTopBar`**, **`AppBottomBar`**, **`AppTab`**, **`AppSectionSurface`** / **`appPremiumCardBorder`** (section cards: `surface`, primary border @ 0.18f, subtle shadow), **`AppCard`**, **`AppIconTile`**, **`AppListRow`**, **`AppInsetDivider`**, **`AppSectionTitle`**, **`AppBottomSheetSurface`** / **`rememberAppBottomSheetState`**, **`BingoCardGrid`**, **`BingoGrid5x5`**, **`BingoHeaderRow`**, **`LiveCallInputBar`**, **`CalledHistoryPanel`**, **`RoomSessionCard`**, **`SearchFilterSortHeader`**, **`HeroBannerCard`**, import: **`ScanResultSummaryCard`**, **`ImportTicketLosSerialCard`**, **`ImportTicketScanResultContent`**, etc.
 
 ## ViewModels (`viewmodel/`)
 

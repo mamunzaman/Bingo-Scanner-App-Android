@@ -13,6 +13,12 @@ object QrTicketCodec {
     const val DEEP_LINK_HOST = "import-ticket"
     const val DEEP_LINK_DATA_PARAM = "data"
 
+    /** HTTPS App Link host (QR + [android:autoVerify] intent filter). Must serve `/.well-known/assetlinks.json`. */
+    const val APP_LINK_HOST = "bingoapp.itconsultingfirma.com"
+
+    private const val INTENT_SCHEME = "intent"
+    private const val HTTPS_SCHEME = "https"
+
     private val json = Json {
         encodeDefaults = true
         ignoreUnknownKeys = true
@@ -34,7 +40,32 @@ object QrTicketCodec {
         return "$PREFIX$b64"
     }
 
-    /** For new QR images: lets the system Camera app open the app via [android.intent.action.VIEW]. */
+    /** True when [uri] is an import-ticket deep link this app handles (HTTPS App Link, custom scheme, or intent wrapper). */
+    fun isImportTicketDeepLinkUri(uri: Uri): Boolean {
+        if (uri.getQueryParameter(DEEP_LINK_DATA_PARAM).isNullOrBlank()) return false
+        val scheme = uri.scheme ?: return false
+        return when {
+            DEEP_LINK_SCHEME.equals(scheme, true) &&
+                DEEP_LINK_HOST.equals(uri.host, true) -> true
+            INTENT_SCHEME.equals(scheme, true) &&
+                DEEP_LINK_HOST.equals(uri.host, true) -> true
+            HTTPS_SCHEME.equals(scheme, true) &&
+                APP_LINK_HOST.equals(uri.host, true) &&
+                importTicketPathMatches(uri.path) -> true
+            else -> false
+        }
+    }
+
+    private fun importTicketPathMatches(path: String?): Boolean {
+        if (path.isNullOrBlank()) return false
+        return path.equals("/import-ticket", ignoreCase = true) ||
+            path.startsWith("/import-ticket/", ignoreCase = true)
+    }
+
+    /**
+     * Encodes a QR App Link: `https://bingoapp.itconsultingfirma.com/import-ticket?data=BASE64`.
+     * [decode] also accepts `mamunbingo://…`, `intent://…`, and legacy text prefix payloads.
+     */
     fun encodeDeepLink(payload: QrTicketPayload): String {
         requireValidPayloadOrThrow(payload)
         val body = json.encodeToString(QrTicketPayload.serializer(), payload)
@@ -43,26 +74,26 @@ object QrTicketCodec {
             base64Flags
         )
         return Uri.Builder()
-            .scheme(DEEP_LINK_SCHEME)
-            .authority(DEEP_LINK_HOST)
+            .scheme(HTTPS_SCHEME)
+            .authority(APP_LINK_HOST)
+            .appendPath("import-ticket")
             .appendQueryParameter(DEEP_LINK_DATA_PARAM, b64)
             .build()
             .toString()
     }
 
     /**
-     * True if the string may be a Mamun ticket QR: legacy text prefix, or [encodeDeepLink] URI.
+     * True if the string may be a Mamun ticket QR:
+     * - legacy text prefix (`MAMUN_BINGO_TICKET:…`)
+     * - `https://bingoapp.itconsultingfirma.com/import-ticket?data=…` (current QR App Link)
+     * - `mamunbingo://import-ticket?data=…`
+     * - `intent://import-ticket?data=…#Intent;scheme=mamunbingo;…;end` (legacy / test)
      */
     fun isLikelyBingoTicketQrString(raw: String): Boolean {
         val t = raw.trim()
         if (t.startsWith(PREFIX)) return true
         if (!t.contains("://")) return false
-        return runCatching {
-            val u = Uri.parse(t)
-            DEEP_LINK_SCHEME.equals(u.scheme, true) &&
-                DEEP_LINK_HOST.equals(u.host, true) &&
-                !u.getQueryParameter(DEEP_LINK_DATA_PARAM).isNullOrBlank()
-        }.getOrDefault(false)
+        return runCatching { isImportTicketDeepLinkUri(Uri.parse(t)) }.getOrDefault(false)
     }
 
     fun decode(raw: String): Result<QrTicketPayload> = runCatching {
@@ -73,9 +104,7 @@ object QrTicketCodec {
             }
             isLikelyBingoTicketQrString(t) -> {
                 val u = Uri.parse(t)
-                if (!DEEP_LINK_SCHEME.equals(u.scheme, true) || !DEEP_LINK_HOST.equals(u.host, true)) {
-                    error("invalid deep link")
-                }
+                if (!isImportTicketDeepLinkUri(u)) error("invalid import link")
                 u.getQueryParameter(DEEP_LINK_DATA_PARAM)
                     ?.trim()
                     ?.takeIf { it.isNotEmpty() }

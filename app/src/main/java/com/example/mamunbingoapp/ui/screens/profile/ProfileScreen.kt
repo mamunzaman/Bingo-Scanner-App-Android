@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -56,11 +55,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.ui.components.AppIconContainer
+import com.example.mamunbingoapp.ui.components.AppIconTile
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.appPremiumCardBorder
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.theme.Secondary
-import com.example.mamunbingoapp.theme.Slate200
-import com.example.mamunbingoapp.theme.Slate400
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
@@ -69,6 +68,11 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+
+private val profileSectionCardShape = RoundedCornerShape(12.dp)
+
+private val profileMenuDividerStart =
+    Dimens.spacing16 + 40.dp + Dimens.spacing16
 
 @Composable
 fun ProfileScreen(
@@ -139,7 +143,7 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .size(112.dp)
-                            .iosElevatedShadow(elevation = 8.dp, shape = CircleShape)
+                            .iosElevatedShadow(elevation = 2.dp, shape = CircleShape)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
@@ -205,6 +209,7 @@ fun ProfileScreen(
                     .padding(bottom = 32.dp)
                     .iosElevatedShadow(shape = RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                    .appPremiumCardBorder(profileSectionCardShape)
                     .padding(24.dp)
             ) {
                 Column(
@@ -296,26 +301,33 @@ fun ProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            ProfileMenuItem(
-                icon = Icons.Default.Person,
-                title = "My Account",
-                onClick = onMyAccount
-            )
-            ProfileMenuItem(
-                icon = Icons.Default.Payments,
-                title = "Payment Methods",
-                onClick = onPaymentMethods
-            )
-            ProfileMenuItem(
-                icon = Icons.Default.History,
-                title = "History",
-                onClick = onHistory
-            )
-            ProfileMenuItem(
-                icon = Icons.AutoMirrored.Filled.Help,
-                title = "Support",
-                onClick = onSupport
-            )
+            val profileMenuDividerColor =
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ProfileMenuItem(
+                    icon = Icons.Default.Person,
+                    title = "My Account",
+                    onClick = onMyAccount
+                )
+                AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
+                ProfileMenuItem(
+                    icon = Icons.Default.Payments,
+                    title = "Payment Methods",
+                    onClick = onPaymentMethods
+                )
+                AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
+                ProfileMenuItem(
+                    icon = Icons.Default.History,
+                    title = "History",
+                    onClick = onHistory
+                )
+                AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
+                ProfileMenuItem(
+                    icon = Icons.AutoMirrored.Filled.Help,
+                    title = "Support",
+                    onClick = onSupport
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -356,9 +368,9 @@ private fun InviteParticipantsCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 32.dp)
-            .iosElevatedShadow(shape = RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
+            .clip(profileSectionCardShape)
             .background(MaterialTheme.colorScheme.surface)
+            .appPremiumCardBorder(profileSectionCardShape)
             .padding(24.dp)
     ) {
         Text(
@@ -376,7 +388,7 @@ private fun InviteParticipantsCard(
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -395,7 +407,7 @@ private fun InviteParticipantsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
                         .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing12),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -442,12 +454,12 @@ private fun ProfileMenuItem(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) { onClick() }
-            .iosElevatedShadow(shape = RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface, profileSectionCardShape)
+            .appPremiumCardBorder(profileSectionCardShape)
             .padding(Dimens.spacing16),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
+        AppIconTile(icon = icon, size = 40.dp, iconSize = 24.dp)
         Spacer(modifier = Modifier.size(16.dp))
         Text(
             text = title,

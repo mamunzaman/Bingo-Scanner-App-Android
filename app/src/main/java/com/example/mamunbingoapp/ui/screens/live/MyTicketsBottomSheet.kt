@@ -47,12 +47,12 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
@@ -110,12 +111,12 @@ fun MyTicketsBottomSheet(
     onBulkAddToRoom: (Collection<String>) -> Unit = {}
 ) {
     if (!visible) return
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val config = LocalConfiguration.current
     val sheetHeight = (config.screenHeightDp * 0.8f).dp
 
-    ModalBottomSheet(
+    AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         windowInsets = WindowInsets(0, 0, 0, 0),
@@ -560,10 +561,10 @@ private fun TicketInfoCell(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text(
+        AppSectionTitle(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            uppercase = false,
+            usePrimaryColor = false,
         )
         Text(
             text = value,

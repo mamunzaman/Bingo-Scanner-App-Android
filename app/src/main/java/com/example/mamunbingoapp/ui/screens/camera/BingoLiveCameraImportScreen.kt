@@ -24,6 +24,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +54,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.coroutineScope
 import androidx.compose.runtime.Composable
@@ -69,11 +76,15 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -242,10 +253,20 @@ private fun tryCropToViewfinderFrame(
 
 @Composable
 private fun BingoCameraQrViewfinder() {
-    val labelColor = Color.White.copy(alpha = 0.95f)
+    val labelColor = Color.White.copy(alpha = 0.96f)
     val borderColor = MaterialTheme.colorScheme.primary
     val density = LocalDensity.current
-    val corner = Dimens.radiusCard
+    val corner = Dimens.radiusXL
+    val scanTransition = rememberInfiniteTransition(label = "scanLine")
+    val scanProgress by scanTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "scanLineProgress",
+    )
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val minSide = minOf(maxWidth, maxHeight)
         val frameSize = minSide * VIEWFINDER_FRAME_SIZE_MIN_SIDE
@@ -256,8 +277,12 @@ private fun BingoCameraQrViewfinder() {
         val left = (wPx - frameWpx) / 2f
         val top = hPx * VIEWFINDER_TOP_FRACTION
         val rPx = with(density) { corner.toPx() }
-        val scrim = Color.Black.copy(alpha = 0.5f)
+        val cornerLenPx = with(density) { (Dimens.spacing32 + Dimens.spacing12).toPx() }
+        val cornerRadiusPx = with(density) { Dimens.radiusCard.toPx() }
+        val bracketStroke = with(density) { 4.dp.toPx() }
+        val scrim = Color.Black.copy(alpha = 0.55f)
         val borderC = borderColor.copy(alpha = 0.92f)
+        val scanY = top + cornerRadiusPx + (frameHpx - 2f * cornerRadiusPx) * scanProgress
         Canvas(Modifier.fillMaxSize()) {
             val path = Path().apply {
                 fillType = PathFillType.EvenOdd
@@ -274,21 +299,186 @@ private fun BingoCameraQrViewfinder() {
             }
             drawPath(path, scrim)
             drawRoundRect(
-                color = borderC,
+                color = Color.White.copy(alpha = 0.035f),
                 topLeft = androidx.compose.ui.geometry.Offset(left, top),
                 size = androidx.compose.ui.geometry.Size(frameWpx, frameHpx),
                 cornerRadius = CornerRadius(rPx, rPx),
-                style = Stroke(width = 2.5.dp.toPx()),
+            )
+            // Soft glow under corner brackets.
+            drawArc(
+                color = borderColor.copy(alpha = 0.25f),
+                startAngle = 180f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(left, top),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke * 2f),
+            )
+            drawArc(
+                color = borderColor.copy(alpha = 0.25f),
+                startAngle = 270f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    left + frameWpx - cornerRadiusPx * 2f,
+                    top,
+                ),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke * 2f),
+            )
+            drawArc(
+                color = borderColor.copy(alpha = 0.25f),
+                startAngle = 0f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    left + frameWpx - cornerRadiusPx * 2f,
+                    top + frameHpx - cornerRadiusPx * 2f,
+                ),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke * 2f),
+            )
+            drawArc(
+                color = borderColor.copy(alpha = 0.25f),
+                startAngle = 90f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    left,
+                    top + frameHpx - cornerRadiusPx * 2f,
+                ),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke * 2f),
+            )
+            // Top-left corner bracket.
+            drawArc(
+                color = borderC,
+                startAngle = 180f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(left, top),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke),
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left + cornerRadiusPx, top),
+                end = androidx.compose.ui.geometry.Offset(left + cornerLenPx, top),
+                strokeWidth = bracketStroke,
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left, top + cornerRadiusPx),
+                end = androidx.compose.ui.geometry.Offset(left, top + cornerLenPx),
+                strokeWidth = bracketStroke,
+            )
+            // Top-right corner bracket.
+            drawArc(
+                color = borderC,
+                startAngle = 270f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    left + frameWpx - cornerRadiusPx * 2f,
+                    top,
+                ),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke),
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerLenPx, top),
+                end = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerRadiusPx, top),
+                strokeWidth = bracketStroke,
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left + frameWpx, top + cornerRadiusPx),
+                end = androidx.compose.ui.geometry.Offset(left + frameWpx, top + cornerLenPx),
+                strokeWidth = bracketStroke,
+            )
+            // Bottom-right corner bracket.
+            drawArc(
+                color = borderC,
+                startAngle = 0f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    left + frameWpx - cornerRadiusPx * 2f,
+                    top + frameHpx - cornerRadiusPx * 2f,
+                ),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke),
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left + frameWpx, top + frameHpx - cornerLenPx),
+                end = androidx.compose.ui.geometry.Offset(left + frameWpx, top + frameHpx - cornerRadiusPx),
+                strokeWidth = bracketStroke,
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerLenPx, top + frameHpx),
+                end = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerRadiusPx, top + frameHpx),
+                strokeWidth = bracketStroke,
+            )
+            // Bottom-left corner bracket.
+            drawArc(
+                color = borderC,
+                startAngle = 90f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    left,
+                    top + frameHpx - cornerRadiusPx * 2f,
+                ),
+                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
+                style = Stroke(width = bracketStroke),
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left, top + frameHpx - cornerLenPx),
+                end = androidx.compose.ui.geometry.Offset(left, top + frameHpx - cornerRadiusPx),
+                strokeWidth = bracketStroke,
+            )
+            drawLine(
+                color = borderC,
+                start = androidx.compose.ui.geometry.Offset(left + cornerRadiusPx, top + frameHpx),
+                end = androidx.compose.ui.geometry.Offset(left + cornerLenPx, top + frameHpx),
+                strokeWidth = bracketStroke,
+            )
+            // Subtle animated gradient scan line inside frame.
+            drawLine(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        borderColor.copy(alpha = 0.6f),
+                        Color.Transparent,
+                    ),
+                    startX = left + cornerRadiusPx,
+                    endX = left + frameWpx - cornerRadiusPx,
+                ),
+                start = androidx.compose.ui.geometry.Offset(left + cornerRadiusPx, scanY),
+                end = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerRadiusPx, scanY),
+                strokeWidth = with(density) { 2.dp.toPx() },
             )
         }
         Text(
-            text = "Point at Bingo QR",
-            style = MaterialTheme.typography.labelLarge,
+            text = "Keep QR or full Bingo grid inside frame",
+            style = MaterialTheme.typography.titleSmall.merge(
+                TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        offset = androidx.compose.ui.geometry.Offset(0f, 2f),
+                        blurRadius = 4f,
+                    ),
+                ),
+            ),
             color = labelColor,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .align(Alignment.Center)
-                .offset(y = frameSize * 0.5f + 10.dp)
+                .offset(y = frameSize * 0.5f - Dimens.spacing4),
         )
     }
 }
@@ -471,8 +661,55 @@ fun BingoLiveCameraImportScreen(
                 factory = { previewView },
                 modifier = Modifier.fillMaxSize()
             )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.42f)),
+            )
+            // Very light edge darkening to add depth without affecting framing logic.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.26f),
+                            ),
+                        ),
+                    ),
+            )
             BingoCameraQrViewfinder()
         }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(Dimens.spacing32 * 5)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.52f),
+                            Color.Transparent,
+                        ),
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(Dimens.spacing32 * 5)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.76f),
+                        ),
+                    ),
+                ),
+        )
         TopAppBar(
             title = { Text("Bingo ticket QR", style = MaterialTheme.typography.titleLarge) },
             navigationIcon = {
@@ -485,51 +722,55 @@ fun BingoLiveCameraImportScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
+                containerColor = Color.Black.copy(alpha = 0.26f),
                 titleContentColor = MaterialTheme.colorScheme.onPrimary,
                 navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         )
-        Surface(
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = Dimens.spacing24, vertical = Dimens.spacing16),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(Dimens.radiusXL),
-            shadowElevation = 0.dp,
-            tonalElevation = 0.dp,
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.34f),
+                            Color.Black.copy(alpha = 0.5f),
+                        ),
+                    ),
+                )
+                .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing16),
         ) {
-            Column(Modifier.padding(Dimens.spacing20)) {
+            Column {
                 Text(
                     text = "Scan a Bingo QR to import instantly.",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = Color.White,
                 )
                 Spacer(Modifier.height(Dimens.spacing8))
                 Text(
                     text = "Or scan your ticket.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.8f),
                 )
-                Spacer(Modifier.height(Dimens.spacing16))
-                AppPrimaryButton(
-                    text = if (capturing) "Capturing" else "Scan ticket",
-                    enabled = captureActionEnabled,
-                    loading = capturing,
+                Spacer(Modifier.height(Dimens.spacing12))
+                val buttonInteraction = remember { MutableInteractionSource() }
+                val buttonPressed by buttonInteraction.collectIsPressedAsState()
+                Button(
                     onClick = {
-                        if (handled.get() || fullTicketImportLocked || !captureActionEnabled) return@AppPrimaryButton
-                        if (capturing) return@AppPrimaryButton
-                        val ic = imageCaptureRef.get() ?: return@AppPrimaryButton
+                        if (handled.get() || fullTicketImportLocked || !captureActionEnabled) return@Button
+                        if (capturing) return@Button
+                        val ic = imageCaptureRef.get() ?: return@Button
                         val outFile = runCatching {
                             File.createTempFile("live_full_ticket_capture_", ".jpg", context.cacheDir)
                         }.getOrNull()
                         if (outFile == null) {
                             Log.d(TAG, "capture temp file failed, fallback GMS")
                             onScanFullTicketState.value()
-                            return@AppPrimaryButton
+                            return@Button
                         }
                         capturing = true
                         scope.launch {
@@ -601,7 +842,47 @@ fun BingoLiveCameraImportScreen(
                             }
                         )
                     },
-                )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Dimens.buttonHeight + Dimens.spacing4)
+                        .graphicsLayer {
+                            val s = if (buttonPressed) 0.97f else 1f
+                            scaleX = s
+                            scaleY = s
+                        },
+                    interactionSource = buttonInteraction,
+                    shape = RoundedCornerShape(Dimens.radiusPill),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 8.dp,
+                        pressedElevation = 10.dp,
+                        disabledElevation = 0.dp,
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    enabled = captureActionEnabled && !capturing,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.14f),
+                                    ),
+                                ),
+                                shape = RoundedCornerShape(Dimens.radiusPill),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = if (capturing) "Capturing" else "Scan ticket",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
             }
         }
         if (shutterAlpha.value > 0.001f) {

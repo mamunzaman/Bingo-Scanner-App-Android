@@ -125,11 +125,12 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarDuration
@@ -625,10 +626,10 @@ fun LivePlayScreen(
                                     ),
                                     isCallLimitReached = isCallLimitReached
                                 )
-                                HorizontalDivider(
+                                AppInsetDivider(
                                     modifier = Modifier.padding(vertical = Dimens.spacing8),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                    thickness = 1.dp
+                                    thickness = 1.dp,
                                 )
                             }
                         }
@@ -1890,7 +1891,7 @@ private fun SheetDetailBottomSheet(
     val scannedDate = formatPlayDate(sheet.playedAtMillis)
     val metaSerial = sheet.serialNumber?.takeIf { it.isNotBlank() } ?: "--"
     val metaLos = sheet.losNumber?.takeIf { it.isNotBlank() } ?: "--"
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var showTicketQr by remember { mutableStateOf(false) }
     var ticketQrLoading by remember { mutableStateOf(false) }
@@ -1901,7 +1902,7 @@ private fun SheetDetailBottomSheet(
         runCatching { sheetState.expand() }
     }
 
-    ModalBottomSheet(
+    AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         windowInsets = WindowInsets(0, 0, 0, 0),
@@ -2140,11 +2141,11 @@ private fun SheetPreviewInfoCell(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text(
+        AppSectionTitle(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+            uppercase = false,
+            usePrimaryColor = false,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
         )
         Text(
             text = value,
@@ -2205,7 +2206,7 @@ private fun RoomSettingsBottomSheet(
     onDismiss: () -> Unit,
     onDeleteRoomClick: () -> Unit = {}
 ) {
-    ModalBottomSheet(
+    AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         windowInsets = WindowInsets(0, 0, 0, 0),
         shape = BottomSheetDefaults.ExpandedShape,
@@ -2225,7 +2226,7 @@ private fun RoomSettingsBottomSheet(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Auto-call numbers")
                 Switch(
@@ -2234,7 +2235,7 @@ private fun RoomSettingsBottomSheet(
                     enabled = !isCallLimitReached
                 )
             }
-            Text("Interval (seconds)", style = MaterialTheme.typography.labelMedium)
+            AppSectionTitle(text = "Interval (seconds)", uppercase = false, usePrimaryColor = false)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 8, 10).forEach { sec ->
                     OutlinedButton(onClick = { RoomTimerManager.setInterval(roomId, sec) }) {
@@ -2242,8 +2243,17 @@ private fun RoomSettingsBottomSheet(
                     }
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text("Danger zone", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+            AppInsetDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 1.dp,
+            )
+            AppSectionTitle(
+                text = "Danger zone",
+                uppercase = false,
+                usePrimaryColor = false,
+                color = MaterialTheme.colorScheme.error,
+            )
             OutlinedButton(
                 onClick = onDeleteRoomClick,
                 modifier = Modifier.fillMaxWidth(),

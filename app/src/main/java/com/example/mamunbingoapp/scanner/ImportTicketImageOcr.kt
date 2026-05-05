@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
+import android.graphics.Rect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
@@ -1491,8 +1492,32 @@ object ImportTicketImageOcr {
      * top/bottom) before ML Kit runs, so more budget goes to grid text.
      */
     private fun gridCropForNumberRegion(src: Bitmap): Bitmap {
-        val analyzerCrop = BingoNumberAnalyzer.tryDetectBingoGridCropForOcr(src)
-        if (analyzerCrop != null) {
+        val analyzerRect = BingoNumberAnalyzer.tryDetectBingoGridCropRectForOcr(src)
+        if (analyzerRect != null) {
+            val padX = (analyzerRect.width() * 0.04f).toInt().coerceAtLeast(1)
+            val padY = (analyzerRect.height() * 0.05f).toInt().coerceAtLeast(1)
+            val left = (analyzerRect.left - padX).coerceIn(0, src.width - 2)
+            val top = (analyzerRect.top - padY).coerceIn(0, src.height - 2)
+            val right = (analyzerRect.right + padX).coerceIn(left + 2, src.width)
+            val bottom = (analyzerRect.bottom + padY).coerceIn(top + 2, src.height)
+            val paddedRect = Rect(left, top, right, bottom)
+            val analyzerCrop = try {
+                Bitmap.createBitmap(src, paddedRect.left, paddedRect.top, paddedRect.width(), paddedRect.height())
+            } catch (_: Exception) {
+                null
+            }
+            if (analyzerCrop == null) {
+                val fallback = heuristicCentralGridCrop(src)
+                Log.d(
+                    TAG,
+                    "gridCropForNumberRegion source=heuristic src=${src.width}x${src.height} out=${fallback.width}x${fallback.height}",
+                )
+                return fallback
+            }
+            Log.d(
+                TAG,
+                "gridCrop padded original=${analyzerRect.width()}x${analyzerRect.height()} padded=${paddedRect.width()}x${paddedRect.height()}",
+            )
             Log.d(
                 TAG,
                 "gridCropForNumberRegion source=analyzer src=${src.width}x${src.height} out=${analyzerCrop.width}x${analyzerCrop.height}",
@@ -1575,8 +1600,10 @@ object ImportTicketImageOcr {
         val maxY = valid.maxOf { it.centerY }
         val spanX = (maxX - minX).coerceAtLeast(1f)
         val spanY = (maxY - minY).coerceAtLeast(1f)
-        val insetX = spanX * 0.10f
-        val insetY = spanY * 0.14f
+        val strongCount = 20
+        val useStrongInset = valid.size >= strongCount
+        val insetX = spanX * if (useStrongInset) 0.10f else 0.05f
+        val insetY = spanY * if (useStrongInset) 0.14f else 0.08f
         var left = minX + insetX
         var right = maxX - insetX
         var top = minY + insetY
@@ -1591,6 +1618,10 @@ object ImportTicketImageOcr {
         bottom = minOf(bottom, imgBottom)
         if (right <= left || bottom <= top) return valid
         val inner = valid.filter { it.centerX in left..right && it.centerY in top..bottom }
+        Log.d(
+            TAG,
+            "centralFilter mode=${if (useStrongInset) "strong" else "edge_preserve"} valid=${valid.size} inner=${inner.size}",
+        )
         return if (inner.size >= 6) inner else valid
     }
 

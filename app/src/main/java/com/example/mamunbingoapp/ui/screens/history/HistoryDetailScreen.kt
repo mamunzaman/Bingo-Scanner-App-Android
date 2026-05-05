@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -62,16 +63,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
+import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import androidx.compose.material3.TextField
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -453,9 +457,9 @@ fun HistoryDetailScreen(
                         )
                     }
                 )
-                val historyDetailSectionGap = Dimens.spacing8
+                val historyDetailSectionGap = Dimens.spacing12
                 val historyDetailStatusPadV = Dimens.spacing8
-                val historyDetailWinSpacer = Dimens.spacing8
+                val historyDetailWinSpacer = Dimens.spacing4
                 val historyDetailBottomInset = Dimens.spacing8
                 val historyDetailCalledPanelPadH = Dimens.spacing12
                 val historyDetailWaitingPadding = Dimens.spacing16
@@ -510,9 +514,14 @@ fun HistoryDetailScreen(
                                 ),
                             ) {
                                 if (displaySheetStatus == SheetStatus.ACTIVE) {
-                                    HistoryDetailCompactActiveStatusRow(
-                                        onLeaveClick = { showLeaveLiveDialog = true },
-                                    )
+                                    AppSectionSurface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shadowElevation = 0.dp,
+                                    ) {
+                                        HistoryDetailCompactActiveStatusRow(
+                                            onLeaveClick = { showLeaveLiveDialog = true },
+                                        )
+                                    }
                                 }
                                 HistoryDetailCompactTicketSection(
                                     session = sessionForDisplay,
@@ -557,10 +566,11 @@ fun HistoryDetailScreen(
                             if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
                                 Spacer(modifier = Modifier.height(historyDetailWinSpacer))
                             }
-                            Box(
+                            AppSectionSurface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .fillMaxWidth()
+                                    .fillMaxWidth(),
+                                shadowElevation = 0.dp,
                             ) {
                                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                                     BingoDetailGridCard(
@@ -572,30 +582,48 @@ fun HistoryDetailScreen(
                                 }
                             }
                             if (displayAssignedRoomId != null && displayCalledNumbers.isEmpty()) {
-                                Box(
+                                AppSectionSurface(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(Dimens.radiusCard))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .border(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                            RoundedCornerShape(Dimens.radiusCard)
-                                        )
-                                        .padding(historyDetailWaitingPadding)
+                                        .clip(RoundedCornerShape(Dimens.radiusCard)),
+                                    shape = RoundedCornerShape(Dimens.radiusCard),
+                                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                 ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)) {
-                                        Text(
-                                            text = "Waiting for live data…",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = "Open Live Room to see real-time called numbers.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                                        )
+                                    Row(
+                                        modifier = Modifier.padding(historyDetailWaitingPadding),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.PlayArrow,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(22.dp),
+                                            )
+                                        }
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+                                        ) {
+                                            Text(
+                                                text = "Waiting for live data…",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = "Open Live Room to see real-time called numbers.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -607,6 +635,7 @@ fun HistoryDetailScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoomPickerBottomSheet(
     roomsWithStats: List<com.example.mamunbingoapp.viewmodel.RoomWithStats>,
@@ -614,8 +643,8 @@ private fun RoomPickerBottomSheet(
     onCreateRoom: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -783,7 +812,7 @@ private fun HistoryDetailCompactActiveStatusRow(
                     .clip(RoundedCornerShape(Dimens.radiusPill))
                     .background(Primary)
                     .clickable { }
-                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing5),
+                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing4),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -863,114 +892,143 @@ private fun HistoryDetailCompactTicketSection(
     val statusText = historyDetailStatusLabel(displaySheetStatus)
     val ticketLabelTop = if (compactVertical) 2.dp else 4.dp
     val ticketLabelBottom = if (compactVertical) 1.dp else 2.dp
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "TICKET INFORMATION",
-            modifier = Modifier.padding(
-                top = ticketLabelTop,
-                start = Dimens.spacing12,
-                end = Dimens.spacing12,
-                bottom = ticketLabelBottom,
-            ),
-            fontSize = 9.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.07.em,
-            color = Outline,
-        )
-        LabelValueInfoRow(
-            label = "Sheet name",
-            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-        ) {
-            Text(
-                text = sheetLabel,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.End,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        LabelValueInfoRow(
-            label = "Draw date",
-            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-        ) {
-            Text(
-                text = dateStr,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.End,
-            )
-        }
-        LabelValueInfoRow(
-            label = "Ticket ID",
-            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = truncatedId,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.Monospace,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                IconButton(onClick = onCopyTicketId, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy ticket id",
-                        modifier = Modifier.size(Dimens.iconCompact),
-                        tint = Primary,
-                    )
-                }
-            }
-        }
-        LabelValueInfoRow(
-            label = "Status",
-            variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-        ) {
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = if (displaySheetStatus == SheetStatus.ACTIVE) {
-                    Primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                textAlign = TextAlign.End,
-            )
-        }
-        val statsRowPadV = if (compactVertical) 2.dp else 4.dp
-        Row(
+    AppSectionSurface(modifier = Modifier.fillMaxWidth(), shadowElevation = 0.dp) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = statsRowPadV, horizontal = Dimens.spacing12),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(vertical = Dimens.spacing4)
         ) {
-            Text(text = statsAnnotated, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        session.ocrSource?.takeIf { it in listOf("GEMINI", "ML_KIT") }?.let { src ->
-            val via = if (src == "GEMINI") "Gemini OCR" else "ML Kit OCR"
-            val conf = session.ocrConfidence?.let { " · ${(it * 100).toInt()}%" } ?: ""
-            Text(
-                text = "$via$conf",
+            AppSectionTitle(
+                text = "TICKET INFORMATION",
+                uppercase = false,
+                usePrimaryColor = false,
+                color = Outline.copy(alpha = 0.9f),
                 modifier = Modifier.padding(
+                    top = ticketLabelTop,
                     start = Dimens.spacing12,
                     end = Dimens.spacing12,
-                    top = Dimens.spacing4,
+                    bottom = ticketLabelBottom,
                 ),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
+            LabelValueInfoRow(
+                label = "Sheet name",
+                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+                showDivider = false,
+            ) {
+                Text(
+                    text = sheetLabel,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            AppInsetDivider(
+                startInset = Dimens.spacing12,
+                endInset = Dimens.spacing12,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
+            )
+            LabelValueInfoRow(
+                label = "Draw date",
+                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+                showDivider = false,
+            ) {
+                Text(
+                    text = dateStr,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End,
+                )
+            }
+            AppInsetDivider(
+                startInset = Dimens.spacing12,
+                endInset = Dimens.spacing12,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
+            )
+            LabelValueInfoRow(
+                label = "Ticket ID",
+                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+                showDivider = false,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = truncatedId,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    IconButton(onClick = onCopyTicketId, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy ticket id",
+                            modifier = Modifier.size(Dimens.iconCompact),
+                            tint = Primary,
+                        )
+                    }
+                }
+            }
+            AppInsetDivider(
+                startInset = Dimens.spacing12,
+                endInset = Dimens.spacing12,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
+            )
+            LabelValueInfoRow(
+                label = "Status",
+                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
+                showDivider = false,
+            ) {
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (displaySheetStatus == SheetStatus.ACTIVE) {
+                        Primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    textAlign = TextAlign.End,
+                )
+            }
+            AppInsetDivider(
+                startInset = Dimens.spacing12,
+                endInset = Dimens.spacing12,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
+            )
+            val statsRowPadV = if (compactVertical) 2.dp else 4.dp
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = statsRowPadV, horizontal = Dimens.spacing12),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = statsAnnotated, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            session.ocrSource?.takeIf { it in listOf("GEMINI", "ML_KIT") }?.let { src ->
+                val via = if (src == "GEMINI") "Gemini OCR" else "ML Kit OCR"
+                val conf = session.ocrConfidence?.let { " · ${(it * 100).toInt()}%" } ?: ""
+                Text(
+                    text = "$via$conf",
+                    modifier = Modifier.padding(
+                        start = Dimens.spacing12,
+                        end = Dimens.spacing12,
+                        top = Dimens.spacing4,
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

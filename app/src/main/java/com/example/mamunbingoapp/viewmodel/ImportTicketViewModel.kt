@@ -28,6 +28,8 @@ import kotlin.math.max
 
 private const val FINAL_UI_GRID_LOG = "ImportTicketFinalUi"
 private const val IMPORT_TICKET_GALLERY_LOG = "ImportTicketGallery"
+private const val IMPORT_TICKET_ZOOM_LOG = "ImportTicketZoomGuard"
+private const val TOO_ZOOMED_GRID_AREA_THRESHOLD = 0.88f
 
 /**
  * [BingoLiveCameraImportScreen] still files use this temp prefix; gallery flow does not.
@@ -125,6 +127,29 @@ internal fun weakScanFailureMessage(validCount: Int): String {
             "Couldn't detect the grid. Move closer and ensure good lighting."
         else ->
             "Partial scan detected. Try aligning the grid fully in frame."
+    }
+}
+
+private fun isLikelyTooZoomedForOcr(context: Context, uri: Uri): Boolean {
+    val bitmap = GalleryManualTrim.decodeMaxSide(context, uri, maxSide = 1600) ?: return false
+    return try {
+        val rect = BingoNumberAnalyzer.tryDetectBingoGridCropRectForOcr(bitmap)
+        if (rect == null) {
+            Log.d(IMPORT_TICKET_ZOOM_LOG, "zoomGuard fallback triggered (no grid detected)")
+            return true
+        }
+        val imageArea = (bitmap.width * bitmap.height).toFloat().coerceAtLeast(1f)
+        val gridArea = (rect.width() * rect.height()).toFloat()
+        val areaFrac = gridArea / imageArea
+        Log.d(
+            IMPORT_TICKET_ZOOM_LOG,
+            "zoomGuard areaFrac=${"%.3f".format(areaFrac)} threshold=$TOO_ZOOMED_GRID_AREA_THRESHOLD grid=${rect.width()}x${rect.height()} image=${bitmap.width}x${bitmap.height}",
+        )
+        areaFrac >= TOO_ZOOMED_GRID_AREA_THRESHOLD
+    } catch (_: Exception) {
+        false
+    } finally {
+        if (!bitmap.isRecycled) bitmap.recycle()
     }
 }
 
@@ -312,6 +337,16 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     return@launch
                 }
                 is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
+            }
+            val tooZoomed = withContext(Dispatchers.IO) {
+                isLikelyTooZoomedForOcr(context.applicationContext, uri)
+            }
+            if (uri != _selectedImageUri.value) return@launch
+            if (tooZoomed) {
+                _scanResult.value = ScanResultUiState.Error(
+                    message = "Move camera slightly back so full ticket is visible",
+                )
+                return@launch
             }
             // TODO: Re-enable camera-only padded crop after device QA: preCropCameraForStripOcr = isCameraXStillCaptureUri(uri) && !bypassInternalGridCrop
             val result = withContext(Dispatchers.IO) {

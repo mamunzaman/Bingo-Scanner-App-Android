@@ -31,7 +31,6 @@ import com.example.mamunbingoapp.ui.screens.LoginScreen
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryScreen
 import com.example.mamunbingoapp.ui.screens.MainTabsScreen
 import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_URI_KEY
-import com.example.mamunbingoapp.ui.screens.rememberImportTicketGmsDocumentScanLauncher
 import com.example.mamunbingoapp.ui.screens.RegisterScreen
 import com.example.mamunbingoapp.ui.screens.OnboardingScreen
 import com.example.mamunbingoapp.ui.screens.SplashScreen
@@ -81,7 +80,7 @@ import com.example.mamunbingoapp.history.HistoryOcrSource
  *
  * **Analysis:** `ImportTicketViewModel.analyzeTicketFromUri` runs ML Kit **QR** first (legacy `MAMUN_BINGO_TICKET:` or `mamunbingo://import-ticket?` + [QrTicketCodec]); on success it skips **OCR** and pre-fills like a strong scan. Otherwise the existing **OCR** path is unchanged.
  *
- * **Gallery** on that screen: **PickVisualMedia** → in-app preview → Apply → `onPhotoTaken` + `analyzeTicketFromUri`; Discard cancels pending pick. **Take photo** remains GMS via `onTakePhotoClick`.
+ * **Gallery** on that screen: **PickVisualMedia** → in-app preview → Apply → `onPhotoTaken` + `analyzeTicketFromUri`; Discard cancels pending pick. **Take photo** uses the in-app CameraX route via `bingoLiveCameraImport`.
  *
  * **NavGraph does not** compose `ImportTicketScreen`; `HistoryPhotoImportScreen` wires gallery to `rememberImportTicketGalleryImagePickLauncher`.
  *
@@ -141,12 +140,14 @@ private fun buildManualEntryForRoomRoute(
     numbers: List<Int>,
     losNumber: String? = null,
     serialNumber: String? = null,
+    prefillAsRowMajor: Boolean = false,
 ): String {
     val encoded = Uri.encode(numbers.joinToString(","))
+    val orderParam = if (prefillAsRowMajor) "&prefillOrder=rowMajor" else ""
     val meta =
         if (losNumber.isNullOrBlank() && serialNumber.isNullOrBlank()) ""
         else "&losNumber=${Uri.encode(losNumber ?: "")}&serialNumber=${Uri.encode(serialNumber ?: "")}"
-    return "manualEntryForRoom/$roomId?scannedNumbers=$encoded$meta"
+    return "manualEntryForRoom/$roomId?scannedNumbers=$encoded$orderParam$meta"
 }
 
 private const val HISTORY_PHOTO_IMPORT_GRAPH_ROUTE =
@@ -198,19 +199,23 @@ private fun parseManualEntryFromNav(backStackEntry: NavBackStackEntry): ManualEn
 private data class ManualEntryForRoomFromNavArgs(
     val roomId: String,
     val scannedNumbers: List<Int>,
+    val prefillAsRowMajor: Boolean,
     val entryRouteForPopUpTo: String,
     val ticketMeta: ManualEntryTicketMeta,
 )
 
 private fun parseManualEntryForRoomFromNav(backStackEntry: NavBackStackEntry): ManualEntryForRoomFromNavArgs {
-    val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
-    val scannedNumbers = decodeScannedNumbers(backStackEntry.arguments?.getString("scannedNumbers"))
+    val args = backStackEntry.arguments
+    val roomId = args?.getString("roomId") ?: ""
+    val scannedNumbers = decodeScannedNumbers(args?.getString("scannedNumbers"))
+    val prefillAsRowMajor = args?.getString("prefillOrder") == "rowMajor"
     val entryRoute = backStackEntry.destination.route ?: "manualEntryForRoom/"
     return ManualEntryForRoomFromNavArgs(
         roomId,
         scannedNumbers,
+        prefillAsRowMajor,
         entryRoute,
-        backStackEntry.arguments.parseManualEntryTicketMeta(),
+        args.parseManualEntryTicketMeta(),
     )
 }
 
@@ -384,29 +389,6 @@ fun NavGraph(
             val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
             val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
             val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
-            val launchGmsForTicketPhoto = rememberImportTicketGmsDocumentScanLauncher(
-                onScanResultOk = { uri ->
-                    if (uri != null) {
-                        runCatching {
-                            navController.getBackStackEntry("main")
-                                .savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
-                        }
-                    }
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "handoff src=bingoLiveCameraImport dest=historyPhotoImport (GmsDocumentScanner)"
-                    )
-                    navController.navigate("historyPhotoImport") {
-                        popUpTo("bingoLiveCameraImport") { inclusive = true }
-                    }
-                },
-                onActivityMissing = {
-                    Log.d("ImportTicketGmsScan", "document scanner activity missing for bingo live camera handoff")
-                },
-                onScannerStartFailed = {
-                    Log.d("ImportTicketGmsScan", "document scanner start failed from bingo live camera")
-                },
-            )
             BingoLiveCameraImportScreen(
                 onBingoQrDecoded = { nums, serial, los ->
                     val route = if (!lastActiveRoomId.isNullOrBlank()) {
@@ -415,6 +397,7 @@ fun NavGraph(
                             nums,
                             serialNumber = serial,
                             losNumber = los,
+                            prefillAsRowMajor = true,
                         )
                     } else {
                         buildManualEntryRoute(
@@ -445,7 +428,15 @@ fun NavGraph(
                         popUpTo("bingoLiveCameraImport") { inclusive = true }
                     }
                 },
-                onScanFullTicket = launchGmsForTicketPhoto,
+                onScanFullTicket = {
+                    Log.d(
+                        SCAN_ENTRY_HANDOFF_TAG,
+                        "handoff src=bingoLiveCameraImport fallback dest=historyPhotoImport (non-GMS)"
+                    )
+                    navController.navigate("historyPhotoImport") {
+                        popUpTo("bingoLiveCameraImport") { inclusive = true }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -647,10 +638,15 @@ fun NavGraph(
             )
         }
         composable(
-            route = "manualEntryForRoom/{roomId}?scannedNumbers={scannedNumbers}&losNumber={losNumber}&serialNumber={serialNumber}",
+            route = "manualEntryForRoom/{roomId}?scannedNumbers={scannedNumbers}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}",
             arguments = listOf(
                 navArgument("roomId") { type = NavType.StringType },
                 navArgument("scannedNumbers") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("prefillOrder") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
@@ -671,6 +667,7 @@ fun NavGraph(
             ManualEntryScreen(
                 onBack = { navController.popBackStack() },
                 scannedNumbers = mer.scannedNumbers,
+                prefillAsRowMajor = mer.prefillAsRowMajor,
                 losNumber = mer.ticketMeta.losNumber,
                 serialNumber = mer.ticketMeta.serialNumber,
                 onSaveOnlySuccess = { ticketId, savedRoomId ->
@@ -698,7 +695,8 @@ fun NavGraph(
                 }
             )
         }
-        composable("history") {
+        composable("history") { backStackEntry ->
+            val historyVm: com.example.mamunbingoapp.viewmodel.HistoryViewModel = viewModel(backStackEntry)
             HistoryListScreen(
                 onBack = { navController.popBackStack() },
                 onSessionClick = { sessionId, _ ->
@@ -731,7 +729,11 @@ fun NavGraph(
                 onPlayClick = {
                     runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
                     navController.popBackStack("main", inclusive = false)
-                }
+                },
+                onBulkAddToRoom = { roomId, sessionIds ->
+                    historyVm.addSessionsToRoom(roomId, sessionIds)
+                },
+                viewModel = historyVm
             )
         }
         composable(
@@ -776,22 +778,6 @@ fun NavGraph(
             val prefilledScannedNumbers = importPrefill.scannedNumbers
             val prefilledOcrSource = importPrefill.ocrSource
             val prefilledOcrConfidence = importPrefill.ocrConfidence
-            val launchGmsDocumentScan = rememberImportTicketGmsDocumentScanLauncher(
-                onScanResultOk = { scannedPageUri ->
-                    if (scannedPageUri != null) {
-                        importVm.onPhotoTaken(scannedPageUri)
-                        importVm.analyzeTicketFromUri(context, scannedPageUri)
-                    } else {
-                        importVm.setScanResult(com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error("Could not load scanned page"))
-                    }
-                },
-                onActivityMissing = {
-                    importVm.setScanResult(com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error("Scanner unavailable"))
-                },
-                onScannerStartFailed = {
-                    importVm.setScanResult(com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error("Could not start scanner"))
-                },
-            )
             LaunchedEffect(backStackEntry) {
                 val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
                     ?: return@LaunchedEffect
@@ -872,6 +858,7 @@ fun NavGraph(
                                     finalUiGridRowMajor(nums),
                                     losNumber = s.losNumber,
                                     serialNumber = s.serialNumber,
+                                    prefillAsRowMajor = true,
                                 )
                             } else {
                                 buildManualEntryRoute(

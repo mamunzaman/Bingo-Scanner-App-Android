@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,21 +31,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.mamunbingoapp.data.LiveRoom
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -67,7 +69,7 @@ import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
-import com.example.mamunbingoapp.ui.components.AppPrimaryButton
+import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 @Composable
@@ -82,12 +84,15 @@ fun HistoryListScreen(
     onPlayClick: () -> Unit = {},
     onBulkDeleteSessions: (Collection<String>) -> Unit = { ids -> ids.forEach { onDeleteSession(it) } },
     onBulkLeaveSessions: (Collection<String>) -> Unit = { ids -> ids.forEach { onLeaveRoom(it) } },
+    onBulkAddToRoom: (roomId: String, sessionIds: Collection<String>) -> Unit = { _, _ -> },
     viewModel: HistoryViewModel = viewModel()
 ) {
     var selectionMode by remember { mutableStateOf(false) }
     var selectedSessionIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showBulkDeleteConfirm by remember { mutableStateOf(false) }
     var showBulkLeaveConfirm by remember { mutableStateOf(false) }
+    var showRoomPicker by remember { mutableStateOf(false) }
+    val liveRooms by viewModel.liveRooms.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val filteredSessions by viewModel.filteredSessions.collectAsState()
@@ -105,6 +110,12 @@ fun HistoryListScreen(
     }
     val selectedSessionsInLive = remember(selectedSessionIds, filteredSessions) {
         filteredSessions.filter { it.session.id in selectedSessionIds && it.roomId != null }
+    }
+    val selectedSessionsNotInRoom = remember(selectedSessionIds, filteredSessions) {
+        filteredSessions.filter { it.session.id in selectedSessionIds && it.roomId == null }
+    }
+    val allSelectedInRoom = remember(selectedSessionIds, selectedSessionsNotInRoom) {
+        selectedSessionIds.isNotEmpty() && selectedSessionsNotInRoom.isEmpty()
     }
     val combinedFilterOptions = buildList {
         add(HistoryFilter.ALL.displayName)
@@ -140,7 +151,7 @@ fun HistoryListScreen(
             if (selectionMode && filteredSessions.isNotEmpty()) {
                 BulkSelectionActionBar(
                     modifier = Modifier.navigationBarsPadding(),
-                    showJoinLive = true,
+                    showJoinLive = selectedSessionsInLive.isNotEmpty(),
                     joinLiveEnabled = selectedSessionsInLive.isNotEmpty(),
                     joinLiveCount = selectedSessionsInLive.size,
                     onJoinLiveClick = {
@@ -150,6 +161,15 @@ fun HistoryListScreen(
                             selectedSessionIds = emptySet()
                         }
                     },
+                    showAddToRoom = selectedSessionsNotInRoom.isNotEmpty(),
+                    addToRoomEnabled = selectedSessionsNotInRoom.isNotEmpty(),
+                    addCount = selectedSessionsNotInRoom.size,
+                    onAddToRoomClick = {
+                        if (selectedSessionsNotInRoom.isNotEmpty()) showRoomPicker = true
+                    },
+                    inRoomInfoText = if (allSelectedInRoom) {
+                        "Selected sheets are already in a room. Remove first to add to another room."
+                    } else null,
                     showRemoveFromRoom = filteredSessions.any { it.roomId != null },
                     removeFromRoomEnabled = selectedSessionIdsInRoom.isNotEmpty(),
                     removeCount = selectedSessionIdsInRoom.size,
@@ -231,20 +251,15 @@ fun HistoryListScreen(
                                         onClick = onAddFromPhotoClick,
                                         modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Add,
-                                                contentDescription = "Add from photo",
-                                                modifier = Modifier.size(24.dp),
-                                                tint = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        }
+                                        AppIconTile(
+                                            icon = Icons.Default.Add,
+                                            size = 40.dp,
+                                            iconSize = 24.dp,
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            iconTint = MaterialTheme.colorScheme.onPrimary,
+                                            shape = RoundedCornerShape(50),
+                                            contentDescription = "Add from photo",
+                                        )
                                     }
                                 }
                             }
@@ -281,6 +296,20 @@ fun HistoryListScreen(
                         }
                     }
                 )
+                if (showRoomPicker) {
+                    val pendingIds = selectedSessionsNotInRoom.map { it.session.id }
+                    AddToRoomPickerSheet(
+                        rooms = liveRooms,
+                        onRoomSelected = { roomId ->
+                            onBulkAddToRoom(roomId, pendingIds)
+                            showRoomPicker = false
+                            selectionMode = false
+                            selectedSessionIds = emptySet()
+                        },
+                        onDismiss = { showRoomPicker = false },
+                        onCreateRoom = onPlayClick
+                    )
+                }
                 if (filteredSessions.isEmpty() && sessionsWithLive.isEmpty()) {
                     Column(
                         modifier = Modifier
@@ -351,7 +380,7 @@ fun HistoryListScreen(
                                                         .fillMaxWidth()
                 ) {
                     val listAreaHeight = maxHeight
-                    val historyHeaderHeight = 136.dp
+                    val historyHeaderHeight = 148.dp
                     val listState = rememberLazyListState()
                     val isScrolled = listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
                     val separatorMaskAlpha by animateFloatAsState(
@@ -362,8 +391,8 @@ fun HistoryListScreen(
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = historyHeaderHeight, bottom = Dimens.spacing8),
-                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing12)
+                            contentPadding = PaddingValues(top = historyHeaderHeight, bottom = Dimens.spacing24),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
                         ) {
             if (filteredSessions.isEmpty()) {
                     item(key = "empty") {
@@ -437,6 +466,8 @@ fun HistoryListScreen(
                                 onLeaveRoom = if (item.roomId != null) ({ onLeaveRoom(item.session.id) }) else null,
                                 selectionMode = selectionMode,
                                 selected = item.session.id in selectedSessionIds,
+                                inRoom = item.roomId != null,
+                                roomName = item.roomName,
                                 onSelectionToggle = {
                                     val id = item.session.id
                                     selectedSessionIds =
@@ -458,7 +489,7 @@ fun HistoryListScreen(
                             Column(
                                 modifier = Modifier
                                                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                     .padding(top = Dimens.spacing8)
                             ) {
                                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -505,6 +536,85 @@ fun HistoryListScreen(
         }
         }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddToRoomPickerSheet(
+    rooms: List<LiveRoom>,
+    onRoomSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onCreateRoom: () -> Unit = {}
+) {
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    AppBottomSheetSurface(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.spacing24, vertical = Dimens.spacing8)
+        ) {
+            Text(
+                text = "Choose live room",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = Dimens.spacing16)
+            )
+            if (rooms.isEmpty()) {
+                Text(
+                    text = "No active live rooms",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Dimens.spacing12)
+                )
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onCreateRoom()
+                    }
+                ) {
+                    Text("Create live room")
+                }
+            } else {
+                rooms.forEachIndexed { index, room ->
+                    if (index > 0) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onRoomSelected(room.roomId) }
+                            .padding(vertical = Dimens.spacing12),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = room.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "Add",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Cancel")
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+        }
     }
 }
 

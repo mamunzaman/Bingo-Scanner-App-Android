@@ -76,6 +76,7 @@ private fun decodeBingoFromBarcodes(
             return ImportTicketQrPreOcr.NoBingoQrContinueOcr
         }
         onValidBingo()
+        Log.d("QR_DEBUG", "decoded cells rowMajor=${rowMajor.joinToString()}")
         return ImportTicketQrPreOcr.Decoded(
             numbers = rowMajor,
             serial = p.serial?.takeIf { it.isNotBlank() },
