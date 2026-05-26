@@ -91,6 +91,18 @@ import com.example.mamunbingoapp.history.HistoryOcrSource
  */
 private const val SCAN_ENTRY_HANDOFF_TAG = "scan-entry-handoff"
 
+private fun stagePendingHistoryPhotoImportScanType(
+    navController: NavHostController,
+    scanType: BingoScanType,
+) {
+    runCatching {
+        navController.getBackStackEntry("main").savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] =
+            scanType.name
+    }.onFailure {
+        Log.w(SCAN_ENTRY_HANDOFF_TAG, "failed to stage scanType=${scanType.name}: ${it.message}")
+    }
+}
+
 /** Same conditions as auto `navigate` from `historyPhotoImport`; used to hide hero image before transition. */
 private fun qualifiesForHistoryPhotoAutoManualEntry(
     scanResult: com.example.mamunbingoapp.viewmodel.ScanResultUiState,
@@ -409,6 +421,10 @@ fun NavGraph(
         ) { backStackEntry ->
             val scanType = BingoScanType.fromRouteValue(backStackEntry.arguments?.getString("scanType"))
             val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
+            LaunchedEffect(scanType) {
+                stagePendingHistoryPhotoImportScanType(navController, scanType)
+                Log.d(SCAN_ENTRY_HANDOFF_TAG, "camera open scanType=${scanType.name}")
+            }
             val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
             val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
             val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
@@ -446,19 +462,26 @@ fun NavGraph(
                         val mainHandle = navController.getBackStackEntry("main").savedStateHandle
                         mainHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
                         mainHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] = scanType.name
+                    }.onSuccess {
+                        Log.d(
+                            SCAN_ENTRY_HANDOFF_TAG,
+                            "handoff src=bingoLiveCameraImport dest=historyPhotoImport scanType=${scanType.name} (CameraX still)",
+                        )
+                    }.onFailure {
+                        Log.w(
+                            SCAN_ENTRY_HANDOFF_TAG,
+                            "handoff failed to stage uri+scanType=${scanType.name}: ${it.message}",
+                        )
                     }
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "handoff src=bingoLiveCameraImport dest=historyPhotoImport (CameraX still)"
-                    )
                     navController.navigate("historyPhotoImport") {
                         popUpTo("bingoLiveCameraImport") { inclusive = true }
                     }
                 },
                 onScanFullTicket = {
+                    stagePendingHistoryPhotoImportScanType(navController, scanType)
                     Log.d(
                         SCAN_ENTRY_HANDOFF_TAG,
-                        "handoff src=bingoLiveCameraImport fallback dest=historyPhotoImport (non-GMS)"
+                        "handoff src=bingoLiveCameraImport fallback dest=historyPhotoImport scanType=${scanType.name}",
                     )
                     navController.navigate("historyPhotoImport") {
                         popUpTo("bingoLiveCameraImport") { inclusive = true }
@@ -811,7 +834,8 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val context = LocalContext.current
-            val importVm: com.example.mamunbingoapp.viewmodel.ImportTicketViewModel = viewModel()
+            val importVm: com.example.mamunbingoapp.viewmodel.ImportTicketViewModel =
+                viewModel(backStackEntry)
             val selectedUri by importVm.selectedImageUri.collectAsState(initial = null)
             val galleryPendingUri by importVm.galleryPendingEditUri.collectAsState(initial = null)
             val displayImportUri = galleryPendingUri ?: selectedUri
@@ -832,9 +856,22 @@ fun NavGraph(
                 mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
                 if (pending.isBlank()) return@LaunchedEffect
                 val uri = Uri.parse(pending)
-                val pendingScanType = BingoScanType.fromRouteValue(pendingScanTypeName)
-                importVm.onPhotoTaken(uri, pendingScanType)
-                importVm.analyzeTicketFromUri(context, uri, scanType = pendingScanType)
+                val effectiveScanType = pendingScanTypeName?.let { BingoScanType.fromRouteValue(it) }
+                    ?: BingoScanType.PLAY_PAPER
+                if (pendingScanTypeName == null) {
+                    Log.w(
+                        SCAN_ENTRY_HANDOFF_TAG,
+                        "missing $PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY; using effectiveScanType=${effectiveScanType.name}",
+                    )
+                } else {
+                    Log.d(
+                        SCAN_ENTRY_HANDOFF_TAG,
+                        "consume pending uri scanType=$pendingScanTypeName effective=${effectiveScanType.name}",
+                    )
+                }
+                importVm.setPendingScanType(effectiveScanType)
+                importVm.onPhotoTaken(uri, effectiveScanType)
+                importVm.analyzeTicketFromUri(context, uri, scanType = effectiveScanType)
             }
             LaunchedEffect(prefilledScannedNumbers, selectedUri, galleryPendingUri) {
                 if (selectedUri == null && galleryPendingUri == null && prefilledScannedNumbers.isNotEmpty()) {

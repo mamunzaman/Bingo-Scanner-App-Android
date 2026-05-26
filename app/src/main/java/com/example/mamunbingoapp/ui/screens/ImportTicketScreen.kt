@@ -113,6 +113,7 @@ import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.ImportTicketFailedScanContent
+import com.example.mamunbingoapp.ui.components.ScanningAnalysisAnimation
 import com.example.mamunbingoapp.viewmodel.GalleryManualTrim
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
@@ -916,45 +917,30 @@ private fun ImportTicketHeroAnalyzingOverlay(
     Box(
         modifier = modifier
             .clip(imageClipShape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        cs.scrim.copy(alpha = 0.28f),
-                        Color.Black.copy(alpha = 0.38f),
-                        cs.scrim.copy(alpha = 0.44f),
-                    ),
-                ),
-            ),
+            .background(Color.Black.copy(alpha = 0.54f)),
         contentAlignment = Alignment.Center,
     ) {
+        ScanningAnalysisAnimation(modifier = Modifier.fillMaxSize())
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing14),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = Dimens.spacing16),
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(36.dp),
-                color = Primary.copy(alpha = 0.92f),
-                trackColor = Color.White.copy(alpha = 0.18f),
-                strokeWidth = 2.dp,
+            Text(
+                text = stringResource(R.string.import_ticket_analyzing_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.92f),
+                textAlign = TextAlign.Center,
             )
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
-            ) {
-                Text(
-                    text = stringResource(R.string.import_ticket_analyzing_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.92f),
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = stringResource(R.string.import_ticket_analyzing_duration_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.62f),
-                    textAlign = TextAlign.Center,
-                )
-            }
+            Text(
+                text = stringResource(R.string.import_ticket_analyzing_duration_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.62f),
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

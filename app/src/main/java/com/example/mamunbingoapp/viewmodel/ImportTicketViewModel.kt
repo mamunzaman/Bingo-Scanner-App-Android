@@ -13,9 +13,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.history.HistoryOcrSource
 import com.example.mamunbingoapp.scanner.BingoNumberAnalyzer
 import com.example.mamunbingoapp.domain.model.BingoScanType
-import com.example.mamunbingoapp.scanner.ImportTicketImageOcr
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
+import com.example.mamunbingoapp.scanner.MainSheetBingoOcr
 import com.example.mamunbingoapp.scanner.OnlineBingoOcr
+import com.example.mamunbingoapp.scanner.PlayPaperBingoOcr
 import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromImageUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,11 +32,12 @@ import kotlin.math.max
 private const val FINAL_UI_GRID_LOG = "ImportTicketFinalUi"
 private const val IMPORT_TICKET_GALLERY_LOG = "ImportTicketGallery"
 private const val IMPORT_TICKET_ZOOM_LOG = "ImportTicketZoomGuard"
+private const val IMPORT_TICKET_OCR_ROUTE_LOG = "ImportTicketOcrRoute"
 private const val TOO_ZOOMED_GRID_AREA_THRESHOLD = 0.88f
 
 /**
  * [BingoLiveCameraImportScreen] still files use this temp prefix; gallery flow does not.
- * TODO: Re-enable with [ImportTicketImageOcr.analyzeUri] `preCropCameraForStripOcr` after device QA; current path breaks custom capture.
+ * TODO: Re-enable with [PlayPaperBingoOcr.analyzeUri] / [MainSheetBingoOcr.analyzeUri] `preCropCameraForStripOcr` after device QA; current path breaks custom capture.
  */
 @Suppress("unused")
 private fun isCameraXStillCaptureUri(uri: Uri): Boolean {
@@ -237,6 +239,8 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _pendingScanType.value = scanType
     }
 
+    fun peekPendingScanType(): BingoScanType? = _pendingScanType.value
+
     /**
      * Updates selection to [ScanResultUiState.Idle] (image preview only). UI shows analyzing overlay only after [analyzeTicketFromUri] sets [ScanResultUiState.Loading].
      */
@@ -302,7 +306,12 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         if (l <= 1e-5f && t <= 1e-5f && r <= 1e-5f && b <= 1e-5f) {
             _galleryPendingEditUri.value = null
             onPhotoTaken(uri)
-            analyzeTicketFromUri(app, uri, bypassInternalGridCrop = true)
+            analyzeTicketFromUri(
+                app,
+                uri,
+                bypassInternalGridCrop = true,
+                scanType = _pendingScanType.value,
+            )
             return
         }
         if (galleryApplyJob?.isActive == true) return
@@ -316,7 +325,12 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 val finalUri = trimmedUri ?: uri
                 _galleryPendingEditUri.value = null
                 onPhotoTaken(finalUri)
-                analyzeTicketFromUri(app, finalUri, bypassInternalGridCrop = true)
+                analyzeTicketFromUri(
+                    app,
+                    finalUri,
+                    bypassInternalGridCrop = true,
+                    scanType = _pendingScanType.value,
+                )
             } finally {
                 galleryApplyJob = null
             }
@@ -334,6 +348,10 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         scanType: BingoScanType? = null,
     ) {
         val effectiveScanType = scanType ?: _pendingScanType.value ?: BingoScanType.PLAY_PAPER
+        Log.d(
+            IMPORT_TICKET_OCR_ROUTE_LOG,
+            "selectedType=${effectiveScanType.name} argScanType=${scanType?.name} pendingScanType=${_pendingScanType.value?.name}",
+        )
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
             _scanResult.value = ScanResultUiState.Loading
@@ -375,8 +393,16 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     BingoScanType.ONLINE -> runCatching {
                         OnlineBingoOcr.analyzeUri(context.applicationContext, uri)
                     }
-                    else -> runCatching {
-                        ImportTicketImageOcr.analyzeUri(
+                    BingoScanType.MAIN_SHEET -> runCatching {
+                        MainSheetBingoOcr.analyzeUri(
+                            context.applicationContext,
+                            uri,
+                            bypassInternalGridCrop = bypassInternalGridCrop,
+                            preCropCameraForStripOcr = false,
+                        )
+                    }
+                    BingoScanType.PLAY_PAPER -> runCatching {
+                        PlayPaperBingoOcr.analyzeUri(
                             context.applicationContext,
                             uri,
                             bypassInternalGridCrop = bypassInternalGridCrop,

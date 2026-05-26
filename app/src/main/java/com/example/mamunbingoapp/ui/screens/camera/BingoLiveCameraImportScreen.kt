@@ -246,7 +246,7 @@ private fun tryCropToViewfinderFrame(
             ok = true
             Log.d(
                 CROP_LOG,
-                "cropped view=${previewW}x${previewH} rect=$cropR in=${sourceJpeg.length()}B out=${out.length()}B"
+                "cropped view=${previewW}x${previewH} rect=$cropR in=${sourceJpeg.length()}B out=${out.length()}B",
             )
             out
         } finally {

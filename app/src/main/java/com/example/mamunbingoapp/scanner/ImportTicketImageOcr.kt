@@ -1322,7 +1322,10 @@ object ImportTicketImageOcr {
      * Layout-anchored weak path: blue BINGO band → numeric grid to the right of the branding strip;
      * returns only if [isStrictValidRowMajorGrid] for per-cell OCR on the grid crop.
      */
-    private fun tryWeakPathBingoHeaderLayout(pass1: Bitmap, recognizer: TextRecognizer): HistoryImportOcrOutcome? {
+    private fun tryWeakPathBingoHeaderLayout(
+        pass1: Bitmap,
+        recognizer: TextRecognizer,
+    ): HistoryImportOcrOutcome? {
         val headerBottom = detectBlueBingoHeaderBottomY(pass1)
         if (headerBottom == null) {
             Log.d(TAG, "bingoHeaderWeak: headerDetected=false")

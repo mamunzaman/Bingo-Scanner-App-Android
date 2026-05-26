@@ -1,6 +1,36 @@
 ﻿# Next task
 
-**Goal:** Device QA — Settings toggles persist after app restart.
+**Goal:** Device QA — Import workflow restored + scanner animation visible on-device.
+
+**Verify:** (1) History → Add from photo → gallery/camera actions visible immediately (no stale scan result); (2) Scan tab → capture → overlay shows green grid animation + "Analyzing your ticket…" centred over image; (3) After OCR → result card, save/manual buttons visible; (4) ONLINE/PLAY_PAPER/MAIN_SHEET all route correctly; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Root cause was `historyPhotoImport` VM scoped to `main` (from routing fix) causing stale `Success` state on fresh navigation — reverted to screen-scoped `viewModel(backStackEntry)`. Scan type still flows via `savedStateHandle`. `ScanningAnalysisAnimation` text labels moved out of the animation component back into `ImportTicketHeroAnalyzingOverlay` (centred Column). `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Bingo Online scan after routing fix.
+
+**Verify:** Scan tab → Bingo Online → capture → Logcat: `ImportTicketOcrRoute selectedType=ONLINE`, `OnlineBingoOcr selected`, `bitmapSize=… rawCandidateCount=…`; grid prefills; PLAY_PAPER/MAIN_SHEET unchanged; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Main-scoped `ImportTicketViewModel`, camera scan-type staging + handoff fallback, gallery passes pending type. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — MAIN_SHEET grid+Serie/Los-only crop on Lotto receipts.
+
+**Verify:** Logcat `MainSheetOcr`: grid bounds, footer bounds, ignored lower area, valid count; no Super 6/Spiel 77 noise; early exit on good scans; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Receipt layout detect, grid+footer crop, 5×5 cell OCR, narrow Serie/Los band, lower-receipt text trim. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — MAIN_SHEET receipt close-up OCR on thermal bingo tickets.
+
+**Done (status):** `ImportTicketImageOcr` MAIN_SHEET path: 4 preprocess variants, receipt crop, footer-below-grid meta, BINGO-header weak path; VM routes `MAIN_SHEET` only. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Settings toggles persist after app restart.
 
 **Verify:** Toggle Push / Daily reminders / FaceID / Data sharing / demo data / keep screen on → kill app → reopen Settings → values kept; theme unchanged; `./gradlew :app:assembleDebug` green.
 

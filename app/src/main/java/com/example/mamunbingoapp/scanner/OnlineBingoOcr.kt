@@ -46,9 +46,10 @@ object OnlineBingoOcr {
     private val gridNumberPattern = Regex("(?<![0-9])([1-9]|[1-6][0-9]|7[0-5])(?![0-9])")
 
     fun analyzeUri(context: Context, uri: Uri): HistoryImportOcrOutcome {
-        Log.d(TAG, "started")
+        Log.d(TAG, "OnlineBingoOcr selected")
         val bitmap = loadBitmapDownsampled(context, uri, maxSide = 1600)
             ?: error("Could not load image")
+        Log.d(TAG, "started bitmapSize=${bitmap.width}x${bitmap.height}")
         return try {
             analyzeBitmapWithPreprocessRetries(bitmap)
         } finally {
@@ -124,6 +125,10 @@ object OnlineBingoOcr {
         }
 
         val rawCandidates = collectNumericCandidates(visionText)
+        Log.d(
+            TAG,
+            "variant=$variantName bitmapSize=${bitmap.width}x${bitmap.height} rawCandidateCount=${rawCandidates.size}",
+        )
         val preGridCandidates = filterPreGridCandidates(
             rawCandidates,
             excludeSerie = serie,
