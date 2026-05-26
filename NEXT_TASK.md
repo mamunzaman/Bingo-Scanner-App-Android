@@ -1,8 +1,14 @@
 ﻿# Next task
 
-**Goal:** Device QA — Live Grid View bingo card breathing room.
+**Goal:** Wire `BingoScanType` into OCR pipeline (branch layout/OCR per PLAY_PAPER / ONLINE / MAIN_SHEET).
 
-**Verify:** Grid View only: more space above/below carousel grid vs top bar + bottom keypad; List View unchanged; `./gradlew :app:assembleDebug` green.
+**Verify:** Scan tab → sheet → each type → camera toast/log matches; History/Jackpot camera still default PLAY_PAPER; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `BingoScanType` model; `ScanTypeSelectionSheet` before camera on Scan tab; `bingoLiveCameraImport?scanType=` nav arg; debug toast + Logcat `BingoScanType`. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Live Grid View bingo card breathing room.
 
 **Done (status):** `BingoSheetsCarousel` padding top/bottom 12/8 → 16/16. `./gradlew :app:assembleDebug` OK.
 

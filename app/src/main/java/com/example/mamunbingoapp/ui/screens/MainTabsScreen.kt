@@ -9,6 +9,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.screens.scan.ScanScreen
@@ -19,9 +20,9 @@ fun MainTabsScreen(
     onTabSelected: (AppTab) -> Unit,
     onNavigateToLiveRoom: (String) -> Unit,
     onNavigateToLiveRooms: () -> Unit,
-    /** Scan tab Launch camera: same GMS Take Photo launcher as `main` → pending URI → `historyPhotoImport`. */
-    onNavigateToHistoryPhotoImport: () -> Unit,
-    /** Jackpot “Scan Sheet”: same launcher as Scan tab camera. */
+    /** Scan tab / camera: opens in-app CameraX with [BingoScanType] for OCR routing. */
+    onNavigateToBingoLiveCamera: (BingoScanType) -> Unit,
+    /** Jackpot “Scan Sheet”: opens camera without scan-type sheet (default target). */
     onJackpotScanSheet: () -> Unit,
     onNavigateToManualEntry: () -> Unit,
     onNavigateToManualEntryWithScannedNumbers: (List<Int>) -> Unit = {},
@@ -56,7 +57,7 @@ fun MainTabsScreen(
             AppTab.Scan -> ScanScreen(
                 modifier = Modifier.fillMaxSize(),
                 onBackClick = { onTabSelected(AppTab.Home) },
-                onLaunchCamera = onNavigateToHistoryPhotoImport,
+                onLaunchCamera = onNavigateToBingoLiveCamera,
                 onOpenNumberPad = onNavigateToManualEntry
             )
             AppTab.Jackpot -> com.example.mamunbingoapp.ui.screens.live.LiveRoomsScreen(

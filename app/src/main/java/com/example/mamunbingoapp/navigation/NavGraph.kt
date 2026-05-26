@@ -54,6 +54,7 @@ import com.example.mamunbingoapp.ui.screens.profile.SupportScreen
 import androidx.compose.runtime.collectAsState
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
 import com.example.mamunbingoapp.viewmodel.MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
@@ -152,6 +153,10 @@ private fun buildManualEntryForRoomRoute(
         else "&losNumber=${Uri.encode(losNumber ?: "")}&serialNumber=${Uri.encode(serialNumber ?: "")}&sheetName=${Uri.encode(sheetName ?: "")}"
     return "manualEntryForRoom/$roomId?scannedNumbers=$encoded$orderParam$meta"
 }
+
+private fun buildBingoLiveCameraImportRoute(
+    scanType: BingoScanType = BingoScanType.PLAY_PAPER,
+): String = "bingoLiveCameraImport?scanType=${Uri.encode(scanType.name)}"
 
 private const val HISTORY_PHOTO_IMPORT_GRAPH_ROUTE =
     "historyPhotoImport?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&losNumber={losNumber}&serialNumber={serialNumber}&sheetName={sheetName}"
@@ -355,16 +360,17 @@ fun NavGraph(
                     }
                 }
             }
-            val launchBingoLiveCameraFromMain: () -> Unit = {
-                navController.navigate("bingoLiveCameraImport")
-            }
             MainTabsScreen(
                 selectedTab = selectedTab,
                 onTabSelected = { tabsViewModel.setSelectedTab(it) },
                 onNavigateToLiveRoom = { roomId -> navController.navigate("livePlayRoom/$roomId") },
                 onNavigateToLiveRooms = {},
-                onNavigateToHistoryPhotoImport = launchBingoLiveCameraFromMain,
-                onJackpotScanSheet = launchBingoLiveCameraFromMain,
+                onNavigateToBingoLiveCamera = { scanType ->
+                    navController.navigate(buildBingoLiveCameraImportRoute(scanType))
+                },
+                onJackpotScanSheet = {
+                    navController.navigate(buildBingoLiveCameraImportRoute(BingoScanType.PLAY_PAPER))
+                },
                 onNavigateToManualEntry = { navController.navigate("manualEntry") },
                 onNavigateToManualEntryWithScannedNumbers = { numbers ->
                     val roomId = lastActiveRoomId
@@ -388,12 +394,22 @@ fun NavGraph(
                 }
             )
         }
-        composable("bingoLiveCameraImport") {
+        composable(
+            route = "bingoLiveCameraImport?scanType={scanType}",
+            arguments = listOf(
+                navArgument("scanType") {
+                    type = NavType.StringType
+                    defaultValue = BingoScanType.PLAY_PAPER.name
+                },
+            ),
+        ) { backStackEntry ->
+            val scanType = BingoScanType.fromRouteValue(backStackEntry.arguments?.getString("scanType"))
             val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
             val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
             val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
             val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
             BingoLiveCameraImportScreen(
+                scanType = scanType,
                 onBingoQrDecoded = { nums, serial, los, sheetName ->
                     val route = if (!lastActiveRoomId.isNullOrBlank()) {
                         buildManualEntryForRoomRoute(
@@ -922,7 +938,7 @@ fun NavGraph(
                                 SCAN_ENTRY_HANDOFF_TAG,
                                 "handoff src=HistoryPhotoImportScreen(ui_take_photo) dest=bingoLiveCameraImport"
                             )
-                            navController.navigate("bingoLiveCameraImport")
+                            navController.navigate(buildBingoLiveCameraImportRoute())
                         },
                         onSaveClick = {},
                         onSaveAndRoomClick = {},

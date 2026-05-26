@@ -9,6 +9,7 @@ import android.graphics.RectF
 import android.media.ExifInterface
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import kotlin.math.max
 import kotlin.math.roundToInt
 import androidx.activity.ComponentActivity
@@ -94,6 +95,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
 import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromInputImage
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 import com.google.mlkit.vision.common.InputImage
@@ -483,9 +485,12 @@ private fun BingoCameraQrViewfinder() {
     }
 }
 
+private const val BINGO_SCAN_TYPE_LOG = "BingoScanType"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BingoLiveCameraImportScreen(
+    scanType: BingoScanType,
     onBingoQrDecoded: (rowMajor: List<Int>, serial: String?, los: String?, sheetName: String?) -> Unit,
     onFullTicketPhotoCaptured: (uri: Uri) -> Unit,
     onScanFullTicket: () -> Unit,
@@ -493,6 +498,14 @@ fun BingoLiveCameraImportScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(scanType) {
+        Log.d(BINGO_SCAN_TYPE_LOG, "camera scanType=${scanType.name} title=${scanType.title}")
+        Toast.makeText(
+            context,
+            "Scan target: ${scanType.title}",
+            Toast.LENGTH_SHORT,
+        ).show()
+    }
     val activity = context as? ComponentActivity
     var hasCameraPermission by remember {
         mutableStateOf(

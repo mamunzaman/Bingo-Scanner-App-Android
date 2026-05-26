@@ -43,10 +43,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -62,6 +63,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.theme.Dimens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -96,10 +98,11 @@ private fun ScanNumberPadPillShape() = RoundedCornerShape(999.dp)
 fun ScanScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit,
-    onLaunchCamera: () -> Unit,
+    onLaunchCamera: (BingoScanType) -> Unit,
     onOpenNumberPad: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    var showScanTypeSheet by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val h = maxHeight
         val seamCenterYFrac = (SlantGreenBottomLeftYFrac + SlantGreenBottomRightYFrac) / 2f
@@ -153,7 +156,7 @@ fun ScanScreen(
             Column(Modifier.weight(1f).fillMaxWidth()) {
                 Box(Modifier.weight(0.55f).fillMaxWidth()) {
                     ScanDirectTopSection(
-                        onLaunchCamera = onLaunchCamera,
+                        onLaunchCamera = { showScanTypeSheet = true },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -181,6 +184,15 @@ fun ScanScreen(
                 color = colors.onSurface
             )
         }
+    }
+    if (showScanTypeSheet) {
+        ScanTypeSelectionSheet(
+            onDismiss = { showScanTypeSheet = false },
+            onScanTypeSelected = { type ->
+                showScanTypeSheet = false
+                onLaunchCamera(type)
+            },
+        )
     }
 }
 
