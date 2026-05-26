@@ -1,6 +1,58 @@
 # Project status
 
-**Last update:** 2026-05-05 - **History Detail called-status balance tweak:** waiting/called-status block now uses a compact 44dp circular status tile (`primary @ 0.12`) with centered primary icon (`PlayArrow`) beside the existing status copy, replacing the oversized visual treatment. Wrapper (`AppSectionSurface`), spacing, and behavior unchanged. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-24 - **QR sheet name:** encode/decode `sheetName`; manual entry prefill + "Bingo name" rename UI from QR. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Live play called numbers** (bottom sheet only). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Circular board chip polish.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Called numbers sheet spacing.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Row-grid dot matrix board.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Circular chip board premium polish.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **TV board 5-cap + right overflow.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **TV board single-stack polish.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board 5-column layout:** equal-weight lanes, adaptive scale. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **Manual entry sheet rename crash fix:** VM draft/commit rename. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board scoreboard polish.** `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board column clarity:** separators + centered lanes. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board clean surface:** single app-green board, no inset panels. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board premium polish:** (reverted heavy panels). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board tune:** app primary-green; 5 main / overflow right. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-20 - **TV board readability:** text-only numbers; sheet recent chips + board only. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **TV board + sheet premium polish:** scoreboard surface, tiered numbers, cleaner tracks; sheet smaller hero, compact recent chips, board focus. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **Shared TvBingoBoard** in detail sheet + history panel. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **CalledHistoryPanel TV board:** latest/recent row + solid-green track board. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **Live list bottom padding fix:** list `spacing8` bottom inset; scaffold handles dock. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **Live keypad dock compact:** digit keys 40dp; tighter gaps; metrics synced. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **Live Play list density:** ticket list inter-card gap `spacing4`; sticky-to-first card gap unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-18 - **Live Play list bottom padding:** `LivePlayCallKeypadMetrics` drives animated list/empty scroll bottom inset from keypad collapsed vs expanded (`showNumberKeypad`, 200ms). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-13 - **Live compact top bar polish:** `LiveLastCalledPremiumChip` (muted LAST + primary number), circular green-tint history toggle, tighter vertical padding / 44dp row, hairline divider before expanded history. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-13 - **Live Play keypad + history toggles.**
+
+**Previous:** 2026-05-13 - **Live called-numbers detail sheet:** New `CalledNumbersDetailSheet` (modal bottom sheet) shows full B/I/N/G/O grid with tiered styling for latest vs recent vs older calls; `LivePlayScreen` opens it via `appClickable` on `LiveRoomWithHistoryCard` (both list and card layouts). No calling/navigation logic changes. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-05 - **History Detail called-status balance tweak:** waiting/called-status block now uses a compact 44dp circular status tile (`primary @ 0.12`) with centered primary icon (`PlayArrow`) beside the existing status copy, replacing the oversized visual treatment. Wrapper (`AppSectionSurface`), spacing, and behavior unchanged. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-05 - **History Detail hierarchy fine-tuning:** ticket info section got subtle inner vertical breathing room, softer section title tint (`Outline @ 0.9`), and explicit inset `AppInsetDivider` row separators (`outlineVariant @ 0.24`). Active status row is now wrapped in `AppSectionSurface` and live pill height slightly reduced. Grid area now sits inside `AppSectionSurface`; pre-grid win spacer reduced (`8dp -> 4dp`). No logic/grid-internal/action/navigation changes. `./gradlew :app:assembleDebug` OK.
 

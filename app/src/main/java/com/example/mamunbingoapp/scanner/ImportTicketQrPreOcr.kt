@@ -26,6 +26,7 @@ sealed class ImportTicketQrPreOcr {
         val numbers: List<Int>,
         val serial: String?,
         val los: String?,
+        val sheetName: String?,
     ) : ImportTicketQrPreOcr()
 
     data object NoBingoQrContinueOcr : ImportTicketQrPreOcr()
@@ -81,6 +82,7 @@ private fun decodeBingoFromBarcodes(
             numbers = rowMajor,
             serial = p.serial?.takeIf { it.isNotBlank() },
             los = p.los?.takeIf { it.isNotBlank() },
+            sheetName = p.sheetName.trim().takeIf { it.isNotEmpty() },
         )
     }
     if (hadMamunCandidate) {

@@ -1,10 +1,116 @@
 ﻿# Next task
 
-**Goal:** Device QA — verify new compact called-status icon tile balance in History Detail waiting block.
+**Goal:** Device QA — Live Grid View bingo card breathing room.
 
-**Verify:** Waiting/called-status block shows compact 44dp circular status tile (`primary @ 0.12`) with centered icon and balanced text rhythm; section wrapper/spacing unchanged; top-bar actions and grid behavior unchanged; `./gradlew :app:assembleDebug` green.
+**Verify:** Grid View only: more space above/below carousel grid vs top bar + bottom keypad; List View unchanged; `./gradlew :app:assembleDebug` green.
 
-**Done (status):** `HistoryDetailScreen` called-status waiting block icon was compacted: replaced oversized visual with a 44dp circular status tile (`primary.copy(alpha = 0.12f)`) and centered `PlayArrow` icon in `primary`; title/helper copy preserved and aligned with icon in a centered `Row`. `AppSectionSurface` wrapper and section spacing kept intact. No logic changes. `./gradlew :app:assembleDebug` OK.
+**Done (status):** `BingoSheetsCarousel` padding top/bottom 12/8 → 16/16. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — premium clean TV board.
+
+**Done (status):** Single centered stack version. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — TV board 5 columns visible on small phones.
+
+**Done (status):** Equal-weight columns, adaptive scale. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — manual entry sheet-title focus/keyboard stress.
+
+**Done (status):** Screen-owned FocusRequester + safe dismiss. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — manual entry rename Logcat traceability.
+
+**Done (status):** `logRenameState` in ViewModel. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — manual entry sheet rename (5× quick) must not crash.
+
+**Done (status):** VM draft/commit rename flow. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — polished TV scoreboard look.
+
+**Done (status):** TV board scoreboard polish. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — TV board column clarity + vertical spacing.
+
+**Done (status):** Column separators + centered lanes. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — clean TV board (no inset panels).
+
+**Done (status):** Single app-green surface; no inset panels. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — premium TV board depth + underline accents.
+
+**Done (status):** Superseded by clean single-surface board. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — TV board app-green + 5-lane overflow readability.
+
+**Done (status):** Primary-green surface; 5 main / overflow right. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Called Numbers sheet + TV board text readability.
+
+**Done (status):** Removed `LatestCallPill`; text-only tiers; centered lanes; no empty-column lines. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Called Numbers sheet: compact latest pill + premium board numbers.
+
+**Done (status):** Superseded by text-first board (no latest pill). `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Live Play list bottom padding / dock spacing.
+
+**Done (status):** List `contentPadding.bottom` = `spacing8`; empty state `spacing16`. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Live Play keypad dock + list density.
+
+**Done (status):** Compact keypad dock; list ticket gap `spacing4`. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Live Play list density + bottom dock spacing.
+
+**Done (status):** List ticket gap `spacing4`; sticky→first `spacing5`; bottom dock padding logic untouched. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Live Play list bottom spacing with keypad collapsed vs expanded.
+
+**Verify:** List view: hide keypad → last ticket sits naturally; show keypad → last ticket scrolls clear of digit rows; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `LivePlayCallKeypadMetrics`; animated `liveInputDockHeight` + `liveListLazyContentBottomPad` from `showNumberKeypad`. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — compact live top bar polish: **LAST** chip + highlighted number, circular history button, tighter row height.
+
+**Verify:** Collapsed card looks balanced; history expand unchanged; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `LiveRoomWithHistoryCard` — `LiveLastCalledPremiumChip`, `LiveHistoryToggleButton`, tighter padding. `./gradlew :app:assembleDebug` OK.
 
 ---
 
@@ -84,7 +190,7 @@
 
 **Verify:** Section labels unchanged; grouped sections show 20dp rounded `Surface` + outline border; rows ≥84dp with 48dp icon tiles; inset dividers between multi-rows; DATA / PRIVACY / ABOUT unchanged.
 
-**Done (status):** `SettingsScreen.kt` (under `ui/screens/profile/`): `SettingsGroupedSection` + `Surface` (`radiusLarge`, `outlineVariant` border, tonal elevation); `SettingsIconTile` (48dp, `radiusSearchField`, `primaryContainer` @ 0.45f); `SettingsInsetDivider`; `groupedInCard` on toggle/theme/nav rows. Applied to LIVE PLAY, APPEARANCE, NOTIFICATIONS, SECURITY only. `./gradlew :app:assembleDebug` OK.
+**Done (status):** `SettingsScreen.kt` (under `ui/screens/profile/`): `SettingsGroupedSection` + `Surface` (`radiusLarge`, `outlineVariant` border, subtle tonal elevation); `SettingsIconTile` (48dp, `radiusSearchField`, `primaryContainer` @ 0.45f); `SettingsInsetDivider`; `groupedInCard` on toggle/theme/nav rows. Applied to LIVE PLAY, APPEARANCE, NOTIFICATIONS, SECURITY only. `./gradlew :app:assembleDebug` OK.
 
 ---
 
@@ -100,7 +206,7 @@
 
 **Verify:** (1) Open any saved ticket → QR → scan with live camera → imported manual entry shows exact same B/I/N/G/O numbers in exact same cells; (2) no "73 is not allowed in Column G" or similar column errors; (3) scan with an active live room (room context) → same result; (4) logcat shows `QR_DEBUG: decoded cells rowMajor=…` with expected order.
 
-**Done (status):** Root cause: `buildManualEntryForRoomRoute` did not encode `prefillOrder`, so `ManualEntryScreen` defaulted to `prefillAsRowMajor=false` and wrongly applied `storedColumnOrderToRowMajor` on already row-major QR data. Fixed: added `prefillAsRowMajor: Boolean = false` to `buildManualEntryForRoomRoute`, included `&prefillOrder=rowMajor` in URL when true; added `prefillOrder` nav argument to `manualEntryForRoom` route; `parseManualEntryForRoomFromNav` reads it; `ManualEntryScreen` in the ForRoom composable now receives `prefillAsRowMajor = mer.prefillAsRowMajor`. QR decode callback and history photo import both pass `prefillAsRowMajor = true`. Added `Log.d("QR_DEBUG", …)` in `decodeBingoFromBarcodes`. `./gradlew :app:assembleDebug` OK.
+**Done (status):** Root cause: `buildManualEntryForRoomRoute` did not encode `prefillOrder`, so `ManualEntryScreen` defaulted to `prefillAsRowMajor=false` and wrongly applied `storedColumnOrderToRowMajor` on already row-major QR data. Fixed: added `prefillAsRowMajor: Boolean = false` to `buildManualEntryForRoomRoute`, included `&prefillOrder=rowMajor` in URL when true; added `prefillOrder` nav argument to `manualEntryForRoom` route; `ManualEntryScreen` in the ForRoom composable now receives `prefillAsRowMajor = mer.prefillAsRowMajor`. QR decode callback and history photo import both pass `prefillAsRowMajor = true`. Added `Log.d("QR_DEBUG", …)` in `decodeBingoFromBarcodes`. `./gradlew :app:assembleDebug` OK.
 
 ---
 
@@ -109,26 +215,6 @@
 **Verify:** `./gradlew :app:assembleDebug`; in History: (1) cards with a room show "In: <room name>" pill (fallback "In room" if name unavailable); (2) tap Select → in-room cards show tiny muted hint "Already added — remove first to move rooms" under date; (3) select only in-room cards → "Add eligible" button hidden, muted info text "Selected sheets are already in a room. Remove first to add to another room." visible above delete row; (4) mixed selection → "Add eligible (N)" shows correct count of non-in-room only; (5) room picker receives only non-in-room IDs.
 
 **Done (status):** `HistorySheetCard` gained `roomName: String?` param; pill text is now `"In: $roomName"` / `"In room"` fallback; in `selectionMode && inRoom` shows muted `labelSmall` hint below subtitle. `BulkSelectionActionBar` gained `inRoomInfoText: String?` which renders above action buttons when set; "Add to room" label changed to "Add eligible". `HistoryListScreen` derives `allSelectedInRoom`; passes `inRoomInfoText` when all-in-room; `roomName = item.roomName` passed to each card. `./gradlew :app:assembleDebug` OK.
-
-**Verify:** `./gradlew :app:assembleDebug`; in History: (1) select sessions without a room → tap "Add to room (N)" → picker opens with live rooms; (2) tap a room → sessions are assigned, selection clears, cards immediately show "In room" pill; (3) with mixed selection (some in-room) → picker shows, only the non-room count appears on button, already-in-room sheets are not duplicated; (4) no active rooms → empty state "No active live rooms" + "Create live room" CTA works; (5) select only in-room sheets → "Add to room" button not shown; (6) logcat: no `AlreadyInRoom` errors for newly-added sheets.
-
-**Done (status):** `HistoryViewModel.addSessionsToRoom(roomId, sessionIds)` iterates session IDs, looks up `ticketId` via `sessions.first()`, checks `RoomRepository.findAssignedRoomId(ticketId)` to skip already-assigned, calls `assignTicketToRoom` for eligible ones (state refreshes via DB flow). `NavGraph` obtains the back-stack-scoped `HistoryViewModel` with `viewModel(backStackEntry)` and wires `onBulkAddToRoom = { roomId, ids -> historyVm.addSessionsToRoom(roomId, ids) }`. `HistoryListScreen` `onAddToRoomClick` guards `if (selectedSessionsNotInRoom.isNotEmpty())` before opening picker. Button label shows eligible count from `selectedSessionsNotInRoom.size`. `./gradlew :app:assembleDebug` OK.
-
-**Verify:** `./gradlew :app:assembleDebug`; in History: (1) select sheets without a room → tap "Add to room" in bulk bar → `AddToRoomPickerSheet` opens, title "Choose live room"; (2) with no active rooms → shows "No active live rooms" + "Create live room" CTA (tapping dismisses sheet and navigates to Live); (3) with active rooms → each room shows name + "Add" label; (4) tap a room → `onBulkAddToRoom(roomId, ids)` fires with only non-room session IDs, selection clears, sheet closes; (5) mixed selection (some in-room, some not) → only not-in-room sheets in `pendingIds`, already-in-room sheets skipped; (6) tap Cancel → sheet closes, selection stays; (7) in-room-only selection → "Add to room" button absent, only "Join live" visible.
-
-**Done (status):** `HistoryViewModel` now exposes `liveRooms: StateFlow<List<LiveRoom>>` via `RoomRepository.getRooms()`. `HistoryListScreen` adds `showRoomPicker` state; `onAddToRoomClick` sets it to `true`; `AddToRoomPickerSheet` (private composable, `ModalBottomSheet`) shows live rooms or empty state + "Create live room" CTA; on room tap fires `onBulkAddToRoom(roomId, pendingIds)` with only the non-room session IDs, then clears selection. `onBulkAddToRoom` signature updated to `(roomId: String, sessionIds: Collection<String>) -> Unit`. `./gradlew :app:assembleDebug` OK.
-
----
-
-**Goal (previous):** Verify "In room" pill + bulk Add to room on device — history sheets in a room should show the pill, and bulk selection should expose the "Add to room" button only for eligible (not-yet-in-room) sheets.
-
-**Verify:** `./gradlew :app:assembleDebug`; in History: (1) sessions that have a `roomId` show a small muted-green "In room" pill next to their title, (2) tap **Select** and choose only in-room sheets → only "Join live" appears in bulk bar, no "Add to room", (3) select only non-in-room sheets → only "Add to room" appears, (4) mixed selection → both "Join live" + "Add to room" show, (5) tapping "Add to room" fires `onBulkAddToRoom` with only the non-room IDs (the callback is wired by the nav caller), (6) cards without a room show no pill.
-
-**Done (status):** `HistorySheetCard` gained optional `inRoom: Boolean` param; when true renders a `primaryContainer @ 0.45` pill with `primary` text "In room" inline with the title. `HistoryListScreen` derived `selectedSessionsNotInRoom`; `showAddToRoom` / `addToRoomEnabled` / `addCount` / `onAddToRoomClick` wired to the bulk bar (only eligible IDs passed to `onBulkAddToRoom`); `showJoinLive` now conditionally shown only when in-room selection is non-empty; `inRoom = item.roomId != null` passed to each card. `./gradlew :app:assembleDebug` OK.
-
-**Verify:** `./gradlew :app:assembleDebug`; in History (with sessions): (1) **without selection** the mini-grid + title sit at their original x-position (no leading gap), (2) tap **Select** → 42dp slot appears, checkbox centered, mini-grid + title shift right consistently for all selected/unselected cards while in selection mode, (3) exit selection mode → cards return to original alignment immediately, (4) mini-grid → title gap stays 10dp, (5) bulk action bar spacing/disabled colors unchanged from previous patch.
-
-**Done (status):** `HistorySheetCard` — wrapped the 42.dp leading-slot `Box` in `if (selectionMode) { … }`, so normal mode renders nothing leading (original alignment restored) while selection mode keeps the centered checkbox in the slot. Mini-grid → title `spacedBy(spacing10)` and bulk action bar polish (from previous patch) untouched. `./gradlew :app:assembleDebug` OK.
 
 ---
 
@@ -142,58 +228,6 @@
 | **2** | **Ticket photo → existing OCR** — feed capture into `historyPhotoImport` / `ImportTicketViewModel`; **no OCR rewrite**. |
 | **3** | **Crop/confirm screen** — replace GMS crop behavior **gradually**; **leave gallery + uCrop** flow unchanged. |
 | **4** | **Remove GMS scanner** only after **device QA** on the custom flow passes. |
-
----
-
-## UI consistency audit — 2026-04-27 (read-only, code-sampled)
-
-*Backlog: pick one cluster for a minimal patch when not on CameraX work.*
-
-### Headers — Home, Live, History, Settings, Import, Detail
-
-- **Green band shell (`AppHeaderPageLayout` + `AppTopBar`):** `HomeScreen`, `LiveRoomsScreen`, `HistoryListScreen`, `SettingsScreen`, `ProfileScreen`, `LoginScreen`, `MyAccountScreen`, `LiveSheetDetailScreen` (pattern aligned).
-- **Outlier — Jackpot tab:** `JackpotScreen` uses `Column` + `MaterialTheme.colorScheme.background` and **`AppTopBar` only** (no `AppHeaderPageLayout`), so the Live/Jackpot hub does not match the Home/History/Settings header treatment.
-- **Import:** `ImportTicketScreen` uses `Box(statusBarsPadding())` + `AppTopBar` on `background` — no green band; differs from `AppHeaderPageLayout` tabs.
-- **Details / subflows:** `HistoryDetailScreen` (and other flows) mix **`AppHeaderBackground` + `Scaffold`** with **`AppTopBar`** vs the `AppHeaderPageLayout` pattern — background/readability may match intent but **top-of-screen hierarchy** is not one pattern everywhere.
-
-**Actionable:** Decide one rule — e.g. “all main/leaf surfaces use `AppHeaderPageLayout` unless full-bleed exception” — then align `JackpotScreen` and `ImportTicketScreen` first, then sweep detail screens.
-
-### Cards / containers — border, radius, shadow, padding
-
-- **Elevation:** `iosElevatedShadow` and/or tonal cards appear on Home/hero paths; `HistorySheetCard` / `RoomSessionCard` families use different elevation/border (see `PROJECT_STATUS` / recent polish notes).
-- **Borders / radius:** `Dimens.radiusCard`, `outlineVariant` alpha, and `cardBorderDefault` show up in newer sheets; older cards may still use different shape/border weight.
-
-**Actionable:** Pick one “list row card” spec (radius, border alpha, shadow 0 vs subtle) and one “hero/featured card” spec; diff `HistorySheetCard` vs `RoomSessionCard` / `JackpotHeroCard` in a single pass when patching.
-
-### Buttons / actions — height, radius, emphasis, typography
-
-- **Primary CTA:** `AppPrimaryButton` is `Dimens.buttonHeight` + `MaterialTheme.shapes.medium` + `typography.labelLarge` — use as the reference.
-- **Live rooms:** header **Add** is a custom **40dp** primary circle, not a standard `IconButton` or FAB pattern — may be intentional but reads different from `AppTopBar` `actions` elsewhere.
-- **Room settings bottom sheet** (`RoomSettingsBottomSheet` in `LivePlayScreen.kt`): `OutlinedButton` for chips and delete — not necessarily `AppPrimaryButton` height for destructive row.
-
-**Actionable:** For the next patch, target **one** surface (e.g. settings sheet or import CTAs) and align to `AppPrimaryButton` / M3 `ButtonDefaults` where appropriate.
-
-### Spacing rhythm — big gaps, bottom space, list rhythm
-
-- **Top spacing:** e.g. `LiveRoomsScreen` content uses `padding(top = Dimens.spacing24)` + `spacedBy(20.dp)`; `JackpotScreen` uses `24.dp` top in scroll branch; `Settings`/`Home` use `Dimens.spacing8` top under bar — **not a single “section top” token** across primary tabs.
-- **Scroll bottom:** Many screens use `Dimens.spacing16` bottom padding; `ImportTicketScreen` uses `spacing16` + `spacing24` split for main column — check **bottom bar** clearance vs list screens.
-
-**Actionable:** Standardize `screen top inset below header` to one of `Dimens.spacing8` | `spacing16` | `spacing24` per shell type; document in one comment or `Dimens` alias when patching.
-
-### Typography — title / label / value
-
-- **Sheet titles:** `RoomInfoBottomSheet` uses **titleLarge + Bold** for “Room Info”; `RoomSettingsBottomSheet` uses **titleMedium** for “Room settings” (same app, different level).
-- **Headlines in sheets:** `RoomInfoBottomSheet` uses `headlineSmall` for the room name; detail/list screens may use `titleLarge` / `titleMedium` differently for the same “primary name” role.
-
-**Actionable:** One sheet title style (`titleLarge` vs `titleMedium`) and one “entity name” style for room/sheet name across Info/Settings/Detail.
-
-### Bottom sheets — padding, radius, tone
-
-- **Container color:** `MyTicketsBottomSheet` — `containerColor = surface`. `RoomInfoBottomSheet`, `SheetDetailBottomSheet`, `RoomSettingsBottomSheet` — **`surfaceContainer`**. Inconsistent **tone** between in-room “My tickets” and other modals.
-- **Horizontal padding:** `RoomInfo` / `RoomSettings` use **24.dp** all around; `MyTicketsBottomSheet` content uses `Dimens.screenHorizontalPadding` (not necessarily 24); `SheetDetailBottomSheet` uses `screenHorizontalPadding` + `spacing16` bottom.
-- **Drag handle:** `MyTicketsBottomSheet` has a **custom** 32×4 handle block; `SheetDetailBottomSheet` inlines a **40×4** handle; `RoomInfoBottomSheet` relies on default M3 handle (no custom block in file) — **handle presence/size differs**.
-
-**Actionable:** Unify on **one** `containerColor` rule (e.g. all live play sheets = `surfaceContainer` or all = `surface`) and **one** handle + horizontal padding (token from `Dimens` vs hardcoded 24).
 
 ---
 

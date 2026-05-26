@@ -269,6 +269,9 @@ fun ManualEntryBingoCard(
     selectedIndex: Int,
     draftPerCell: List<String>,
     onCellSelected: (Int) -> Unit,
+    sheetTitleFocusRequester: FocusRequester,
+    sheetNameFieldLabel: String? = null,
+    sheetNameRenameHelper: String? = null,
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
     compactGreenHeader: Boolean = false
@@ -280,12 +283,6 @@ fun ManualEntryBingoCard(
         fontWeight = FontWeight.Bold,
         color = OnPrimary
     )
-    val titleFocusRequester = remember { FocusRequester() }
-    LaunchedEffect(isEditingSheetName) {
-        if (isEditingSheetName) {
-            runCatching { titleFocusRequester.requestFocus() }
-        }
-    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -428,6 +425,16 @@ fun ManualEntryBingoCard(
                         )
                     }
                     Spacer(modifier = Modifier.height(Dimens.spacing4))
+                    if (!sheetNameFieldLabel.isNullOrBlank()) {
+                        Text(
+                            text = sheetNameFieldLabel,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                            color = OnPrimary,
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.spacing4))
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -445,7 +452,7 @@ fun ManualEntryBingoCard(
                                     onValueChange = onSheetNameChange,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .focusRequester(titleFocusRequester),
+                                        .focusRequester(sheetTitleFocusRequester),
                                     textStyle = sheetTitleStyle.copy(
                                         color = OnPrimary,
                                         fontWeight = FontWeight.Normal
@@ -492,6 +499,14 @@ fun ManualEntryBingoCard(
                                 .size(Dimens.iconAlert)
                                 .clickable { onToggleEditSheet() },
                             tint = greenHeaderLabelColor
+                        )
+                    }
+                    if (!sheetNameRenameHelper.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(Dimens.spacing4))
+                        Text(
+                            text = sheetNameRenameHelper,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = greenHeaderLabelColor.copy(alpha = 0.92f),
                         )
                     }
                 }

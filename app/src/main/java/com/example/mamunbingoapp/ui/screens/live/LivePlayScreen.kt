@@ -171,6 +171,8 @@ import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.LiveRoomTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
+import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
+import com.example.mamunbingoapp.ui.core.interaction.appClickable
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.ui.components.BingoCardGrid
@@ -184,7 +186,6 @@ import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.MiniBingoGrid
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.SettingsRepository
-import com.example.mamunbingoapp.ui.screens.manual.ManualEntryKeypadDockMetrics
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.ui.model.BingoCellUi
@@ -269,6 +270,8 @@ fun LivePlayScreen(
     var showDeleteRoomConfirm by remember { mutableStateOf(false) }
     var showConfetti by remember { mutableStateOf(false) }
     var detailSheet by remember { mutableStateOf<LiveSheetUi?>(null) }
+    var showCalledNumbersSheet by rememberSaveable { mutableStateOf(false) }
+    var showNumberKeypad by rememberSaveable { mutableStateOf(true) }
     var listSelectionMode by rememberSaveable { mutableStateOf(false) }
     var selectedTicketIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showLiveListBulkLeaveConfirm by remember { mutableStateOf(false) }
@@ -293,8 +296,7 @@ fun LivePlayScreen(
     }
     val displaySheets = sheets
     val canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached
-    val liveContentBottomPad = ManualEntryKeypadDockMetrics.estimatedDockHeight + Dimens.spacing8
-    val liveListLazyContentBottomPad = Dimens.spacing8
+    val liveEmptyStateBottomPad = Dimens.spacing16
 
     LaunchedEffect(selectedView) {
         if (!selectedView) {
@@ -521,7 +523,9 @@ fun LivePlayScreen(
                     selectedTabForBottomBar = selectedTabForBottomBar,
                     onTabSelected = onTabSelected,
                     showCompactBar = showCompactBar,
-                    haptic = haptic
+                    haptic = haptic,
+                    showNumberKeypad = showNumberKeypad,
+                    onToggleNumberKeypad = { showNumberKeypad = !showNumberKeypad },
                 )
             }
         }
@@ -569,7 +573,7 @@ fun LivePlayScreen(
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = Dimens.screenHorizontalPadding)
-                        .padding(bottom = liveContentBottomPad)
+                        .padding(bottom = liveEmptyStateBottomPad)
                 ) {
                     AnimatedVisibility(
                         visible = roomSettings?.isRunning == true && !isCallLimitReached,
@@ -593,7 +597,7 @@ fun LivePlayScreen(
                         start = Dimens.screenHorizontalPadding,
                         end = Dimens.screenHorizontalPadding,
                         top = Dimens.spacing8,
-                        bottom = liveListLazyContentBottomPad
+                        bottom = Dimens.spacing8
                     )
                 ) {
                     item(key = "resume_banner") {
@@ -624,7 +628,14 @@ fun LivePlayScreen(
                                         lastCalledAtMillis = lastCalledAtMillis,
                                         effectiveStatus = effectiveStatus
                                     ),
-                                    isCallLimitReached = isCallLimitReached
+                                    isCallLimitReached = isCallLimitReached,
+                                    onOpenCalledNumbers = { showCalledNumbersSheet = true },
+                                    lastCalled = lastCalled,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .appClickable(
+                                            rippleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                                        ) { showCalledNumbersSheet = true },
                                 )
                                 AppInsetDivider(
                                     modifier = Modifier.padding(vertical = Dimens.spacing8),
@@ -640,8 +651,8 @@ fun LivePlayScreen(
                     itemsIndexed(displaySheets, key = { _, sheet -> sheet.ticketId }) { index, sheet ->
                         Box(
                             modifier = Modifier
-                                .padding(bottom = Dimens.spacing5)
-                                .then(if (index == 0) Modifier else Modifier.padding(top = Dimens.spacing5))
+                                .padding(bottom = Dimens.spacing4)
+                                .then(if (index == 0) Modifier else Modifier.padding(top = Dimens.spacing4))
                         ) {
                             ListSheetRow(
                                 title = sheet.title,
@@ -685,14 +696,21 @@ fun LivePlayScreen(
                             lastCalledAtMillis = lastCalledAtMillis,
                             effectiveStatus = effectiveStatus
                         ),
-                        isCallLimitReached = isCallLimitReached
+                        isCallLimitReached = isCallLimitReached,
+                        onOpenCalledNumbers = { showCalledNumbersSheet = true },
+                        lastCalled = lastCalled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .appClickable(
+                                rippleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                            ) { showCalledNumbersSheet = true },
                     )
                 }
                 BingoSheetsCarousel(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(top = Dimens.spacing12, bottom = Dimens.spacing8),
+                        .padding(top = Dimens.spacing16, bottom = Dimens.spacing16),
                     sheets = displaySheets,
                     initialSelectedTicketId = initialSelectedTicketId,
                     onSheetClick = { detailSheet = it }
@@ -717,6 +735,12 @@ fun LivePlayScreen(
             }
         )
     }
+    if (showCalledNumbersSheet) {
+        CalledNumbersDetailSheet(
+            onDismiss = { showCalledNumbersSheet = false },
+            calledNumbers = calledNumbers,
+        )
+    }
     }
 }
 
@@ -736,7 +760,9 @@ private fun LivePlayBottomArea(
     selectedTabForBottomBar: AppTab,
     onTabSelected: (AppTab) -> Unit,
     showCompactBar: Boolean,
-    haptic: HapticFeedback
+    haptic: HapticFeedback,
+    showNumberKeypad: Boolean,
+    onToggleNumberKeypad: () -> Unit,
 ) {
     val actionGuard = remember { mutableStateOf(false) }
     val sizeWhenGuardSet = remember { mutableStateOf<Int?>(null) }
@@ -820,6 +846,8 @@ private fun LivePlayBottomArea(
                 onDraftChange = onInputChange,
                 canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached,
                 actionInProgress = actionGuard.value,
+                showNumberKeypad = showNumberKeypad,
+                onToggleNumberKeypad = onToggleNumberKeypad,
                 onCallClick = {
                     if (!actionGuard.value) {
                         actionGuard.value = true
@@ -2001,6 +2029,7 @@ private fun SheetDetailBottomSheet(
                                             QrTicketCodec.encodeDeepLink(
                                                 QrTicketPayload(
                                                     grid = grid,
+                                                    sheetName = sheet.title.trim(),
                                                     serial = serial,
                                                     los = los,
                                                 )

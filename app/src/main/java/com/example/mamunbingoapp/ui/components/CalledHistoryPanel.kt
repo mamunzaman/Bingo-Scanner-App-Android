@@ -41,10 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +57,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 private val CalledHistoryMainRowHeight = 72.dp
+private val TvNumberCyanShadow = Color(0xFF80DEEA)
 
 /**
  * Where the panel sits horizontally: **[HistoryDetail]** matches live card (no duplicate horizontal padding; parent has screen padding).
@@ -68,11 +69,7 @@ enum class CalledHistoryPanelContext {
 }
 
 /**
- * Recent called numbers: **latest** as a large primary circle; prior calls in a [LazyRow] with
- * horizontal **contentPadding** (no edge overlay), **snap** fling, and **animateScrollToItem** so the active (last) call stays visible with a small inward offset. Card chrome and "Called History" header removed.
- * Light theme: main circle uses softened greens + brighter white rim; inactive small circles use warm **#F5F3F0** fill and slightly stronger hairline border.
- *
- * @param applyOuterPadding When false, parent supplies horizontal/insets (e.g. shared live card). Ignored when [panelContext] is [CalledHistoryPanelContext.HistoryDetail].
+ * Recent called numbers: latest + prior calls row, then a full-width TV-style **B I N G O** track board (no chips on the board).
  */
 @Composable
 fun CalledHistoryPanel(
@@ -93,6 +90,7 @@ fun CalledHistoryPanel(
     val lastCalled = calledNumbers.lastOrNull()
     val displayList = calledNumbers
     val isEmpty = displayList.isEmpty()
+    val numbersByColumn = remember(calledNumbers) { groupCalledNumbersByColumn(calledNumbers) }
     val listState = rememberLazyListState()
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
     var hasDoneInitialScroll by remember { mutableStateOf(false) }
@@ -109,6 +107,7 @@ fun CalledHistoryPanel(
             listState.animateScrollToItem(index)
         }
     }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -117,7 +116,7 @@ fun CalledHistoryPanel(
                     Modifier.padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8)
                 } else {
                     Modifier.padding(vertical = Dimens.spacing4)
-                }
+                },
             ),
     ) {
         if (isEmpty) {
@@ -138,7 +137,7 @@ fun CalledHistoryPanel(
                         .weight(1f)
                         .fillMaxHeight()
                         .padding(start = Dimens.spacing12),
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
                         text = "No numbers called yet",
@@ -169,20 +168,18 @@ fun CalledHistoryPanel(
                     isFinished = isCallLimitReached,
                     modifier = Modifier.zIndex(2f),
                 )
-                Spacer(modifier = Modifier.width(0.dp))
                 val overlapOffset = 8.dp
                 BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .zIndex(1f)
+                        .zIndex(1f),
                 ) {
                     val chipSize = 44.dp
                     val chipSpacing = Dimens.spacing8
                     val chipCount = displayList.size
                     val totalSpacing = if (chipCount > 1) chipSpacing * (chipCount - 1) else 0.dp
-                    val estimatedContentWidth =
-                        (chipSize * chipCount) + totalSpacing
+                    val estimatedContentWidth = (chipSize * chipCount) + totalSpacing
                     val fitsWithoutScroll = estimatedContentWidth <= maxWidth
 
                     if (fitsWithoutScroll) {
@@ -193,7 +190,7 @@ fun CalledHistoryPanel(
                                     .wrapContentWidth()
                                     .offset(x = -overlapOffset),
                                 horizontalArrangement = Arrangement.spacedBy(chipSpacing),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 displayList.forEach { num ->
                                     HistoryCallCircle(
@@ -209,7 +206,7 @@ fun CalledHistoryPanel(
                             LazyRow(
                                 state = listState,
                                 flingBehavior = flingBehavior,
-                                contentPadding = PaddingValues(start = 0.dp, end = 0.dp),
+                                contentPadding = PaddingValues(),
                                 horizontalArrangement = Arrangement.spacedBy(chipSpacing),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -227,7 +224,29 @@ fun CalledHistoryPanel(
                     }
                 }
             }
-        
+
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+
+            TvBingoBoard(
+                numbersByColumn = numbersByColumn,
+                latest = lastCalled,
+                boardGreen = colorScheme.primary,
+                letterRed = colorScheme.secondary,
+                lineColor = Color.Black.copy(alpha = 0.38f),
+                callSequence = calledNumbers,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        if (showLimitMessage && isCallLimitReached) {
+            Text(
+                text = "Round complete — all calls shown",
+                modifier = Modifier.padding(top = Dimens.spacing4),
+                style = MaterialTheme.typography.labelSmall,
+                color = colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -259,16 +278,10 @@ private fun LatestCallCircle(
                 alphaAnim.snapTo(0.88f)
                 coroutineScope {
                     launch {
-                        scaleAnim.animateTo(
-                            1f,
-                            tween(260, easing = FastOutSlowInEasing),
-                        )
+                        scaleAnim.animateTo(1f, tween(260, easing = FastOutSlowInEasing))
                     }
                     launch {
-                        alphaAnim.animateTo(
-                            1f,
-                            tween(260, easing = FastOutSlowInEasing),
-                        )
+                        alphaAnim.animateTo(1f, tween(260, easing = FastOutSlowInEasing))
                     }
                 }
                 previousNumber = number
@@ -308,9 +321,9 @@ private fun LatestCallCircle(
                         Brush.radialGradient(
                             colors = listOf(Color.White.copy(alpha = 0.09f), Color.Transparent),
                             center = Offset(28f, 26f),
-                            radius = 38f
-                        )
-                    )
+                            radius = 38f,
+                        ),
+                    ),
             )
             Text(
                 text = number?.let { formatBingoNumber(it) } ?: "—",

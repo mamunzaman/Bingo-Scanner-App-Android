@@ -219,6 +219,7 @@ fun TicketDetailScreen(
                                         QrTicketCodec.encodeDeepLink(
                                             QrTicketPayload(
                                                 grid = grid,
+                                                sheetName = sheetName,
                                                 serial = serialNumber,
                                                 los = losNumber,
                                             )

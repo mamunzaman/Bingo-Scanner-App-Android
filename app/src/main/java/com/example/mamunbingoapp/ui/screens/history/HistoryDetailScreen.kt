@@ -424,6 +424,7 @@ fun HistoryDetailScreen(
                                         QrTicketCodec.encodeDeepLink(
                                             QrTicketPayload(
                                                 grid = grid,
+                                                sheetName = sessionForDisplay.effectiveSheetName(),
                                                 serial = sessionForDisplay.serialNumber,
                                                 los = sessionForDisplay.losNumber,
                                             )

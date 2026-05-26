@@ -186,6 +186,7 @@ sealed class ScanResultUiState {
         val numbers: List<Int>,
         val losNumber: String? = null,
         val serialNumber: String? = null,
+        val sheetName: String? = null,
         val ocrSource: HistoryOcrSource? = null,
         val scanSource: ImportScanSource = ImportScanSource.PHOTO_OCR,
     ) : ScanResultUiState()
@@ -263,6 +264,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     numbers = qrPre.numbers,
                     losNumber = qrPre.los,
                     serialNumber = qrPre.serial,
+                    sheetName = qrPre.sheetName,
                     ocrSource = null,
                     scanSource = ImportScanSource.QR,
                 ),
@@ -330,6 +332,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                             numbers = qrPre.numbers,
                             losNumber = qrPre.los,
                             serialNumber = qrPre.serial,
+                            sheetName = qrPre.sheetName,
                             ocrSource = null,
                             scanSource = ImportScanSource.QR,
                         ),

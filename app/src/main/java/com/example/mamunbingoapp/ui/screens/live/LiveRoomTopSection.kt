@@ -2,8 +2,10 @@ package com.example.mamunbingoapp.ui.screens.live
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +47,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -146,6 +150,8 @@ private fun liveCountPillBorder(colorScheme: ColorScheme, darkTheme: Boolean): C
     }
 
 private val LiveStatusPillShape = RoundedCornerShape(Dimens.radiusButtonPill)
+private val LiveCompactTopBarHeight = 44.dp
+private val LiveCompactTopBarHPad = Dimens.spacing12
 
 private data class LiveDisplayValues(
     val displayLetter: String,
@@ -1192,13 +1198,95 @@ private fun LiveStatusHeaderRow(
     }
 }
 
-/** LIVE + count + [CalledHistoryPanel] in one surface card (live play). */
+@Composable
+private fun LiveLastCalledPremiumChip(
+    number: Int,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val letter = bingoLetter(number)
+    val numberText = if (letter.isEmpty()) number.toString() else "$letter$number"
+    Surface(
+        modifier = modifier,
+        shape = LiveStatusPillShape,
+        color = colorScheme.surface,
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            colorScheme.outlineVariant.copy(alpha = 0.22f),
+        ),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing4),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+        ) {
+            Text(
+                text = "LAST",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.4.sp,
+                ),
+                color = colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
+            )
+            Text(
+                text = numberText,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontFamily = LiveFonts.DMMono,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                ),
+                color = colorScheme.primary,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveHistoryToggleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val bg = colorScheme.primary.copy(alpha = 0.10f)
+    val borderC = colorScheme.primary.copy(alpha = 0.20f)
+    val historyContentDescription = "Open called numbers"
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .size(36.dp)
+            .semantics { contentDescription = historyContentDescription },
+        shape = CircleShape,
+        color = bg,
+        border = BorderStroke(Dimens.cardBorderDefault, borderC),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.History,
+                contentDescription = null,
+                modifier = Modifier.size(Dimens.iconCompact),
+                tint = colorScheme.primary.copy(alpha = 0.82f),
+            )
+        }
+    }
+}
+
+/** LIVE + count + history action in one surface card (live play). */
 @Composable
 fun LiveRoomWithHistoryCard(
     uiState: LivePlayUiState,
     isCallLimitReached: Boolean,
     modifier: Modifier = Modifier,
-    showLimitMessage: Boolean = true,
+    onOpenCalledNumbers: () -> Unit = {},
+    lastCalled: Int? = null,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isSessionActive = uiState.effectiveStatus == RoomStatus.RUNNING || uiState.lastCalledAtMillis != null
@@ -1213,7 +1301,6 @@ fun LiveRoomWithHistoryCard(
         label = "dotAlpha"
     )
     val dotAlpha = if (isSessionActive) dotAlphaPulse else 0.75f
-    val historyCalls = uiState.calledNumbers.takeLast(MAX_LIVE_CALLS)
 
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
     Surface(
@@ -1233,21 +1320,43 @@ fun LiveRoomWithHistoryCard(
                 .clip(cardShape)
                 .background(colorScheme.surfaceContainerLowest)
         ) {
-            Column(Modifier.padding(Dimens.spacing12)) {
-                LiveStatusHeaderRow(
-                    calledCount = uiState.calledNumbers.size,
-                    dotAlpha = dotAlpha,
-                    colorScheme = colorScheme,
-                    horizontalInset = 0.dp,
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                CalledHistoryPanel(
-                    calledNumbers = historyCalls,
-                    isCallLimitReached = isCallLimitReached,
-                    showLimitMessage = showLimitMessage,
-                    applyOuterPadding = false,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            Column(
+                Modifier.padding(
+                    horizontal = LiveCompactTopBarHPad,
+                    vertical = Dimens.spacing4,
+                ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(LiveCompactTopBarHeight),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LiveBadge(dotAlpha = dotAlpha, colorScheme = colorScheme)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(horizontal = Dimens.spacing8),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        val n = lastCalled ?: uiState.lastCalled
+                        if (n != null) {
+                            LiveLastCalledPremiumChip(number = n)
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.wrapContentWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                    ) {
+                        LiveCallCountCapsule(
+                            calledCount = uiState.calledNumbers.size,
+                            colorScheme = colorScheme,
+                        )
+                        LiveHistoryToggleButton(onClick = onOpenCalledNumbers)
+                    }
+                }
             }
         }
     }

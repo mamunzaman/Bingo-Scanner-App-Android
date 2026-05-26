@@ -486,7 +486,7 @@ private fun BingoCameraQrViewfinder() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BingoLiveCameraImportScreen(
-    onBingoQrDecoded: (rowMajor: List<Int>, serial: String?, los: String?) -> Unit,
+    onBingoQrDecoded: (rowMajor: List<Int>, serial: String?, los: String?, sheetName: String?) -> Unit,
     onFullTicketPhotoCaptured: (uri: Uri) -> Unit,
     onScanFullTicket: () -> Unit,
     onBack: () -> Unit,
@@ -607,7 +607,7 @@ fun BingoLiveCameraImportScreen(
                                 mainExecutor.execute {
                                     fullTicketImportLocked = true
                                     runCatching { processCameraRef.getAndSet(null)?.unbindAll() }
-                                    onBingoQrDecodedState.value(nums, s, l)
+                                    onBingoQrDecodedState.value(nums, s, l, res.sheetName)
                                 }
                             }
                         }

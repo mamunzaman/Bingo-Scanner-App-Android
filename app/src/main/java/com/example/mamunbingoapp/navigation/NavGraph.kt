@@ -119,19 +119,21 @@ private fun buildManualEntryRoute(
     prefillAsRowMajor: Boolean? = null,
     losNumber: String? = null,
     serialNumber: String? = null,
+    sheetName: String? = null,
 ): String {
     val losQ = Uri.encode(losNumber ?: "")
     val serQ = Uri.encode(serialNumber ?: "")
-    val hasMeta = !losNumber.isNullOrBlank() || !serialNumber.isNullOrBlank()
+    val sheetQ = Uri.encode(sheetName ?: "")
+    val hasMeta = !losNumber.isNullOrBlank() || !serialNumber.isNullOrBlank() || !sheetName.isNullOrBlank()
     if (scannedNumbers.isNullOrEmpty()) {
         if (!hasMeta) return "manualEntry"
-        return "manualEntry?scannedNumbers=&ocrSource=&ocrConfidence=&prefillOrder=columnMajor&losNumber=$losQ&serialNumber=$serQ"
+        return "manualEntry?scannedNumbers=&ocrSource=&ocrConfidence=&prefillOrder=columnMajor&losNumber=$losQ&serialNumber=$serQ&sheetName=$sheetQ"
     }
     val encoded = Uri.encode(scannedNumbers.joinToString(","))
     val sourceParam = "&ocrSource=${Uri.encode(ocrSource?.name ?: "")}"
     val confidenceParam = "&ocrConfidence=${Uri.encode(ocrConfidence?.toString() ?: "")}"
     val orderParam = "&prefillOrder=${Uri.encode(if (prefillAsRowMajor == true) "rowMajor" else "columnMajor")}"
-    val metaParam = "&losNumber=$losQ&serialNumber=$serQ"
+    val metaParam = "&losNumber=$losQ&serialNumber=$serQ&sheetName=$sheetQ"
     return "manualEntry?scannedNumbers=$encoded$sourceParam$confidenceParam$orderParam$metaParam"
 }
 
@@ -140,21 +142,22 @@ private fun buildManualEntryForRoomRoute(
     numbers: List<Int>,
     losNumber: String? = null,
     serialNumber: String? = null,
+    sheetName: String? = null,
     prefillAsRowMajor: Boolean = false,
 ): String {
     val encoded = Uri.encode(numbers.joinToString(","))
     val orderParam = if (prefillAsRowMajor) "&prefillOrder=rowMajor" else ""
     val meta =
-        if (losNumber.isNullOrBlank() && serialNumber.isNullOrBlank()) ""
-        else "&losNumber=${Uri.encode(losNumber ?: "")}&serialNumber=${Uri.encode(serialNumber ?: "")}"
+        if (losNumber.isNullOrBlank() && serialNumber.isNullOrBlank() && sheetName.isNullOrBlank()) ""
+        else "&losNumber=${Uri.encode(losNumber ?: "")}&serialNumber=${Uri.encode(serialNumber ?: "")}&sheetName=${Uri.encode(sheetName ?: "")}"
     return "manualEntryForRoom/$roomId?scannedNumbers=$encoded$orderParam$meta"
 }
 
 private const val HISTORY_PHOTO_IMPORT_GRAPH_ROUTE =
-    "historyPhotoImport?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&losNumber={losNumber}&serialNumber={serialNumber}"
+    "historyPhotoImport?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&losNumber={losNumber}&serialNumber={serialNumber}&sheetName={sheetName}"
 
 private const val MANUAL_ENTRY_DEEP_LINK_FALLBACK =
-    "manualEntry?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}"
+    "manualEntry?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}&sheetName={sheetName}"
 
 private data class HistoryPhotoImportPrefill(
     val scannedNumbers: List<Int>,
@@ -252,7 +255,8 @@ private fun ImportTicketDeepLinkHandler(
             ocrConfidence = null,
             prefillAsRowMajor = true,
             losNumber = payload.los,
-            serialNumber = payload.serial
+            serialNumber = payload.serial,
+            sheetName = payload.sheetName.trim().takeIf { it.isNotEmpty() },
         )
         runCatching {
             navController.navigate(target) { launchSingleTop = true }
@@ -390,13 +394,14 @@ fun NavGraph(
             val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
             val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
             BingoLiveCameraImportScreen(
-                onBingoQrDecoded = { nums, serial, los ->
+                onBingoQrDecoded = { nums, serial, los, sheetName ->
                     val route = if (!lastActiveRoomId.isNullOrBlank()) {
                         buildManualEntryForRoomRoute(
                             lastActiveRoomId!!,
                             nums,
                             serialNumber = serial,
                             losNumber = los,
+                            sheetName = sheetName,
                             prefillAsRowMajor = true,
                         )
                     } else {
@@ -407,6 +412,7 @@ fun NavGraph(
                             prefillAsRowMajor = true,
                             serialNumber = serial,
                             losNumber = los,
+                            sheetName = sheetName,
                         )
                     }
                     Log.d(
@@ -575,7 +581,7 @@ fun NavGraph(
             )
         }
         composable(
-            route = "manualEntry?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}",
+            route = "manualEntry?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}&sheetName={sheetName}",
             arguments = listOf(
                 navArgument("scannedNumbers") {
                     type = NavType.StringType
@@ -606,6 +612,11 @@ fun NavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("sheetName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
@@ -622,6 +633,7 @@ fun NavGraph(
                 ocrSourceLabel = me.ocrSourceLabel,
                 losNumber = me.ticketMeta.losNumber,
                 serialNumber = me.ticketMeta.serialNumber,
+                initialSheetName = me.ticketMeta.sheetName,
                 onSaveOnlySuccess = { _, _ ->
                     navController.popBackStack()
                 },
@@ -638,7 +650,7 @@ fun NavGraph(
             )
         }
         composable(
-            route = "manualEntryForRoom/{roomId}?scannedNumbers={scannedNumbers}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}",
+            route = "manualEntryForRoom/{roomId}?scannedNumbers={scannedNumbers}&prefillOrder={prefillOrder}&losNumber={losNumber}&serialNumber={serialNumber}&sheetName={sheetName}",
             arguments = listOf(
                 navArgument("roomId") { type = NavType.StringType },
                 navArgument("scannedNumbers") {
@@ -660,6 +672,11 @@ fun NavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("sheetName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
@@ -670,6 +687,7 @@ fun NavGraph(
                 prefillAsRowMajor = mer.prefillAsRowMajor,
                 losNumber = mer.ticketMeta.losNumber,
                 serialNumber = mer.ticketMeta.serialNumber,
+                initialSheetName = mer.ticketMeta.sheetName,
                 onSaveOnlySuccess = { ticketId, savedRoomId ->
                     val targetRoomId = savedRoomId ?: mer.roomId
                     runCatching {
@@ -737,7 +755,7 @@ fun NavGraph(
             )
         }
         composable(
-            route = "historyPhotoImport?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&losNumber={losNumber}&serialNumber={serialNumber}",
+            route = "historyPhotoImport?scannedNumbers={scannedNumbers}&ocrSource={ocrSource}&ocrConfidence={ocrConfidence}&losNumber={losNumber}&serialNumber={serialNumber}&sheetName={sheetName}",
             arguments = listOf(
                 navArgument("scannedNumbers") {
                     type = NavType.StringType
@@ -760,6 +778,11 @@ fun NavGraph(
                     defaultValue = null
                 },
                 navArgument("serialNumber") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("sheetName") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
@@ -858,6 +881,7 @@ fun NavGraph(
                                     finalUiGridRowMajor(nums),
                                     losNumber = s.losNumber,
                                     serialNumber = s.serialNumber,
+                                    sheetName = s.sheetName,
                                     prefillAsRowMajor = true,
                                 )
                             } else {
@@ -868,6 +892,7 @@ fun NavGraph(
                                     prefillAsRowMajor = true,
                                     losNumber = s.losNumber,
                                     serialNumber = s.serialNumber,
+                                    sheetName = s.sheetName,
                                 )
                             }
                         navController.navigate(route) {

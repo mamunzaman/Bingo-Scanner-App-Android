@@ -77,8 +77,10 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
@@ -130,6 +132,30 @@ import kotlinx.coroutines.launch
 
 private const val MANUAL_ENTRY_TAG = "ManualEntry"
 
+private fun requestSheetTitleFocusSafely(requester: FocusRequester) {
+    try {
+        requester.requestFocus()
+    } catch (e: Exception) {
+        Log.e(MANUAL_ENTRY_TAG, "requestSheetTitleFocus failed", e)
+    }
+}
+
+private fun clearSheetTitleFocusSafely(clearFocus: () -> Unit) {
+    try {
+        clearFocus()
+    } catch (e: Exception) {
+        Log.e(MANUAL_ENTRY_TAG, "clearSheetTitleFocus failed", e)
+    }
+}
+
+private fun hideSheetTitleKeyboardSafely(hideKeyboard: () -> Unit) {
+    try {
+        hideKeyboard()
+    } catch (e: Exception) {
+        Log.e(MANUAL_ENTRY_TAG, "hideSheetTitleKeyboard failed", e)
+    }
+}
+
 /** Shared with live play so bottom keypad height matches manual-entry dock. */
 internal object ManualEntryKeypadDockMetrics {
     val keyHeight: Dp get() = Dimens.spacing32 + Dimens.spacing12
@@ -174,6 +200,7 @@ fun ManualEntryScreen(
     ocrSourceLabel: String? = null,
     losNumber: String? = null,
     serialNumber: String? = null,
+    initialSheetName: String? = null,
     viewModel: ManualEntryViewModel = viewModel()
 ) {
     Log.d(MANUAL_ENTRY_TAG, "ManualEntryScreen composed, scannedNumbers.size=${scannedNumbers.size}")
@@ -201,10 +228,15 @@ fun ManualEntryScreen(
         pendingNavigateAction = { onBack() }
     }
     var hasPrefilledScannedNumbers by rememberSaveable { mutableStateOf(false) }
+    var hasAppliedQrSheetName by rememberSaveable { mutableStateOf(false) }
     var isApplyingScannedPrefill by rememberSaveable { mutableStateOf(false) }
+    val qrSheetNameRenameMode = !initialSheetName.isNullOrBlank()
     var infoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var isEditingSheetName by remember { mutableStateOf(false) }
+    var sheetTitleDismissInFlight by remember { mutableStateOf(false) }
+    val sheetTitleFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val isPartialScan = scannedNumbers.isNotEmpty() && (scannedNumbers.size < 25 || scannedNumbers.any { it == 0 })
     var hasShownPartialInfoDialog by rememberSaveable { mutableStateOf(false) }
@@ -343,6 +375,20 @@ fun ManualEntryScreen(
         }
     }
 
+    LaunchedEffect(isEditingSheetName) {
+        if (isEditingSheetName) {
+            requestSheetTitleFocusSafely(sheetTitleFocusRequester)
+        }
+    }
+
+    LaunchedEffect(initialSheetName) {
+        if (!hasAppliedQrSheetName && !initialSheetName.isNullOrBlank()) {
+            hasAppliedQrSheetName = true
+            viewModel.applyPrefilledSheetName(initialSheetName)
+            isEditingSheetName = true
+        }
+    }
+
     /** Grid prefill from `manualEntry?scannedNumbers=…` (Import Ticket handoff, History, room routes). */
     LaunchedEffect(scannedNumbers) {
         if (!hasPrefilledScannedNumbers && scannedNumbers.isNotEmpty()) {
@@ -430,9 +476,17 @@ fun ManualEntryScreen(
         val showKeypadSurface = keypadVisible || motionProgress > 0f
         val keyboardUiActive = showKeypadSurface
         val keypadTotalHeight = animatedKeypadDockDp + bottomInsetDp
-        val dismissSheetTitleEdit: () -> Unit = {
-            keyboardController?.hide()
-            isEditingSheetName = false
+        val dismissSheetTitleEdit: () -> Unit = dismiss@{
+            if (isEditingSheetName && !sheetTitleDismissInFlight) {
+                sheetTitleDismissInFlight = true
+                clearSheetTitleFocusSafely { focusManager.clearFocus(force = true) }
+                viewModel.onAction(ManualEntryUiAction.SheetNameEditCommitted)
+                keyboardController?.let { controller ->
+                    hideSheetTitleKeyboardSafely { controller.hide() }
+                }
+                isEditingSheetName = false
+                sheetTitleDismissInFlight = false
+            }
         }
         val flushManualEntryLeaveDraft: () -> Unit = {
             val prev = state.selectedIndex
@@ -666,23 +720,38 @@ fun ManualEntryScreen(
                                     ManualEntryBingoCard(
                                         modifier = Modifier.padding(top = cardTopPadding),
                                         compactGreenHeader = visualScaleApprox < 1f,
-                                        sheetName = state.sheetName,
+                                        sheetTitleFocusRequester = sheetTitleFocusRequester,
+                                        sheetNameFieldLabel = if (qrSheetNameRenameMode) "Bingo name" else null,
+                                        sheetNameRenameHelper = if (qrSheetNameRenameMode) {
+                                            "You can rename this Bingo sheet before saving."
+                                        } else {
+                                            null
+                                        },
+                                        sheetName = if (isEditingSheetName) {
+                                            state.sheetNameDraft ?: state.sheetName
+                                        } else {
+                                            state.sheetName
+                                        },
                                         dateText = dateText,
                                         isEditingSheetName = isEditingSheetName,
                                         sheetTitleStyle = sheetTitleStyle,
                                         onSheetNameChange = { name ->
                                             viewModel.onAction(
-                                                ManualEntryUiAction.SheetNameChanged(name)
+                                                ManualEntryUiAction.SheetNameDraftChanged(name)
                                             )
                                         },
-                                        onSheetNameDone = {
-                                            keyboardController?.hide()
-                                            isEditingSheetName = false
+                                        onSheetNameDone = dismissSheetTitleEdit,
+                                        onRequestEditTitle = {
+                                            viewModel.onAction(ManualEntryUiAction.SheetNameEditStarted)
+                                            isEditingSheetName = true
                                         },
-                                        onRequestEditTitle = { isEditingSheetName = true },
                                         onToggleEditSheet = {
-                                            if (isEditingSheetName) keyboardController?.hide()
-                                            isEditingSheetName = !isEditingSheetName
+                                            if (isEditingSheetName) {
+                                                dismissSheetTitleEdit()
+                                            } else {
+                                                viewModel.onAction(ManualEntryUiAction.SheetNameEditStarted)
+                                                isEditingSheetName = true
+                                            }
                                         },
                                         onEditDate = { showDatePicker = true },
                                         onDismissSheetTitleEdit = dismissSheetTitleEdit,

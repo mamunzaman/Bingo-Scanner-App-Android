@@ -26,7 +26,9 @@ import kotlinx.coroutines.launch
 sealed class ManualEntryUiAction {
     data class CellSelected(val index: Int) : ManualEntryUiAction()
     data class NumberPressed(val value: Int) : ManualEntryUiAction()
-    data class SheetNameChanged(val text: String) : ManualEntryUiAction()
+    data class SheetNameDraftChanged(val text: String) : ManualEntryUiAction()
+    object SheetNameEditStarted : ManualEntryUiAction()
+    object SheetNameEditCommitted : ManualEntryUiAction()
     data class PlayDateChanged(val millis: Long) : ManualEntryUiAction()
     object DeletePressed : ManualEntryUiAction()
     object NextPressed : ManualEntryUiAction()
@@ -46,6 +48,8 @@ sealed class ManualEntryUiEvent {
     data class ShowInfoDialog(val title: String, val message: String) : ManualEntryUiEvent()
 }
 
+private const val MANUAL_ENTRY_VM_TAG = "ManualEntryViewModel"
+
 private val BINGO_COLUMN_RANGES = listOf(1..15, 16..30, 31..45, 46..60, 61..75)
 private val BINGO_COLUMN_LABELS = listOf("B", "I", "N", "G", "O")
 
@@ -57,6 +61,8 @@ data class ManualEntryUiState(
     val isComplete: Boolean = false,
     val errorMessage: String? = null,
     val sheetName: String = "",
+    val sheetNameDraft: String? = null,
+    val lastValidSheetName: String = "",
     val playedAtMillis: Long = System.currentTimeMillis(),
     val isRoomPickerOpen: Boolean = false,
     val pendingTicketId: String? = null,
@@ -80,11 +86,47 @@ class ManualEntryViewModel(
     private val _events = MutableSharedFlow<ManualEntryUiEvent>()
     val events: SharedFlow<ManualEntryUiEvent> = _events.asSharedFlow()
 
+    init {
+        try {
+            _state.update { current ->
+                if (current.sheetName.isNotBlank() && current.lastValidSheetName.isNotBlank()) {
+                    current
+                } else {
+                    val defaultName = defaultSheetName(current.playedAtMillis)
+                    current.copy(
+                        sheetName = defaultName,
+                        lastValidSheetName = defaultName,
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            logRenameState("init_default_name", e)
+        }
+    }
+
+    fun applyPrefilledSheetName(name: String?) {
+        val trimmed = name?.trim().orEmpty()
+        if (trimmed.isBlank()) return
+        try {
+            _state.update {
+                it.copy(
+                    sheetName = trimmed,
+                    lastValidSheetName = trimmed,
+                    sheetNameDraft = null,
+                )
+            }
+        } catch (e: Exception) {
+            logRenameState("applyPrefilledSheetName", e)
+        }
+    }
+
     fun onAction(action: ManualEntryUiAction) {
         when (action) {
             is ManualEntryUiAction.CellSelected -> selectCell(action.index)
             is ManualEntryUiAction.NumberPressed -> enterNumber(action.value)
-            is ManualEntryUiAction.SheetNameChanged -> _state.update { it.copy(sheetName = action.text) }
+            is ManualEntryUiAction.SheetNameDraftChanged -> onSheetNameDraftChanged(action.text)
+            ManualEntryUiAction.SheetNameEditStarted -> onSheetNameEditStarted()
+            ManualEntryUiAction.SheetNameEditCommitted -> commitSheetNameEdit()
             is ManualEntryUiAction.PlayDateChanged -> _state.update { it.copy(playedAtMillis = action.millis) }
             ManualEntryUiAction.DeletePressed -> deleteCurrent()
             ManualEntryUiAction.NextPressed -> moveToNext()
@@ -213,11 +255,92 @@ class ManualEntryViewModel(
         selectCell(nextIndex)
     }
 
-    private fun effectiveSheetName(): String {
-        val s = _state.value.sheetName.trim()
-        if (s.isNotEmpty()) return s
+    private fun defaultSheetName(playedAtMillis: Long): String {
         val df = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        return "Sheet ${df.format(Date(_state.value.playedAtMillis))}"
+        return "Sheet ${df.format(Date(playedAtMillis))}"
+    }
+
+    private fun onSheetNameEditStarted() {
+        try {
+            _state.update { current ->
+                val base = current.sheetName.trim().ifEmpty {
+                    current.lastValidSheetName.trim().ifEmpty {
+                        defaultSheetName(current.playedAtMillis)
+                    }
+                }
+                current.copy(sheetNameDraft = base)
+            }
+        } catch (e: Exception) {
+            logRenameState("edit_started", e)
+        }
+    }
+
+    private fun onSheetNameDraftChanged(text: String) {
+        try {
+            val current = _state.value
+            if (text == current.sheetNameDraft) return
+            _state.update { it.copy(sheetNameDraft = text) }
+        } catch (e: Exception) {
+            logRenameState("draft_changed", e)
+        }
+    }
+
+    private fun commitSheetNameEdit() {
+        try {
+            _state.update { current ->
+                val raw = current.sheetNameDraft ?: current.sheetName
+                val trimmed = raw.trim()
+                val resolved = trimmed.ifEmpty {
+                    current.lastValidSheetName.trim().ifEmpty {
+                        defaultSheetName(current.playedAtMillis)
+                    }
+                }
+                current.copy(
+                    sheetName = resolved,
+                    sheetNameDraft = null,
+                    lastValidSheetName = resolved,
+                )
+            }
+            logRenameState("commit_ok")
+        } catch (e: Exception) {
+            logRenameState("commit_failed", e)
+        }
+    }
+
+    private fun logRenameState(action: String, error: Throwable? = null) {
+        val s = _state.value
+        val message = buildString {
+            append("rename action=")
+            append(action)
+            append(" editing=")
+            append(s.sheetNameDraft != null)
+            append(" sheetName=\"")
+            append(s.sheetName)
+            append("\" draft=\"")
+            append(s.sheetNameDraft.orEmpty())
+            append("\" lastValid=\"")
+            append(s.lastValidSheetName)
+            append("\" pendingTicketId=")
+            append(s.pendingTicketId ?: "null")
+            append(" roomId=")
+            append(roomId ?: "null")
+        }
+        if (error != null) {
+            Log.e(MANUAL_ENTRY_VM_TAG, message, error)
+        } else {
+            Log.d(MANUAL_ENTRY_VM_TAG, message)
+        }
+    }
+
+    private fun effectiveSheetName(): String {
+        val current = _state.value
+        val fromDraft = current.sheetNameDraft?.trim().orEmpty()
+        val fromCommitted = current.sheetName.trim()
+        val s = fromDraft.ifEmpty { fromCommitted }
+        if (s.isNotEmpty()) return s
+        val fallback = current.lastValidSheetName.trim()
+        if (fallback.isNotEmpty()) return fallback
+        return defaultSheetName(current.playedAtMillis)
     }
 
     private fun normalizedTicketMeta(los: String, serial: String): Pair<String?, String?> {
