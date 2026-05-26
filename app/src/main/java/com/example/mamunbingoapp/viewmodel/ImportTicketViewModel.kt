@@ -12,8 +12,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.history.HistoryOcrSource
 import com.example.mamunbingoapp.scanner.BingoNumberAnalyzer
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.scanner.ImportTicketImageOcr
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
+import com.example.mamunbingoapp.scanner.OnlineBingoOcr
 import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromImageUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -228,10 +230,18 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
     /** Probes gallery pick for app QR before Apply; cancelled on Apply, cancel, or new pick. */
     private var galleryQrProbeJob: Job? = null
 
+    private val _pendingScanType = MutableStateFlow<BingoScanType?>(null)
+
+    /** Set before gallery pick or camera handoff so [analyzeTicketFromUri] routes OCR by scan target. */
+    fun setPendingScanType(scanType: BingoScanType) {
+        _pendingScanType.value = scanType
+    }
+
     /**
      * Updates selection to [ScanResultUiState.Idle] (image preview only). UI shows analyzing overlay only after [analyzeTicketFromUri] sets [ScanResultUiState.Loading].
      */
-    fun onPhotoTaken(uri: Uri) {
+    fun onPhotoTaken(uri: Uri, scanType: BingoScanType? = null) {
+        if (scanType != null) _pendingScanType.value = scanType
         analysisJob?.cancel()
         galleryQrProbeJob?.cancel()
         galleryQrProbeJob = null
@@ -317,7 +327,13 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
      * Runs on-device ML Kit text recognition and maps results into [ScanResultUiState.Success]
      * (row-major numbers for manual entry when [HistoryPhotoImport] uses row-major prefill).
      */
-    fun analyzeTicketFromUri(context: Context, uri: Uri, bypassInternalGridCrop: Boolean = false) {
+    fun analyzeTicketFromUri(
+        context: Context,
+        uri: Uri,
+        bypassInternalGridCrop: Boolean = false,
+        scanType: BingoScanType? = null,
+    ) {
+        val effectiveScanType = scanType ?: _pendingScanType.value ?: BingoScanType.PLAY_PAPER
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
             _scanResult.value = ScanResultUiState.Loading
@@ -341,33 +357,44 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 }
                 is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
             }
-            val tooZoomed = withContext(Dispatchers.IO) {
-                isLikelyTooZoomedForOcr(context.applicationContext, uri)
-            }
-            if (uri != _selectedImageUri.value) return@launch
-            if (tooZoomed) {
-                _scanResult.value = ScanResultUiState.Error(
-                    message = "Move camera slightly back so full ticket is visible",
-                )
-                return@launch
+            if (effectiveScanType != BingoScanType.ONLINE) {
+                val tooZoomed = withContext(Dispatchers.IO) {
+                    isLikelyTooZoomedForOcr(context.applicationContext, uri)
+                }
+                if (uri != _selectedImageUri.value) return@launch
+                if (tooZoomed) {
+                    _scanResult.value = ScanResultUiState.Error(
+                        message = "Move camera slightly back so full ticket is visible",
+                    )
+                    return@launch
+                }
             }
             // TODO: Re-enable camera-only padded crop after device QA: preCropCameraForStripOcr = isCameraXStillCaptureUri(uri) && !bypassInternalGridCrop
             val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    ImportTicketImageOcr.analyzeUri(
-                        context.applicationContext,
-                        uri,
-                        bypassInternalGridCrop = bypassInternalGridCrop,
-                        preCropCameraForStripOcr = false,
-                    )
+                when (effectiveScanType) {
+                    BingoScanType.ONLINE -> runCatching {
+                        OnlineBingoOcr.analyzeUri(context.applicationContext, uri)
+                    }
+                    else -> runCatching {
+                        ImportTicketImageOcr.analyzeUri(
+                            context.applicationContext,
+                            uri,
+                            bypassInternalGridCrop = bypassInternalGridCrop,
+                            preCropCameraForStripOcr = false,
+                        )
+                    }
                 }
             }
             if (uri != _selectedImageUri.value) return@launch
+            val minValidForScan = when (effectiveScanType) {
+                BingoScanType.ONLINE -> OnlineBingoOcr.MIN_VALID_CELLS_FOR_SUCCESS
+                else -> MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
+            }
             result.fold(
                 onSuccess = { outcome ->
                     val validCount = validFilledCellCount(outcome.numbersRowMajor)
                     when {
-                        validCount < MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV ->
+                        validCount < minValidForScan ->
                             _scanResult.value = ScanResultUiState.Error(
                                 message = weakScanFailureMessage(validCount),
                                 detectedValidCount = validCount,
@@ -455,6 +482,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _candidateBuckets.value = emptyMap()
         _prefilledSource.value = null
         _prefilledConfidence.value = null
+        _pendingScanType.value = null
     }
 
     override fun onCleared() {

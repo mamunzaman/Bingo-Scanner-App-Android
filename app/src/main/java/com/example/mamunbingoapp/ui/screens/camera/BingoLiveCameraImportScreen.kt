@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -38,9 +39,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.FlashOff
+import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
@@ -63,6 +68,7 @@ import androidx.compose.animation.core.tween
 import kotlinx.coroutines.coroutineScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -552,8 +558,11 @@ fun BingoLiveCameraImportScreen(
     val lastNoBingoLog = remember { AtomicLong(0) }
     val lastFrameProcess = remember { AtomicLong(0) }
     val processCameraRef = remember { AtomicReference<ProcessCameraProvider?>(null) }
+    val boundCameraRef = remember { AtomicReference<Camera?>(null) }
     val imageCaptureRef = remember { AtomicReference<ImageCapture?>(null) }
     val previewView = remember { PreviewView(context) }
+    var torchEnabled by remember { mutableStateOf(false) }
+    var hasFlashUnit by remember { mutableStateOf(false) }
     val onBingoQrDecodedState = rememberUpdatedState(onBingoQrDecoded)
     val onFullTicketPhotoCapturedState = rememberUpdatedState(onFullTicketPhotoCaptured)
     val onScanFullTicketState = rememberUpdatedState(onScanFullTicket)
@@ -619,6 +628,10 @@ fun BingoLiveCameraImportScreen(
                                 val l = res.los
                                 mainExecutor.execute {
                                     fullTicketImportLocked = true
+                                    torchEnabled = false
+                                    runCatching {
+                                        boundCameraRef.getAndSet(null)?.cameraControl?.enableTorch(false)
+                                    }
                                     runCatching { processCameraRef.getAndSet(null)?.unbindAll() }
                                     onBingoQrDecodedState.value(nums, s, l, res.sheetName)
                                 }
@@ -633,13 +646,16 @@ fun BingoLiveCameraImportScreen(
             try {
                 cameraProvider.unbindAll()
                 if (!handled.get()) {
-                    cameraProvider.bindToLifecycle(
+                    val camera = cameraProvider.bindToLifecycle(
                         activity,
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         preview,
                         imageAnalysis,
                         imageCapture,
                     )
+                    boundCameraRef.set(camera)
+                    hasFlashUnit = camera.cameraInfo.hasFlashUnit()
+                    if (!hasFlashUnit) torchEnabled = false
                     cameraSessionReady = true
                 }
             } catch (e: Exception) {
@@ -649,9 +665,19 @@ fun BingoLiveCameraImportScreen(
         }
         future.addListener(listener, mainExecutor)
         onDispose {
+            runCatching { boundCameraRef.getAndSet(null)?.cameraControl?.enableTorch(false) }
             imageCaptureRef.set(null)
             runCatching { processCameraRef.getAndSet(null)?.unbindAll() }
             cameraExecutor.shutdown()
+        }
+    }
+    LaunchedEffect(torchEnabled, hasFlashUnit, cameraSessionReady) {
+        if (!cameraSessionReady || !hasFlashUnit) return@LaunchedEffect
+        val camera = boundCameraRef.get() ?: return@LaunchedEffect
+        runCatching {
+            camera.cameraControl.enableTorch(torchEnabled)
+        }.onFailure { e ->
+            Log.d(TAG, "enableTorch failed: ${e.message}")
         }
     }
     val captureActionEnabled = cameraSessionReady && !fullTicketImportLocked
@@ -740,6 +766,35 @@ fun BingoLiveCameraImportScreen(
                 navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         )
+        if (hasFlashUnit) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(
+                        top = Dimens.spacing32 * 5 + Dimens.spacing8,
+                        end = Dimens.screenHorizontalPadding,
+                    )
+                    .size(44.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.48f),
+                shadowElevation = 4.dp,
+            ) {
+                IconButton(
+                    onClick = { torchEnabled = !torchEnabled },
+                    enabled = captureActionEnabled && !capturing,
+                ) {
+                    Icon(
+                        imageVector = if (torchEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
+                        contentDescription = if (torchEnabled) "Flash on" else "Flash off",
+                        tint = if (torchEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.White.copy(alpha = 0.92f)
+                        },
+                    )
+                }
+            }
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

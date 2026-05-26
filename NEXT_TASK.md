@@ -1,10 +1,22 @@
 ﻿# Next task
 
-**Goal:** Wire `BingoScanType` into OCR pipeline (branch layout/OCR per PLAY_PAPER / ONLINE / MAIN_SHEET).
+**Goal:** Device QA — ONLINE position fallback on partial/cropped digital tickets (no visible header).
 
-**Verify:** Scan tab → sheet → each type → camera toast/log matches; History/Jackpot camera still default PLAY_PAPER; `./gradlew :app:assembleDebug` green.
+**Verify:** Cropped grid screenshot → Logcat `OnlineBingoOcr`: raw candidates, after footer filter, grouped row count, final valid ≥15 → preview/manual prefill; serie/los still logged; `./gradlew :app:assembleDebug` green.
 
-**Done (status):** `BingoScanType` model; `ScanTypeSelectionSheet` before camera on Scan tab; `bingoLiveCameraImport?scanType=` nav arg; debug toast + Logcat `BingoScanType`. `./gradlew :app:assembleDebug` OK.
+**Done (status):** Position-based ML Kit grid fallback in `OnlineBingoOcr` (Y-rows, X-columns, footer exclusion); prefers fallback when ≥15 valid cells. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — ONLINE bingo OCR on real digital ticket screenshots.
+
+**Done (status):** `OnlineBingoOcr` + VM ONLINE branch + scan type handoff. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Wire `BingoScanType` into OCR pipeline.
+
+**Done (status):** Scan type sheet + nav arg + debug toast. `./gradlew :app:assembleDebug` OK.
 
 ---
 

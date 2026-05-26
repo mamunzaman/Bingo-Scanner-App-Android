@@ -125,6 +125,9 @@ import java.io.File
 /** Set on `main` before navigating to `historyPhotoImport`; destination removes it and starts OCR once. */
 const val PENDING_HISTORY_PHOTO_IMPORT_URI_KEY = "pendingHistoryPhotoImportUri"
 
+/** Optional [com.example.mamunbingoapp.domain.model.BingoScanType] name from camera handoff. */
+const val PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY = "pendingHistoryPhotoImportScanType"
+
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()

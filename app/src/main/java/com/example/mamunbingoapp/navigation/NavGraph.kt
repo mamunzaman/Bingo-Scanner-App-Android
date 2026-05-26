@@ -30,6 +30,7 @@ import com.example.mamunbingoapp.ui.screens.camera.BingoLiveCameraImportScreen
 import com.example.mamunbingoapp.ui.screens.LoginScreen
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryScreen
 import com.example.mamunbingoapp.ui.screens.MainTabsScreen
+import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY
 import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_URI_KEY
 import com.example.mamunbingoapp.ui.screens.RegisterScreen
 import com.example.mamunbingoapp.ui.screens.OnboardingScreen
@@ -439,8 +440,9 @@ fun NavGraph(
                 },
                 onFullTicketPhotoCaptured = { uri ->
                     runCatching {
-                        navController.getBackStackEntry("main")
-                            .savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
+                        val mainHandle = navController.getBackStackEntry("main").savedStateHandle
+                        mainHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
+                        mainHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] = scanType.name
                     }
                     Log.d(
                         SCAN_ENTRY_HANDOFF_TAG,
@@ -822,11 +824,14 @@ fun NavGraph(
                     ?: return@LaunchedEffect
                 val pending = mainEntry.savedStateHandle.get<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
                     ?: return@LaunchedEffect
+                val pendingScanTypeName =
+                    mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
                 mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
                 if (pending.isBlank()) return@LaunchedEffect
                 val uri = Uri.parse(pending)
-                importVm.onPhotoTaken(uri)
-                importVm.analyzeTicketFromUri(context, uri)
+                val pendingScanType = BingoScanType.fromRouteValue(pendingScanTypeName)
+                importVm.onPhotoTaken(uri, pendingScanType)
+                importVm.analyzeTicketFromUri(context, uri, scanType = pendingScanType)
             }
             LaunchedEffect(prefilledScannedNumbers, selectedUri, galleryPendingUri) {
                 if (selectedUri == null && galleryPendingUri == null && prefilledScannedNumbers.isNotEmpty()) {
@@ -933,12 +938,12 @@ fun NavGraph(
                             Unit
                         },
                         onClearImageClick = {},
-                        onTakePhotoClick = {
+                        onLaunchCamera = { scanType ->
                             Log.d(
                                 SCAN_ENTRY_HANDOFF_TAG,
-                                "handoff src=HistoryPhotoImportScreen(ui_take_photo) dest=bingoLiveCameraImport"
+                                "handoff src=HistoryPhotoImportScreen(ui_take_photo) dest=bingoLiveCameraImport scanType=${scanType.name}"
                             )
-                            navController.navigate(buildBingoLiveCameraImportRoute())
+                            navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                         },
                         onSaveClick = {},
                         onSaveAndRoomClick = {},

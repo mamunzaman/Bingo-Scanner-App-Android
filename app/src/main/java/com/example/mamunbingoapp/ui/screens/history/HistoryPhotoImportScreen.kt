@@ -33,7 +33,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.R
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTopBar
@@ -44,12 +46,18 @@ import com.example.mamunbingoapp.viewmodel.ScanResultUiState
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 
 /**
- * **Route:** `historyPhotoImport` — **Take photo** = `bingoLiveCameraImport` (live QR + optional GMS) from parent; **Gallery** = picker → uCrop (3:4) → in-app preview → Apply, except a **valid app Bingo QR** on the image auto-commits (no Apply). **Analysis** runs app **QR** before **OCR**; valid ticket QR skips OCR. Save → `manualEntry` when numbers exist (e.g. live-scan prefill).
+ * **Route:** `historyPhotoImport` — **Take photo** / **Gallery** = scan-type sheet first; camera or picker follows.
+ * Gallery: uCrop (3:4) → in-app preview → Apply (valid app Bingo QR auto-commits). OCR uses pending [BingoScanType].
  */
+private sealed class HistoryImportScanTypeTarget {
+    data object Camera : HistoryImportScanTypeTarget()
+    data object Gallery : HistoryImportScanTypeTarget()
+}
+
 @Composable
 fun HistoryPhotoImportScreen(
     onBackClick: () -> Unit,
-    onTakePhotoClick: () -> Unit,
+    onLaunchCamera: (BingoScanType) -> Unit,
     onClearImageClick: () -> Unit = {},
     onScanAgainClick: () -> Unit = {},
     onRetryAnalysisClick: () -> Unit = {},
@@ -70,6 +78,7 @@ fun HistoryPhotoImportScreen(
 ) {
     val importVm: ImportTicketViewModel = viewModel()
     val context = LocalContext.current
+    var scanTypeSheetTarget by remember { mutableStateOf<HistoryImportScanTypeTarget?>(null) }
     val selectedUriVm by importVm.selectedImageUri.collectAsState()
     val galleryPendingUri by importVm.galleryPendingEditUri.collectAsState()
     val displayUri = galleryPendingUri ?: selectedUriVm
@@ -205,8 +214,10 @@ fun HistoryPhotoImportScreen(
                         isAnalyzing = isAnalyzingUi,
                         imageSource = null,
                         idleHint = idleHint,
-                        onTakePhoto = onTakePhotoClick,
-                        onPickFromGallery = pickImageFromGallery,
+                        onTakePhoto = { scanTypeSheetTarget = HistoryImportScanTypeTarget.Camera },
+                        onPickFromGallery = {
+                            scanTypeSheetTarget = HistoryImportScanTypeTarget.Gallery
+                        },
                         onSecondaryOutlinedClick = onScanAgainClick,
                         onGalleryApply = { l, t, r, b -> importVm.applyGalleryPendingEdit(context, l, t, r, b) },
                         onGalleryCancel = { importVm.cancelGalleryPendingEdit() },
@@ -216,5 +227,18 @@ fun HistoryPhotoImportScreen(
                 }
             }
         }
+    }
+    scanTypeSheetTarget?.let { target ->
+        ScanTypeSelectionSheet(
+            onDismiss = { scanTypeSheetTarget = null },
+            onScanTypeSelected = { type ->
+                scanTypeSheetTarget = null
+                importVm.setPendingScanType(type)
+                when (target) {
+                    HistoryImportScanTypeTarget.Camera -> onLaunchCamera(type)
+                    HistoryImportScanTypeTarget.Gallery -> pickImageFromGallery()
+                }
+            },
+        )
     }
 }
