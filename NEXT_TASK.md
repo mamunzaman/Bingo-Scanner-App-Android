@@ -1,6 +1,36 @@
 ﻿# Next task
 
-**Goal:** Device QA — ONLINE position fallback on partial/cropped digital tickets (no visible header).
+**Goal:** Device QA — Settings toggles persist after app restart.
+
+**Verify:** Toggle Push / Daily reminders / FaceID / Data sharing / demo data / keep screen on → kill app → reopen Settings → values kept; theme unchanged; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Four notification/security/privacy toggles moved to `SettingsRepository` DataStore; `SettingsViewModel` flows + save on change. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Profile header reflects saved My Account name/email/initials after save and back.
+
+**Verify:** Empty profile → Guest + guest email + Person icon; save name/email in My Account → Profile updates without app restart; initials from name; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `AccountViewModel.profile` + Profile header wired; shared VM scoped to `main`. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — My Account persistence: save, leave, reopen shows saved fields.
+
+**Verify:** Fill profile → Save → snackbar “Account saved locally” → back → reopen My Account → values restored; invalid save still shows errors; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `AccountProfile` + `AccountRepository` (DataStore) + `AccountViewModel`; `AccountFormScreen` wired. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — My Account form styling.
+
+**Done (status):** `AccountFormScreen` auth/profile UI. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — ONLINE position fallback on partial/cropped digital tickets (no visible header).
 
 **Verify:** Cropped grid screenshot → Logcat `OnlineBingoOcr`: raw candidates, after footer filter, grouped row count, final valid ≥15 → preview/manual prefill; serie/los still logged; `./gradlew :app:assembleDebug` green.
 

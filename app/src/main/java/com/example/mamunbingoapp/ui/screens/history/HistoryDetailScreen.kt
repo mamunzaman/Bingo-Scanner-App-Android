@@ -458,12 +458,11 @@ fun HistoryDetailScreen(
                         )
                     }
                 )
-                val historyDetailSectionGap = Dimens.spacing12
+                val historyDetailSectionGap = Dimens.spacing8
                 val historyDetailStatusPadV = Dimens.spacing8
                 val historyDetailWinSpacer = Dimens.spacing4
                 val historyDetailBottomInset = Dimens.spacing8
-                val historyDetailCalledPanelPadH = Dimens.spacing12
-                val historyDetailWaitingPadding = Dimens.spacing16
+                val historyDetailCalledPanelPadH = Dimens.spacing8
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -510,9 +509,6 @@ fun HistoryDetailScreen(
                             val clipboard = LocalClipboardManager.current
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(
-                                    if (displaySheetStatus == SheetStatus.ACTIVE) Dimens.spacing4 else 0.dp
-                                ),
                             ) {
                                 if (displaySheetStatus == SheetStatus.ACTIVE) {
                                     AppSectionSurface(
@@ -538,7 +534,6 @@ fun HistoryDetailScreen(
                             }
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
                             ) {
                                 if (almostBingoInfo != null && displayCells != null && displayCells.size >= 25) {
                                     CompactAlmostBingoRow(
@@ -580,52 +575,6 @@ fun HistoryDetailScreen(
                                         historyDetailOuterMaxWidth = maxWidth,
                                         historyDetailOuterMaxHeight = maxHeight,
                                     )
-                                }
-                            }
-                            if (displayAssignedRoomId != null && displayCalledNumbers.isEmpty()) {
-                                AppSectionSurface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(Dimens.radiusCard)),
-                                    shape = RoundedCornerShape(Dimens.radiusCard),
-                                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(historyDetailWaitingPadding),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(44.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Filled.PlayArrow,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(22.dp),
-                                            )
-                                        }
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
-                                        ) {
-                                            Text(
-                                                text = "Waiting for live data…",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = "Open Live Room to see real-time called numbers.",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                                            )
-                                        }
-                                    }
                                 }
                             }
                     }
@@ -811,21 +760,6 @@ private fun HistoryDetailCompactActiveStatusRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(Dimens.radiusPill))
-                    .background(Primary)
-                    .clickable { }
-                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing4),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "Live",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = OnPrimary,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(Dimens.radiusPill))
                     .background(SurfaceContainer)
                     .border(BorderStroke(1.dp, Outline), RoundedCornerShape(Dimens.radiusPill))
                     .clickable(onClick = onLeaveClick)
@@ -860,14 +794,14 @@ private fun HistoryDetailCompactTicketSection(
     val truncatedId = if (ticketId.length > 16) ticketId.take(14) + "…" else ticketId
     val n = session.sheetsCount
     val sheetWord = if (n == 1) "Sheet" else "Sheets"
-    val summaryMiddle = if (displayAssignedRoomId != null) "Numbers called (Live)" else "Numbers called"
+    val summaryMiddle = "Numbers called"
     val summaryTail = when {
         displayAssignedRoomId != null && displayCalledNumbers.isNotEmpty() ->
-            "${displayCalledNumbers.size} Called"
+            "${displayCalledNumbers.size} called"
         displayAssignedRoomId != null ->
-            "loading…"
+            "No calls yet"
         else ->
-            "${displayCalledNumbers.size} Numbers Called"
+            "${displayCalledNumbers.size} called"
     }
     val statsAnnotated = buildAnnotatedString {
         val baseStyle = SpanStyle(

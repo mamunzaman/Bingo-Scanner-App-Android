@@ -1,6 +1,14 @@
 # Project status
 
-**Last update:** 2026-05-24 - **Online OCR path:** `OnlineBingoOcr` for `BingoScanType.ONLINE` only; main-sheet `ImportTicketImageOcr` unchanged; scan type passed to `analyzeTicketFromUri`. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-24 - **Settings persistence:** Push notifications, daily reminders, FaceID/TouchID, data sharing toggles saved in `SettingsRepository` DataStore (same pattern as demo data / keep screen on). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Profile header sync:** Profile shows saved account name/email/initials. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **My Account persistence:** DataStore profile save/load. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **My Account form:** `AccountFormScreen` auth/profile styling. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-24 - **Online OCR path:** `OnlineBingoOcr` for `BingoScanType.ONLINE` only; main-sheet `ImportTicketImageOcr` unchanged; scan type passed to `analyzeTicketFromUri`. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-24 - **Scan type selection:** premium sheet on Scan tab before camera; `bingoLiveCameraImport?scanType=`. `./gradlew :app:assembleDebug` OK.
 

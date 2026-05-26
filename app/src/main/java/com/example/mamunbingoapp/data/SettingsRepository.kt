@@ -14,6 +14,10 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 private val SHOW_DEMO_DATA = booleanPreferencesKey("show_demo_data")
 private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
 private val KEEP_SCREEN_ON_DURING_GAME = booleanPreferencesKey("keep_screen_on_during_game")
+private val PUSH_NOTIFICATIONS = booleanPreferencesKey("push_notifications")
+private val DAILY_REMINDERS = booleanPreferencesKey("daily_reminders")
+private val FACE_ID_TOUCH_ID = booleanPreferencesKey("face_id_touch_id")
+private val DATA_SHARING = booleanPreferencesKey("data_sharing")
 
 object SettingsRepository {
     private var _context: Context? = null
@@ -33,6 +37,18 @@ object SettingsRepository {
     val keepScreenOnDuringGameFlow: Flow<Boolean>
         get() = store().data.map { it[KEEP_SCREEN_ON_DURING_GAME] ?: true }
 
+    val pushNotificationsFlow: Flow<Boolean>
+        get() = store().data.map { it[PUSH_NOTIFICATIONS] ?: true }
+
+    val dailyRemindersFlow: Flow<Boolean>
+        get() = store().data.map { it[DAILY_REMINDERS] ?: false }
+
+    val faceIdTouchIdFlow: Flow<Boolean>
+        get() = store().data.map { it[FACE_ID_TOUCH_ID] ?: true }
+
+    val dataSharingFlow: Flow<Boolean>
+        get() = store().data.map { it[DATA_SHARING] ?: false }
+
     suspend fun getOnboardingCompleted(): Boolean =
         store().data.first()[ONBOARDING_COMPLETED] ?: false
 
@@ -46,6 +62,22 @@ object SettingsRepository {
 
     suspend fun setKeepScreenOnDuringGame(value: Boolean) {
         store().edit { it[KEEP_SCREEN_ON_DURING_GAME] = value }
+    }
+
+    suspend fun setPushNotifications(value: Boolean) {
+        store().edit { it[PUSH_NOTIFICATIONS] = value }
+    }
+
+    suspend fun setDailyReminders(value: Boolean) {
+        store().edit { it[DAILY_REMINDERS] = value }
+    }
+
+    suspend fun setFaceIdTouchId(value: Boolean) {
+        store().edit { it[FACE_ID_TOUCH_ID] = value }
+    }
+
+    suspend fun setDataSharing(value: Boolean) {
+        store().edit { it[DATA_SHARING] = value }
     }
 
     suspend fun clearAll() {

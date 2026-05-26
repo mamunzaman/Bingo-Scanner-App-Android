@@ -13,6 +13,7 @@ import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.screens.scan.ScanScreen
+import com.example.mamunbingoapp.viewmodel.AccountViewModel
 
 @Composable
 fun MainTabsScreen(
@@ -33,7 +34,8 @@ fun MainTabsScreen(
     onNavigateToSupport: () -> Unit,
     onNavigateToTicketDetail: (String) -> Unit = {},
     onCallNumber: (Int, (Boolean) -> Unit) -> Unit = { _, _ -> },
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    accountViewModel: AccountViewModel,
 ) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -78,7 +80,8 @@ fun MainTabsScreen(
                 onHistory = onNavigateToHistory,
                 onSupport = onNavigateToSupport,
                 onLogout = onLogout,
-                showBottomBar = false
+                showBottomBar = false,
+                accountViewModel = accountViewModel,
             )
             }
         }

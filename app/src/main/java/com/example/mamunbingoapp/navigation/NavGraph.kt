@@ -41,7 +41,8 @@ import com.example.mamunbingoapp.viewmodel.LivePlayUiEvent
 import com.example.mamunbingoapp.viewmodel.LivePlayUiState
 import com.example.mamunbingoapp.viewmodel.LivePlayViewModel
 import com.example.mamunbingoapp.ui.screens.profile.ChangePasswordScreen
-import com.example.mamunbingoapp.ui.screens.profile.MyAccountScreen
+import com.example.mamunbingoapp.ui.screens.profile.AccountFormScreen
+import com.example.mamunbingoapp.viewmodel.AccountViewModel
 import com.example.mamunbingoapp.ui.screens.profile.PaymentMethodsScreen
 import com.example.mamunbingoapp.ui.screens.legal.PrivacyPolicyScreen
 import com.example.mamunbingoapp.ui.screens.legal.TermsOfServiceScreen
@@ -351,6 +352,7 @@ fun NavGraph(
         }
         composable(route = "main") { backStackEntry ->
             val tabsViewModel: MainTabsViewModel = viewModel(backStackEntry)
+            val accountViewModel: AccountViewModel = viewModel(backStackEntry)
             val selectedTab by tabsViewModel.selectedTab.collectAsState()
             val lastActiveRoomId by tabsViewModel.lastActiveRoomId.collectAsState()
             LaunchedEffect(backStackEntry) {
@@ -392,7 +394,8 @@ fun NavGraph(
                     navController.navigate("auth/login") {
                         popUpTo("main") { inclusive = true }
                     }
-                }
+                },
+                accountViewModel = accountViewModel,
             )
         }
         composable(
@@ -1060,7 +1063,16 @@ fun NavGraph(
             )
         }
         composable("myAccount") {
-            MyAccountScreen(onBack = { navController.popBackStack() })
+            val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
+            val accountViewModel: AccountViewModel = if (mainEntry != null) {
+                viewModel(mainEntry)
+            } else {
+                viewModel()
+            }
+            AccountFormScreen(
+                onBack = { navController.popBackStack() },
+                viewModel = accountViewModel,
+            )
         }
         composable("paymentMethods") {
             PaymentMethodsScreen(onBack = { navController.popBackStack() })

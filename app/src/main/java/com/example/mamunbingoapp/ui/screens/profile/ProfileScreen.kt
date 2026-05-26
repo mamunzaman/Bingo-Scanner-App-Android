@@ -44,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mamunbingoapp.viewmodel.AccountViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,8 +85,13 @@ fun ProfileScreen(
     onHistory: () -> Unit,
     onSupport: () -> Unit,
     onLogout: () -> Unit,
-    showBottomBar: Boolean = true
+    showBottomBar: Boolean = true,
+    accountViewModel: AccountViewModel,
 ) {
+    val accountProfile by accountViewModel.profile.collectAsStateWithLifecycle()
+    val displayName = accountProfile.displayName()
+    val displayEmail = accountProfile.displayEmail()
+    val avatarInitials = accountProfile.avatarInitials()
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -148,12 +155,21 @@ fun ProfileScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(56.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        if (avatarInitials != null) {
+                            Text(
+                                text = avatarInitials,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(56.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                     Box(
                         modifier = Modifier
@@ -173,9 +189,19 @@ fun ProfileScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Alex Rivers",
+                    text = displayName,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = displayEmail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Row(
                     modifier = Modifier.padding(top = 4.dp),

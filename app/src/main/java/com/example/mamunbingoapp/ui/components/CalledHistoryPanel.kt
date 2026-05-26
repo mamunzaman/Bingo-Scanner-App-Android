@@ -140,19 +140,26 @@ fun CalledHistoryPanel(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = "No numbers called yet",
+                        text = when (panelContext) {
+                            CalledHistoryPanelContext.HistoryDetail ->
+                                "No live calls yet — use Go to Live Room for updates."
+                            CalledHistoryPanelContext.Default ->
+                                "No numbers called yet"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                        maxLines = 1,
+                        maxLines = if (panelContext == CalledHistoryPanelContext.HistoryDetail) 2 else 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
-                        text = "Called numbers will appear here during the game.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (panelContext != CalledHistoryPanelContext.HistoryDetail) {
+                        Text(
+                            text = "Called numbers will appear here during the game.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         } else {

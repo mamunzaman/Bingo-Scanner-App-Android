@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
         importDeepLinkViewModel.setFromIntent(intent)
         DatabaseProvider.init(applicationContext)
         com.example.mamunbingoapp.data.SettingsRepository.init(applicationContext)
+        com.example.mamunbingoapp.data.AccountRepository.init(applicationContext)
         lifecycleScope.launch(Dispatchers.IO) { DemoSeeder.seedIfNeeded() }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
