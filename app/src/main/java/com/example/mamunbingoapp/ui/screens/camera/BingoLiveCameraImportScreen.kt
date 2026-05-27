@@ -116,7 +116,6 @@ import java.util.concurrent.atomic.AtomicReference
 
 private const val TAG = "ImportTicketQr"
 private const val CROP_LOG = "CameraXCaptureCrop"
-private const val LIVE_NO_BINGO_LOG_MS = 2000L
 private const val MIN_FRAME_INTERVAL_MS = 350L
 private const val SHUTTER_UP_MS = 60
 private const val SHUTTER_DOWN_MS = 60
@@ -244,10 +243,6 @@ private fun tryCropToViewfinderFrame(
         try {
             FileOutputStream(out).use { os -> cropped.compress(Bitmap.CompressFormat.JPEG, 92, os) }
             ok = true
-            Log.d(
-                CROP_LOG,
-                "cropped view=${previewW}x${previewH} rect=$cropR in=${sourceJpeg.length()}B out=${out.length()}B",
-            )
             out
         } finally {
             if (!ok) out.delete()
@@ -491,8 +486,6 @@ private fun BingoCameraQrViewfinder() {
     }
 }
 
-private const val BINGO_SCAN_TYPE_LOG = "BingoScanType"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BingoLiveCameraImportScreen(
@@ -505,7 +498,6 @@ fun BingoLiveCameraImportScreen(
 ) {
     val context = LocalContext.current
     androidx.compose.runtime.LaunchedEffect(scanType) {
-        Log.d(BINGO_SCAN_TYPE_LOG, "camera scanType=${scanType.name} title=${scanType.title}")
         Toast.makeText(
             context,
             "Scan target: ${scanType.title}",
@@ -555,7 +547,6 @@ fun BingoLiveCameraImportScreen(
     val mainExecutor = remember { ContextCompat.getMainExecutor(context) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val handled = remember { AtomicBoolean(false) }
-    val lastNoBingoLog = remember { AtomicLong(0) }
     val lastFrameProcess = remember { AtomicLong(0) }
     val processCameraRef = remember { AtomicReference<ProcessCameraProvider?>(null) }
     val boundCameraRef = remember { AtomicReference<Camera?>(null) }
@@ -579,7 +570,7 @@ fun BingoLiveCameraImportScreen(
             val cameraProvider = try {
                 future.get()
             } catch (e: Exception) {
-                Log.d(TAG, "ProcessCameraProvider.get() failed: ${e.message}")
+                Log.w(TAG, "ProcessCameraProvider.get() failed: ${e.message}")
                 return@Runnable
             }
             processCameraRef.set(cameraProvider)
@@ -613,14 +604,7 @@ fun BingoLiveCameraImportScreen(
                         media,
                         imageProxy.imageInfo.rotationDegrees,
                     )
-                    val throttledNoBingo: () -> Unit = {
-                        val t = System.currentTimeMillis()
-                        if (t - lastNoBingoLog.get() >= LIVE_NO_BINGO_LOG_MS) {
-                            lastNoBingoLog.set(t)
-                            Log.d(TAG, "live camera no bingo QR")
-                        }
-                    }
-                    when (val res = tryDecodeBingoQrFromInputImage(input, throttledNoBingo)) {
+                    when (val res = tryDecodeBingoQrFromInputImage(input, onLiveNoBingoFrame = {})) {
                         is ImportTicketQrPreOcr.Decoded -> {
                             if (handled.compareAndSet(false, true)) {
                                 val nums = finalUiGridRowMajor(res.numbers)
@@ -660,7 +644,7 @@ fun BingoLiveCameraImportScreen(
                 }
             } catch (e: Exception) {
                 imageCaptureRef.set(null)
-                Log.d(TAG, "bindToLifecycle failed: ${e.message}")
+                Log.w(TAG, "bindToLifecycle failed: ${e.message}")
             }
         }
         future.addListener(listener, mainExecutor)
@@ -677,7 +661,7 @@ fun BingoLiveCameraImportScreen(
         runCatching {
             camera.cameraControl.enableTorch(torchEnabled)
         }.onFailure { e ->
-            Log.d(TAG, "enableTorch failed: ${e.message}")
+            Log.w(TAG, "enableTorch failed: ${e.message}")
         }
     }
     val captureActionEnabled = cameraSessionReady && !fullTicketImportLocked
@@ -836,7 +820,7 @@ fun BingoLiveCameraImportScreen(
                             File.createTempFile("live_full_ticket_capture_", ".jpg", context.cacheDir)
                         }.getOrNull()
                         if (outFile == null) {
-                            Log.d(TAG, "capture temp file failed, fallback GMS")
+                            Log.w(TAG, "capture temp file failed, fallback GMS")
                             onScanFullTicketState.value()
                             return@Button
                         }
@@ -904,7 +888,7 @@ fun BingoLiveCameraImportScreen(
                                 ) {
                                     capturing = false
                                     outFile.delete()
-                                    Log.d(TAG, "takePicture failed, fallback GMS: ${e.message}")
+                                    Log.w(TAG, "takePicture failed, fallback GMS: ${e.message}")
                                     onScanFullTicketState.value()
                                 }
                             }

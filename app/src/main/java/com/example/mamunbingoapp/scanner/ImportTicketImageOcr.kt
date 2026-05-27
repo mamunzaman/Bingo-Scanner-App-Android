@@ -11,7 +11,6 @@ import android.graphics.Rect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
-import android.util.Log
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -30,8 +29,6 @@ data class HistoryImportOcrOutcome(
 )
 
 object ImportTicketImageOcr {
-
-    private const val TAG = "ImportTicketOcr"
 
     /** Below this many distinct 1–75 values from ML Kit elements: weak-parser path + optional second OCR crop. */
     private const val ML_KIT_WEAK_DISTINCT_THRESHOLD = 20
@@ -75,7 +72,6 @@ object ImportTicketImageOcr {
      * [preCropCameraForStripOcr]: when true, runs [BingoNumberAnalyzer.tryPaddedBingoGridCropForCameraOcr] on the
      * full bitmap and feeds the cropped (or on failure, original) image to the same [analyzeBitmap] path — use only
      * for in-app **CameraX still** URIs, not gallery.
-     * TODO: VM currently forces false (rollback); re-enable after device QA.
      */
     fun analyzeUri(
         context: Context,
@@ -108,7 +104,6 @@ object ImportTicketImageOcr {
         /** Bitmap to feed into [gridCropForNumberRegion]; may be [original] or a new cropped copy. */
         val bitmap: Bitmap,
         val applied: Boolean,
-        val logLine: String,
     )
 
     private fun analyzeBitmap(
@@ -119,19 +114,12 @@ object ImportTicketImageOcr {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val bezel = tryScreenshotBezelCrop(bitmap)
         val preCropApplied = bezel.applied
-        Log.d(TAG, bezel.logLine)
         if (preCropApplied && bezel.bitmap !== bitmap && !bitmap.isRecycled) {
             bitmap.recycle()
         }
         val rootForPipeline = bezel.bitmap
         val pass1 =
             if (bypassInternalGridCrop) {
-                Log.d(
-                    TAG,
-                    "gridCropForNumberRegion source=bypass_gallery_manual_crop " +
-                        "src=${rootForPipeline.width}x${rootForPipeline.height} " +
-                        "out=${rootForPipeline.width}x${rootForPipeline.height}",
-                )
                 rootForPipeline
             } else {
                 gridCropForNumberRegion(rootForPipeline)
@@ -156,15 +144,6 @@ object ImportTicketImageOcr {
             }
             val gridRoot = if (useSuppressedRoot) hiRes.bitmap else pass1
             val r1Chosen = if (useSuppressedRoot) r1Sup!! else r1Normal
-            val nVc = strictValidColumnCellCount(r1Normal.outcome.numbersRowMajor)
-            val sVc = r1Sup?.let { strictValidColumnCellCount(it.outcome.numbersRowMajor) } ?: nVc
-            Log.d(
-                TAG,
-                "highlightGrid: highlightMaskApplied=${hiRes.maskApplied} " +
-                    "suppressedPixelPct=${"%.2f".format(hiRes.suppressedPixelPct)} " +
-                    "normalValidCells=$nVc suppressedValidCells=$sVc chosen=${if (useSuppressedRoot) "suppressed" else "normal"}",
-            )
-            logOcrStage("base", r1Chosen)
             val tighter = tighterCenterZoomGridCrop(gridRoot)
             val r2: PipelineResult? = if (tighter != null) {
                 pass2 = tighter
@@ -172,7 +151,6 @@ object ImportTicketImageOcr {
             } else {
                 null
             }
-            r2?.let { logOcrStage("tighter", it) }
 
             val bestCrop: Bitmap = if (r2 != null && compareStageCandidates(r2, r1Chosen) > 0) {
                 pass2!!
@@ -180,14 +158,7 @@ object ImportTicketImageOcr {
                 gridRoot
             }
 
-            val baseRaws = buildString {
-                append(r1Normal.raw)
-                r1Sup?.let { append("\n").append(it.raw) }
-                if (r2 != null) append("\n").append(r2.raw)
-            }
-
             var deskewBest: PipelineResult? = null
-            val deskewRaws = StringBuilder()
             for (deg in DESKEW_DEGREES) {
                 val rotated = rotateBitmapDeskew(bestCrop, deg) ?: continue
                 try {
@@ -196,15 +167,12 @@ object ImportTicketImageOcr {
                         if (deskewBest == null || compareStageCandidates(rp, deskewBest) > 0) {
                             deskewBest = rp
                         }
-                        deskewRaws.append("\n").append(rp.raw)
                     }
                 } finally {
                     if (!rotated.isRecycled) rotated.recycle()
                 }
             }
-            logOcrStage("deskew", deskewBest ?: r1Chosen)
 
-            val perspectiveRaws = StringBuilder()
             var gateBest = maxStageResult(r1Chosen, r2, deskewBest) ?: r1Chosen
             var perspectiveRp: PipelineResult? = null
             if (gateBest.distinctValidCount < ML_KIT_WEAK_DISTINCT_THRESHOLD) {
@@ -214,14 +182,12 @@ object ImportTicketImageOcr {
                         val rp = runCatching { runPipeline(warped, recognizer) }.getOrNull()
                         if (rp != null) {
                             perspectiveRp = rp
-                            perspectiveRaws.append("\n").append(rp.raw)
                         }
                     } finally {
                         if (!warped.isRecycled) warped.recycle()
                     }
                 }
             }
-            logOcrStage("perspective", perspectiveRp ?: gateBest)
             if (perspectiveRp != null && compareStageCandidates(perspectiveRp, gateBest) > 0) {
                 gateBest = perspectiveRp
             }
@@ -234,9 +200,7 @@ object ImportTicketImageOcr {
                     try {
                         val rp = runCatching { runPipeline(c1, recognizer) }.getOrNull()
                         if (rp != null) {
-                            logOcrStage("contrastVariant1", rp)
                             c1rp = rp
-                            perspectiveRaws.append("\n").append(rp.raw)
                         }
                     } finally {
                         if (!c1.isRecycled) c1.recycle()
@@ -247,9 +211,7 @@ object ImportTicketImageOcr {
                     try {
                         val rp = runCatching { runPipeline(c2, recognizer) }.getOrNull()
                         if (rp != null) {
-                            logOcrStage("contrastVariant2", rp)
                             c2rp = rp
-                            perspectiveRaws.append("\n").append(rp.raw)
                         }
                     } finally {
                         if (!c2.isRecycled) c2.recycle()
@@ -267,49 +229,21 @@ object ImportTicketImageOcr {
             c2rp?.let { stageCandidates.add("contrastVariant2" to it) }
 
             val consensusRow = buildConsensusRowMajor(stageCandidates)
-            val consensusVc = strictValidColumnCellCount(consensusRow)
-            val consensusV25 = isStrictValidRowMajorGrid(consensusRow)
             val consensusOutcome = HistoryImportOcrOutcome(numbersRowMajor = pad25(consensusRow))
             val consensusPr = PipelineResult(
                 consensusOutcome,
-                distinctValidCount = consensusVc,
+                distinctValidCount = strictValidColumnCellCount(consensusRow),
                 raw = "",
             )
-            val (rankedRawPick, weakFallbackRaw) = rankRawStagesForFallback(stageCandidates)
+            val (rankedRawPick, _) = rankRawStagesForFallback(stageCandidates)
             val bestRawStagePair = rankedRawPick.stage to rankedRawPick.pr
-            Log.d(
-                TAG,
-                "fallbackPick stage=${rankedRawPick.stage} " +
-                    "displayed=${rankedRawPick.displayedCount} " +
-                    "distinctDisplayed=${rankedRawPick.distinctDisplayedCount} " +
-                    "duplicatePenalty=${rankedRawPick.duplicatePenalty} " +
-                    "columnRangeViolations=${rankedRawPick.columnRangeViolations} " +
-                    "weakFallback=$weakFallbackRaw",
-            )
             val consensusSanity = gridSanityMetrics(consensusPr.outcome.numbersRowMajor)
             val sanityGate = consensusSanityGate(consensusSanity)
-            Log.d(
-                TAG,
-                "finalGridSanity candidate=consensus displayed=${consensusSanity.displayed} " +
-                    "distinctDisplayed=${consensusSanity.distinctDisplayed} " +
-                    "duplicatePenalty=${consensusSanity.duplicatePenalty} " +
-                    "columnRangeViolations=${consensusSanity.columnRangeViolations} " +
-                    "accepted=${sanityGate.first} reason=${sanityGate.second}",
-            )
-            val bestRawDistinct = bestRawStagePair.second.distinctValidCount
             val (consensusQualityOk, consensusQualityReason) = consensusPassesQualityBar(
                 consensusPr,
                 bestRawStagePair.second,
                 consensusSanity,
                 sanityGate = sanityGate,
-            )
-            Log.d(
-                TAG,
-                "finalQualityCheck candidate=consensus displayed=${consensusSanity.displayed} " +
-                    "distinctDisplayed=${consensusSanity.distinctDisplayed} " +
-                    "duplicatePenalty=${consensusSanity.duplicatePenalty} " +
-                    "bestRawDistinct=$bestRawDistinct " +
-                    "accepted=$consensusQualityOk reason=$consensusQualityReason",
             )
             val consensusAllowed = consensusQualityOk && (
                 consensusQualityReason == "tier_b_display_advantage" ||
@@ -318,15 +252,15 @@ object ImportTicketImageOcr {
                             compareStrongestStagePrimary(consensusPr, bestRawStagePair.second) >= 0
                         )
                 )
-            val (bestStageRaw, chosenPrRaw) =
+            val chosenPrRaw =
                 if (consensusAllowed) {
                     pickConsensusOrBestStage(
                         consensusPr,
                         stageCandidates,
                         includeConsensus = true,
-                    )
+                    ).second
                 } else {
-                    bestRawStagePair
+                    bestRawStagePair.second
                 }
             var strongestStageOnly = stageCandidates.maxWithOrNull { a, b ->
                 compareStrongestStagePrimary(a.second, b.second)
@@ -336,27 +270,13 @@ object ImportTicketImageOcr {
             }
             val guardApplied = strongestStageOnly != null &&
                 strongestStageOnly.second.distinctValidCount >= chosenPrRaw.distinctValidCount + 4
-            var finalStage: String
-            var chosenPr: PipelineResult
-            if (guardApplied) {
-                finalStage = strongestStageOnly!!.first
-                chosenPr = strongestStageOnly.second
+            var chosenPr: PipelineResult = if (guardApplied) {
+                strongestStageOnly!!.second
             } else {
-                finalStage = bestStageRaw
-                chosenPr = chosenPrRaw
+                chosenPrRaw
             }
-            val finalReason =
-                if (finalStage == "consensus") "consensus_better_or_equal" else "kept_best_raw"
-            Log.d(
-                TAG,
-                "stagePickAdjust bestRawStage=${bestRawStagePair.first} " +
-                    "bestRawDistinct=${bestRawStagePair.second.distinctValidCount} " +
-                    "consensusDistinct=${consensusPr.distinctValidCount} " +
-                    "finalStage=$finalStage finalReason=$finalReason",
-            )
 
             var chosenOutcome = chosenPr.outcome
-            var chosenDistinct = chosenPr.distinctValidCount
 
             if (chosenPr.distinctValidCount < ML_KIT_WEAK_DISTINCT_THRESHOLD) {
                 val layoutOutcome = tryWeakPathBingoHeaderLayout(pass1, recognizer)
@@ -367,58 +287,18 @@ object ImportTicketImageOcr {
                         raw = "",
                     )
                     if (compareStageCandidates(headerPr, chosenPr) > 0) {
-                        finalStage = "bingoHeaderWeak"
                         chosenOutcome = layoutOutcome
-                        chosenDistinct = headerPr.distinctValidCount
                         val weakBase = layoutOutcome.copy(losNumber = null, serialNumber = null)
-                        val weakRm0 = pad25(weakBase.numbersRowMajor)
-                        val beforeDw = weakRm0.count { it != 0 }
-                        val beforeDdist = weakRm0.filter { it in 1..75 }.distinct().size
-                        val (weakDeduped, weakRemoved) = dedupeDuplicateBingoValuesRowMajor(weakRm0)
-                        val afterDw = weakDeduped.count { it != 0 }
-                        val afterDdist = weakDeduped.filter { it in 1..75 }.distinct().size
-                        Log.d(
-                            TAG,
-                            "finalDedup removed=$weakRemoved beforeDisplayed=$beforeDw beforeDistinct=$beforeDdist " +
-                                "afterDisplayed=$afterDw afterDistinct=$afterDdist",
-                        )
+                        val (weakDeduped, _) = dedupeDuplicateBingoValuesRowMajor(pad25(weakBase.numbersRowMajor))
                         val weakOut = weakBase.copy(numbersRowMajor = weakDeduped)
-                        val v = strictValidColumnCellCount(weakOut.numbersRowMajor)
-                        val v25 = isStrictValidRowMajorGrid(weakOut.numbersRowMajor)
-                        Log.d(
-                            TAG,
-                            "ocrFinal: finalStage=$finalStage consensusValidCells=$consensusVc " +
-                                "consensusValid25=$consensusV25 validCells=$v distinct=$afterDdist valid25=$v25",
-                        )
-                        logFinalGridHandoff(weakOut)
                         return attachLeftStripMeta(weakOut, rootForPipeline)
                     }
                 }
             }
 
             val outBase = chosenOutcome.copy(losNumber = null, serialNumber = null)
-            val rm0 = pad25(outBase.numbersRowMajor)
-            val beforeDw = rm0.count { it != 0 }
-            val beforeDdist = rm0.filter { it in 1..75 }.distinct().size
-            val (dedupedRm, removedDup) = dedupeDuplicateBingoValuesRowMajor(rm0)
-            val afterDw = dedupedRm.count { it != 0 }
-            val afterDdist = dedupedRm.filter { it in 1..75 }.distinct().size
-            Log.d(
-                TAG,
-                "finalDedup removed=$removedDup beforeDisplayed=$beforeDw beforeDistinct=$beforeDdist " +
-                    "afterDisplayed=$afterDw afterDistinct=$afterDdist",
-            )
-            val out = outBase.copy(numbersRowMajor = dedupedRm)
-            val vc = strictValidColumnCellCount(out.numbersRowMajor)
-            val v25 = isStrictValidRowMajorGrid(out.numbersRowMajor)
-            Log.d(
-                TAG,
-                "ocrFinal: finalStage=$finalStage consensusValidCells=$consensusVc " +
-                    "consensusValid25=$consensusV25 validCells=$vc distinct=$afterDdist valid25=$v25",
-            )
-            val withMeta = attachLeftStripMeta(out, rootForPipeline)
-            logFinalGridHandoff(withMeta)
-            withMeta
+            val (dedupedRm, _) = dedupeDuplicateBingoValuesRowMajor(pad25(outBase.numbersRowMajor))
+            attachLeftStripMeta(outBase.copy(numbersRowMajor = dedupedRm), rootForPipeline)
         } finally {
             recognizer.close()
             pass2?.let { p2 ->
@@ -517,7 +397,7 @@ object ImportTicketImageOcr {
         val w0 = original.width
         val h0 = original.height
         if (w0 < 96 || h0 < 96) {
-            return ScreenshotBezelResult(original, false, "preCrop applied=false reason=tooSmall orig=${w0}x${h0}")
+            return ScreenshotBezelResult(original, false)
         }
         val stepX = max(1, w0 / 160)
         val stepY = max(1, h0 / 160)
@@ -567,11 +447,7 @@ object ImportTicketImageOcr {
         }
         val outerMean = if (outerN > 0) outerDarkSum / outerN else 128f
         if (outerMean > 52f) {
-            return ScreenshotBezelResult(
-                original,
-                false,
-                "preCrop applied=false reason=edgesNotDarkEnough outerMeanL=${"%.1f".format(outerMean)} orig=${w0}x${h0}",
-            )
+            return ScreenshotBezelResult(original, false)
         }
         val contentEnter = 48f
         var left = 0
@@ -608,41 +484,17 @@ object ImportTicketImageOcr {
         val maxTrim = maxOf(trimL, trimR, trimT, trimB)
         val minSide = min(cw, ch)
         if (innerFrac > 0.88f || maxTrim < 0.055f || minSide < 180 || cw < 120 || ch < 120) {
-            return ScreenshotBezelResult(
-                original,
-                false,
-                "preCrop applied=false reason=conservative innerFrac=${"%.2f".format(innerFrac)} maxTrimPct=${"%.1f".format(maxTrim * 100)} orig=${w0}x${h0} cropWould=${cw}x${ch}",
-            )
+            return ScreenshotBezelResult(original, false)
         }
         return try {
-            val cropped = Bitmap.createBitmap(original, left, top, cw, ch)
-            val lp = trimL * 100f
-            val rp = trimR * 100f
-            val tp = trimT * 100f
-            val bp = trimB * 100f
-            ScreenshotBezelResult(
-                cropped,
-                true,
-                "preCrop applied=true orig=${w0}x${h0} cropped=${cw}x${ch} borderPct L=${"%.1f".format(lp)} R=${"%.1f".format(rp)} T=${"%.1f".format(tp)} B=${"%.1f".format(bp)} outerMeanL=${"%.1f".format(outerMean)}",
-            )
+            ScreenshotBezelResult(Bitmap.createBitmap(original, left, top, cw, ch), true)
         } catch (_: Exception) {
-            ScreenshotBezelResult(original, false, "preCrop applied=false reason=createBitmapFailed orig=${w0}x${h0}")
+            ScreenshotBezelResult(original, false)
         }
     }
 
     /** Small rotations tried when crop passes are still weak (distinct ML Kit values &lt; threshold). */
     private val DESKEW_DEGREES = floatArrayOf(-3f, 3f, -5f, 5f)
-
-    private fun logOcrStage(stage: String, pr: PipelineResult) {
-        val rm = pr.outcome.numbersRowMajor
-        val p = pad25(rm)
-        val dup = rowMajorDuplicateCount(rm)
-        val oob = rowMajorOutOfColumnCount(rm)
-        val validCells = strictValidColumnCellCount(p)
-        val valid25 = isStrictValidRowMajorGrid(rm)
-        Log.d(TAG, "strictCheck validCells=$validCells dup=$dup oob=$oob finalValid25=$valid25")
-        Log.d(TAG, "stage=$stage distinct=${pr.distinctValidCount} dup=$dup oobCol=$oob valid25=$valid25")
-    }
 
     /** Grayscale + linear contrast (glare / soft screen photos). Caller recycles the result. */
     private fun toGrayscaleHighContrast(src: Bitmap, contrastScale: Float, contrastTranslate: Float): Bitmap? {
@@ -746,7 +598,6 @@ object ImportTicketImageOcr {
         val strictOk = all.filter { isStrictValidRowMajorGrid(it.second.outcome.numbersRowMajor) }
         val pool = if (strictOk.isNotEmpty()) strictOk else all
         val picked = pool.maxWithOrNull { a, b -> compareStrongestStagePrimary(a.second, b.second) }!!
-        logFinalDuplicateCheck(picked.second)
         return picked.first to picked.second
     }
 
@@ -961,14 +812,6 @@ object ImportTicketImageOcr {
         val ob = rowMajorOutOfColumnCount(rb)
         if (oa != ob) return ob.compareTo(oa)
         return 0
-    }
-
-    private fun logFinalDuplicateCheck(pr: PipelineResult) {
-        val rm = pad25(pr.outcome.numbersRowMajor)
-        val displayed = rm.count { it != 0 }
-        val distinct = rm.filter { it in 1..75 }.distinct().size
-        val dup = rowMajorDuplicateCount(rm)
-        Log.d(TAG, "finalDuplicateCheck displayed=$displayed distinct=$distinct duplicates=$dup")
     }
 
     /** Rotate around center; output bounds padded so content is not clipped. */
@@ -1328,7 +1171,6 @@ object ImportTicketImageOcr {
     ): HistoryImportOcrOutcome? {
         val headerBottom = detectBlueBingoHeaderBottomY(pass1)
         if (headerBottom == null) {
-            Log.d(TAG, "bingoHeaderWeak: headerDetected=false")
             return null
         }
         val w = pass1.width
@@ -1340,7 +1182,6 @@ object ImportTicketImageOcr {
         var gridBmp: Bitmap? = null
         return try {
             if (gridW < 36 || gridH < 36) {
-                Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=0")
                 return null
             }
             gridBmp = Bitmap.createBitmap(pass1, stripW, gridTop, gridW, gridH)
@@ -1353,21 +1194,10 @@ object ImportTicketImageOcr {
                 gridBmp.height,
                 minFilled = 8,
             )
-            val validCells = if (cell != null) {
-                cell.rowMajor.withIndex().count { (idx, v) ->
-                    val c = idx % 5
-                    val rng = BingoNumberAnalyzer.bingoColumnValueRange(c)
-                    v != 0 && rng != null && v in rng
-                }
-            } else {
-                0
-            }
-            Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=$validCells")
             if (cell == null) return null
             if (!isStrictValidRowMajorGrid(cell.rowMajor)) return null
             HistoryImportOcrOutcome(numbersRowMajor = pad25(cell.rowMajor), losNumber = null, serialNumber = null)
         } catch (_: Exception) {
-            Log.d(TAG, "bingoHeaderWeak: headerDetected=true gridValidCells=0")
             null
         } finally {
             gridBmp?.let { if (!it.isRecycled) it.recycle() }
@@ -1509,30 +1339,11 @@ object ImportTicketImageOcr {
             } catch (_: Exception) {
                 null
             }
-            if (analyzerCrop == null) {
-                val fallback = heuristicCentralGridCrop(src)
-                Log.d(
-                    TAG,
-                    "gridCropForNumberRegion source=heuristic src=${src.width}x${src.height} out=${fallback.width}x${fallback.height}",
-                )
-                return fallback
+            if (analyzerCrop != null) {
+                return analyzerCrop
             }
-            Log.d(
-                TAG,
-                "gridCrop padded original=${analyzerRect.width()}x${analyzerRect.height()} padded=${paddedRect.width()}x${paddedRect.height()}",
-            )
-            Log.d(
-                TAG,
-                "gridCropForNumberRegion source=analyzer src=${src.width}x${src.height} out=${analyzerCrop.width}x${analyzerCrop.height}",
-            )
-            return analyzerCrop
         }
-        val fallback = heuristicCentralGridCrop(src)
-        Log.d(
-            TAG,
-            "gridCropForNumberRegion source=heuristic src=${src.width}x${src.height} out=${fallback.width}x${fallback.height}",
-        )
-        return fallback
+        return heuristicCentralGridCrop(src)
     }
 
     /** Fallback when [BingoNumberAnalyzer.tryDetectBingoGridCropForOcr] returns null. */
@@ -1546,10 +1357,6 @@ object ImportTicketImageOcr {
         val bottom = (h * 0.78f).toInt().coerceIn(top + 1, h)
         val cw = right - left
         val ch = bottom - top
-        Log.d(
-            TAG,
-            "heuristicGridCrop rect=[$left,$top][$right,$bottom] size=${cw}x${ch} src=${w}x${h}",
-        )
         return try {
             Bitmap.createBitmap(src, left, top, cw, ch)
         } catch (_: Exception) {
@@ -1621,10 +1428,6 @@ object ImportTicketImageOcr {
         bottom = minOf(bottom, imgBottom)
         if (right <= left || bottom <= top) return valid
         val inner = valid.filter { it.centerX in left..right && it.centerY in top..bottom }
-        Log.d(
-            TAG,
-            "centralFilter mode=${if (useStrongInset) "strong" else "edge_preserve"} valid=${valid.size} inner=${inner.size}",
-        )
         return if (inner.size >= 6) inner else valid
     }
 
@@ -1662,24 +1465,9 @@ object ImportTicketImageOcr {
         return grid.toList() to removed
     }
 
-    private fun logFinalGridHandoff(outcome: HistoryImportOcrOutcome) {
-        val rm = pad25(outcome.numbersRowMajor)
-        val displayedCount = rm.count { it != 0 }
-        val distinctDisplayedCount = rm.filter { it in 1..75 }.distinct().size
-        Log.d(TAG, "finalRowMajor=$rm displayedCount=$displayedCount distinctDisplayedCount=$distinctDisplayedCount")
-    }
-
     /** Left-strip meta only; does not touch [HistoryImportOcrOutcome.numbersRowMajor]. */
     private fun attachLeftStripMeta(gridOnly: HistoryImportOcrOutcome, ticketBitmap: Bitmap): HistoryImportOcrOutcome {
         val (los, serial) = LeftStripMetaOcr.detect(ticketBitmap)
-        val w = ticketBitmap.width
-        val h = ticketBitmap.height
-        val lw = (w * LEFT_STRIP_WIDTH_FRAC).toInt().coerceIn(4, w)
-        val success = los != null || serial != null
-        Log.d(
-            TAG,
-            "metaDebug left=${lw}x${h} los=${los ?: "-"} serial=${serial ?: "-"} success=$success",
-        )
         return if (los == null && serial == null) gridOnly else gridOnly.copy(losNumber = los, serialNumber = serial)
     }
 

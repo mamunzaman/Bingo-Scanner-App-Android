@@ -8,7 +8,6 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.net.Uri
-import android.util.Log
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -24,8 +23,6 @@ import kotlin.math.min
  * Grid: per-cell OCR when layout is clear; otherwise position-based ML Kit fallback (no header/circle dependency).
  */
 object OnlineBingoOcr {
-
-    private const val TAG = "OnlineBingoOcr"
 
     /** Minimum non-zero grid cells for ONLINE success (preview / manual correction). */
     const val MIN_VALID_CELLS_FOR_SUCCESS = 15
@@ -46,10 +43,8 @@ object OnlineBingoOcr {
     private val gridNumberPattern = Regex("(?<![0-9])([1-9]|[1-6][0-9]|7[0-5])(?![0-9])")
 
     fun analyzeUri(context: Context, uri: Uri): HistoryImportOcrOutcome {
-        Log.d(TAG, "OnlineBingoOcr selected")
         val bitmap = loadBitmapDownsampled(context, uri, maxSide = 1600)
             ?: error("Could not load image")
-        Log.d(TAG, "started bitmapSize=${bitmap.width}x${bitmap.height}")
         return try {
             analyzeBitmapWithPreprocessRetries(bitmap)
         } finally {
@@ -71,25 +66,17 @@ object OnlineBingoOcr {
             for ((variantName, variantBitmap) in buildPreprocessVariants(source)) {
                 val attempt = runCatching {
                     analyzeBitmapOnce(variantBitmap, recognizer, variantName)
-                }.getOrElse {
-                    Log.d(TAG, "preprocessing variant name=$variantName failed: ${it.message}")
-                    null
-                }
+                }.getOrElse { null }
                 if (variantBitmap !== source && !variantBitmap.isRecycled) {
                     variantBitmap.recycle()
                 }
                 if (attempt != null) {
-                    Log.d(
-                        TAG,
-                        "preprocessing variant name=${attempt.variantName} valid cell count=${attempt.validCount}",
-                    )
                     attempts.add(attempt)
                 }
             }
             val best = attempts.maxWithOrNull(
                 compareBy<OnlineOcrAttempt>({ it.validCount }, { it.filledCount }),
             )
-            Log.d(TAG, "selected best variant=${best?.variantName ?: "none"}")
             best?.outcome ?: HistoryImportOcrOutcome(numbersRowMajor = pad25(emptyList()))
         } finally {
             recognizer.close()
@@ -125,10 +112,6 @@ object OnlineBingoOcr {
         }
 
         val rawCandidates = collectNumericCandidates(visionText)
-        Log.d(
-            TAG,
-            "variant=$variantName bitmapSize=${bitmap.width}x${bitmap.height} rawCandidateCount=${rawCandidates.size}",
-        )
         val preGridCandidates = filterPreGridCandidates(
             rawCandidates,
             excludeSerie = serie,
@@ -161,7 +144,6 @@ object OnlineBingoOcr {
         }
         val finalFilled = filledCellCount(rowMajor)
         val finalValid = validColumnCellCount(rowMajor)
-        logMissingCellIndexes(rowMajor, variantName)
 
         val outcome = HistoryImportOcrOutcome(
             numbersRowMajor = rowMajor,
@@ -255,7 +237,6 @@ object OnlineBingoOcr {
         val fallbackBottom = imageH * GRID_BOTTOM_FRAC
         val fallbackCutoff = imageH * 0.94f
         if (preGridCandidates.isEmpty()) {
-            Log.d(TAG, "candidate Y range=empty footerCutoffY=${fallbackCutoff.toInt()} rowCenters=[] expected5th=null")
             return GridRowLayout(
                 rowCenters = emptyList(),
                 avgRowGap = imageH * 0.05f,
@@ -264,10 +245,6 @@ object OnlineBingoOcr {
                 footerCutoffY = fallbackCutoff,
             )
         }
-        val yMin = preGridCandidates.minOf { it.cy }
-        val yMax = preGridCandidates.maxOf { it.cy }
-        Log.d(TAG, "candidate Y range=${yMin.toInt()}..${yMax.toInt()} imageH=$imageH")
-
         val initialClusters = clusterCandidatesIntoRowsRaw(preGridCandidates, imageH)
         val rowCenters = initialClusters
             .map { row -> row.map { it.cy }.average().toFloat() }
@@ -294,12 +271,6 @@ object OnlineBingoOcr {
                 gridBottomY + avgGap * 0.42f,
                 (expectedFifthRowY ?: gridBottomY) + avgGap * 0.78f,
             ),
-        )
-        Log.d(
-            TAG,
-            "detected row centers=${rowCenters.map { it.toInt() }} avgGap=${avgGap.toInt()} " +
-                "expected5th=${expectedFifthRowY?.toInt()} gridBottom=${gridBottomY.toInt()} " +
-                "footerCutoffY=${footerCutoffY.toInt()}",
         )
         return GridRowLayout(
             rowCenters = rowCenters,
@@ -328,14 +299,8 @@ object OnlineBingoOcr {
         imageW: Int,
         imageH: Int,
     ): List<Int> {
-        Log.d(TAG, "raw numeric candidates count=${preGridCandidates.size}")
-
         val filtered = filterGridNumberCandidates(preGridCandidates, gridLayout)
-        Log.d(TAG, "candidates after footer filter=${filtered.size}")
-
         val rowClusters = clusterCandidatesIntoRows(filtered, imageH)
-        Log.d(TAG, "grouped row count=${rowClusters.size}")
-
         val grid = buildRowMajorFromRowClusters(rowClusters, imageW, gridLayout) ?: return emptyList()
         val padded = pad25(grid)
         val filled = filledCellCount(padded)
@@ -547,16 +512,6 @@ object OnlineBingoOcr {
     }
 
     private fun filledCellCount(rowMajor: List<Int>): Int = pad25(rowMajor).count { it != 0 }
-
-    private fun logMissingCellIndexes(rowMajor: List<Int>, variantName: String) {
-        val missing = pad25(rowMajor).mapIndexedNotNull { index, value ->
-            if (value == 0) index else null
-        }
-        Log.d(
-            TAG,
-            "[$variantName] missing cell indexes (0-based row-major)=$missing count=${missing.size}",
-        )
-    }
 
     private fun preprocessContrastEnhanced(src: Bitmap): Bitmap? =
         toGrayscaleHighContrast(src, contrastScale = 1.48f, contrastTranslate = -24f)

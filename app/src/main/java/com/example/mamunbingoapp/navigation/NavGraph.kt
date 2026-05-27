@@ -98,10 +98,6 @@ private fun stagePendingHistoryPhotoImportScanType(
     runCatching {
         navController.getBackStackEntry("main").savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] =
             scanType.name
-        Log.d(
-            SCAN_ENTRY_HANDOFF_TAG,
-            "savedStateHandle $PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY=${scanType.name}",
-        )
     }.onFailure {
         Log.w(SCAN_ENTRY_HANDOFF_TAG, "failed to stage scanType=${scanType.name}: ${it.message}")
     }
@@ -385,7 +381,6 @@ fun NavGraph(
                 onNavigateToLiveRoom = { roomId -> navController.navigate("livePlayRoom/$roomId") },
                 onNavigateToLiveRooms = {},
                 onNavigateToBingoLiveCamera = { scanType ->
-                    Log.d(SCAN_ENTRY_HANDOFF_TAG, "selectedScanType=${scanType.name}")
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
                     navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                 },
@@ -429,7 +424,6 @@ fun NavGraph(
             val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
             LaunchedEffect(scanType) {
                 stagePendingHistoryPhotoImportScanType(navController, scanType)
-                Log.d(SCAN_ENTRY_HANDOFF_TAG, "camera route arg scanType=${scanType.name}")
             }
             val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
             val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
@@ -457,10 +451,6 @@ fun NavGraph(
                             sheetName = sheetName,
                         )
                     }
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "handoff src=bingoLiveCameraImport dest=manualEntry prefill from live QR (room=$lastActiveRoomId)"
-                    )
                     navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
                 },
                 onFullTicketPhotoCaptured = { uri ->
@@ -468,11 +458,6 @@ fun NavGraph(
                         val mainHandle = navController.getBackStackEntry("main").savedStateHandle
                         mainHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
                         mainHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] = scanType.name
-                    }.onSuccess {
-                        Log.d(
-                            SCAN_ENTRY_HANDOFF_TAG,
-                            "handoff src=bingoLiveCameraImport dest=historyPhotoImport scanType=${scanType.name} (CameraX still)",
-                        )
                     }.onFailure {
                         Log.w(
                             SCAN_ENTRY_HANDOFF_TAG,
@@ -485,10 +470,6 @@ fun NavGraph(
                 },
                 onScanFullTicket = {
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "handoff src=bingoLiveCameraImport fallback dest=historyPhotoImport scanType=${scanType.name}",
-                    )
                     navController.navigate("historyPhotoImport") {
                         popUpTo("bingoLiveCameraImport") { inclusive = true }
                     }
@@ -545,7 +526,6 @@ fun NavGraph(
                 showBottomBar = true,
                 roomId = roomId,
                 onTabSelected = { tab ->
-                    if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                     runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", tab.name) }
                     navController.popBackStack("main", inclusive = false)
                 },
@@ -671,11 +651,6 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val me = parseManualEntryFromNav(backStackEntry)
-            Log.d("scan-flow", "ScanScreen manual scanner path")
-            Log.d(
-                "HistoryPhotoImport",
-                "manualEntry opened with scannedNumbers count = ${me.scannedNumbers.size}, prefillOrder = ${backStackEntry.arguments?.getString("prefillOrder")}"
-            )
             ManualEntryScreen(
                 onBack = { navController.popBackStack() },
                 scannedNumbers = me.scannedNumbers,
@@ -688,7 +663,6 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onTabSelected = { tab ->
-                    if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                     runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
                     navController.popBackStack("main", inclusive = false)
                 },
@@ -752,7 +726,6 @@ fun NavGraph(
                     }
                 },
                 onTabSelected = { tab ->
-                    if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                     runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
                     navController.popBackStack("main", inclusive = false)
                 },
@@ -777,7 +750,6 @@ fun NavGraph(
                     }
                 },
                 onTabSelected = { tab ->
-                    if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                     runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", tab.name) }
                     navController.popBackStack("main", inclusive = false)
                 },
@@ -788,10 +760,6 @@ fun NavGraph(
                     com.example.mamunbingoapp.data.RoomRepository.unassignTicket(sessionId)
                 },
                 onAddFromPhotoClick = {
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "handoff src=HistoryList(addFromPhoto) dest=historyPhotoImport screen=HistoryPhotoImportScreen"
-                    )
                     navController.navigate("historyPhotoImport")
                 },
                 onPlayClick = {
@@ -857,15 +825,11 @@ fun NavGraph(
             }
             LaunchedEffect(mainEntryForHandoff, importVm) {
                 val mainEntry = mainEntryForHandoff ?: return@LaunchedEffect
-                fun consumePendingImport(trigger: String) {
+                fun consumePendingImport() {
                     val pending = mainEntry.savedStateHandle
                         .get<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
                         ?.takeIf { it.isNotBlank() }
                         ?: return
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "pendingUri=$pending trigger=$trigger importVm@${System.identityHashCode(importVm)}",
-                    )
                     val pendingScanTypeName =
                         mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
                     mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
@@ -877,36 +841,21 @@ fun NavGraph(
                         else -> {
                             Log.w(
                                 SCAN_ENTRY_HANDOFF_TAG,
-                                "missing $PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY and VM pending; defaulting to PLAY_PAPER",
+                                "pending photo handoff missing scan type; defaulting PLAY_PAPER",
                             )
                             BingoScanType.PLAY_PAPER
                         }
                     }
-                    if (pendingScanTypeName == null && vmPending != null) {
-                        Log.d(
-                            SCAN_ENTRY_HANDOFF_TAG,
-                            "consume pending uri using VM pendingScanType=${vmPending.name}",
-                        )
-                    } else {
-                        Log.d(
-                            SCAN_ENTRY_HANDOFF_TAG,
-                            "consume pending uri savedStateHandle scanType=$pendingScanTypeName effective=${effectiveScanType.name}",
-                        )
-                    }
-                    Log.d(
-                        SCAN_ENTRY_HANDOFF_TAG,
-                        "calling analyze uri=$pending type=${effectiveScanType.name}",
-                    )
                     importVm.setPendingScanType(effectiveScanType)
                     importVm.onPhotoTaken(uri, effectiveScanType)
                     importVm.analyzeTicketFromUri(context, uri, scanType = effectiveScanType)
                 }
-                consumePendingImport("initial")
+                consumePendingImport()
                 mainEntry.savedStateHandle
                     .getStateFlow(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY, "")
                     .collect { pending ->
                         if (pending.isBlank()) return@collect
-                        consumePendingImport("flow")
+                        consumePendingImport()
                     }
             }
             LaunchedEffect(prefilledScannedNumbers, selectedUri, galleryPendingUri) {
@@ -933,7 +882,6 @@ fun NavGraph(
                     AppBottomBar(
                         selectedTab = AppTab.Jackpot,
                         onTabSelected = { tab ->
-                            if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                             val action: () -> Unit = {
                                 navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name)
                                 navController.popBackStack("main", inclusive = false)
@@ -963,14 +911,9 @@ fun NavGraph(
                         val s = success ?: return
                         val nums = s.numbers
                         if (continueNavigated) {
-                            Log.d("HistoryPhotoImport", "duplicate save ignored")
                             return
                         }
                         continueNavigated = true
-                        Log.d(
-                            SCAN_ENTRY_HANDOFF_TAG,
-                            "handoff src=HistoryPhotoImportScreen(save) dest=manualEntry prefillCount=${nums.size} useRoom=$useActiveRoom"
-                        )
                         val route =
                             if (useActiveRoom && !lastActiveRoomId.isNullOrBlank()) {
                                 buildManualEntryForRoomRoute(
@@ -1016,10 +959,6 @@ fun NavGraph(
                         },
                         onClearImageClick = {},
                         onLaunchCamera = { scanType ->
-                            Log.d(
-                                SCAN_ENTRY_HANDOFF_TAG,
-                                "handoff src=HistoryPhotoImportScreen(ui_take_photo) dest=bingoLiveCameraImport scanType=${scanType.name}"
-                            )
                             navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                         },
                         onSaveClick = {},
@@ -1082,7 +1021,6 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onOpenTicketDetail = { ticketId -> navController.navigate("ticket/$ticketId") },
                 onTabSelected = { tab ->
-                    if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                     runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", tab.name) }
                     navController.popBackStack("main", inclusive = false)
                 },
@@ -1130,7 +1068,6 @@ fun NavGraph(
                     }
                 },
                 onTabSelected = { tab ->
-                    if (tab == AppTab.Scan) Log.d("scan-flow", "FOUND entry -> ScanScreen from: NavGraph.kt")
                     runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
                     navController.popBackStack("main", inclusive = false)
                 }

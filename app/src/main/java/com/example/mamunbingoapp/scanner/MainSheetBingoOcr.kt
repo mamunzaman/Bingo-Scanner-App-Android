@@ -8,7 +8,6 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.net.Uri
-import android.util.Log
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -26,8 +25,6 @@ import kotlin.math.min
  * Serie / Los-Nr. footer. Ignores Super 6 / Spiel 77 noise below footer.
  */
 object MainSheetBingoOcr {
-
-    private const val TAG = "MainSheetBingoOcr"
 
     /** Minimum valid cells (correct column range) to open preview/manual-correction UI. */
     const val MIN_VALID_CELLS_FOR_SUCCESS = 15
@@ -57,16 +54,10 @@ object MainSheetBingoOcr {
         @Suppress("UNUSED_PARAMETER") bypassInternalGridCrop: Boolean = false,
         @Suppress("UNUSED_PARAMETER") preCropCameraForStripOcr: Boolean = false,
     ): HistoryImportOcrOutcome {
-        Log.d(TAG, "MainSheetBingoOcr selected uri=$uri")
         val bitmap = loadBitmapDownsampled(context, uri, maxSide = 1600)
             ?: error("Could not load image")
-        Log.d(TAG, "bitmapSize=${bitmap.width}x${bitmap.height}")
         return try {
-            val outcome = analyzeBitmapWithPreprocessRetries(bitmap)
-            val validCount = validColumnCellCount(outcome.numbersRowMajor)
-            val filledCount = filledCellCount(outcome.numbersRowMajor)
-            Log.d(TAG, "MainSheetBingoOcr finished validCells=$validCount filled=$filledCount")
-            outcome
+            analyzeBitmapWithPreprocessRetries(bitmap)
         } finally {
             if (!bitmap.isRecycled) bitmap.recycle()
         }
@@ -88,20 +79,15 @@ object MainSheetBingoOcr {
             for ((variantName, variantBitmap) in buildPreprocessVariants(source)) {
                 val attempt = runCatching {
                     analyzeBitmapOnce(variantBitmap, recognizer, variantName)
-                }.getOrElse {
-                    Log.d(TAG, "variant $variantName failed: ${it.message}")
-                    null
-                }
+                }.getOrElse { null }
                 if (variantBitmap !== source && !variantBitmap.isRecycled) variantBitmap.recycle()
                 if (attempt != null) {
-                    Log.d(TAG, "variant=${attempt.variantName} validCells=${attempt.validCount}")
                     attempts.add(attempt)
                 }
             }
             val best = attempts.maxWithOrNull(
                 compareBy<MainSheetOcrAttempt>({ it.validCount }, { it.filledCount }),
             )
-            Log.d(TAG, "selected best variant=${best?.variantName ?: "none"}")
             best?.outcome ?: HistoryImportOcrOutcome(numbersRowMajor = pad25(emptyList()))
         } finally {
             recognizer.close()
@@ -126,11 +112,7 @@ object MainSheetBingoOcr {
         } finally {
             if (!footerBmp.isRecycled) footerBmp.recycle()
         }
-        Log.d(TAG, "detected serie=$serie los=$los")
-
         val rawCandidates = collectNumericCandidates(visionText)
-        Log.d(TAG, "variant=$variantName rawCandidateCount=${rawCandidates.size}")
-
         val preGridCandidates = filterPreGridCandidates(rawCandidates, excludeSerie = serie, excludeLos = los)
         val gridLayout = computeGridRowLayout(preGridCandidates, bitmap.height)
 
@@ -151,8 +133,6 @@ object MainSheetBingoOcr {
         }
         val finalFilled = filledCellCount(rowMajor)
         val finalValid = validColumnCellCount(rowMajor)
-        Log.d(TAG, "valid cell count=$finalValid (filled=$finalFilled)")
-        logMissingCellIndexes(rowMajor, variantName)
 
         val outcome = HistoryImportOcrOutcome(
             numbersRowMajor = rowMajor,
@@ -189,10 +169,6 @@ object MainSheetBingoOcr {
         if (candidates.isEmpty()) {
             return GridRowLayout(emptyList(), imageH * 0.05f, null, fallbackBottom, fallbackCutoff)
         }
-        val yMin = candidates.minOf { it.cy }
-        val yMax = candidates.maxOf { it.cy }
-        Log.d(TAG, "candidate Y range=${yMin.toInt()}..${yMax.toInt()} imageH=$imageH")
-
         val rawClusters = clusterCandidatesIntoRowsRaw(candidates, imageH)
         val rowCenters = rawClusters.map { row -> row.map { it.cy }.average().toFloat() }.sorted()
         val gaps = rowCenters.zipWithNext { a, b -> b - a }
@@ -214,12 +190,6 @@ object MainSheetBingoOcr {
         val footerCutoffY = min(
             imageH * 0.96f,
             max(gridBottomY + avgGap * 0.42f, (expectedFifthRowY ?: gridBottomY) + avgGap * 0.78f),
-        )
-        Log.d(
-            TAG,
-            "rowCenters=${rowCenters.map { it.toInt() }} avgGap=${avgGap.toInt()} " +
-                "expected5th=${expectedFifthRowY?.toInt()} gridBottom=${gridBottomY.toInt()} " +
-                "footerCutoffY=${footerCutoffY.toInt()}",
         )
         return GridRowLayout(rowCenters, avgGap, expectedFifthRowY, gridBottomY, footerCutoffY)
     }
@@ -310,11 +280,8 @@ object MainSheetBingoOcr {
         imageW: Int,
         imageH: Int,
     ): List<Int> {
-        Log.d(TAG, "raw numeric candidates count=${preGridCandidates.size}")
         val filtered = filterGridNumberCandidates(preGridCandidates, gridLayout)
-        Log.d(TAG, "candidates after footer filter=${filtered.size}")
         val rowClusters = clusterCandidatesIntoRows(filtered, imageH)
-        Log.d(TAG, "grouped row count=${rowClusters.size}")
         val grid = buildRowMajorFromRowClusters(rowClusters, imageW, gridLayout) ?: return emptyList()
         val padded = pad25(grid)
         if (filledCellCount(padded) < POSITION_FALLBACK_MIN_VALID) return emptyList()
@@ -606,11 +573,6 @@ object MainSheetBingoOcr {
             if (v in range) n++
         }
         return n
-    }
-
-    private fun logMissingCellIndexes(rowMajor: List<Int>, variantName: String) {
-        val missing = pad25(rowMajor).mapIndexedNotNull { idx, v -> if (v == 0) idx else null }
-        Log.d(TAG, "[$variantName] missing cells=$missing count=${missing.size}")
     }
 
     private fun pad25(rowMajor: List<Int>): List<Int> {

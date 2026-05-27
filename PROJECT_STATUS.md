@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-27 - **MAIN_SHEET gallery routing:** Scan type captured when cropped gallery image arrives; Apply passes resolved type into `analyzeTicketFromUri`; `MAIN_SHEET` always calls `MainSheetBingoOcr` with internal grid crop bypass. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-27 - **Scanner log cleanup:** Removed temporary `scan-entry-handoff` / OCR route debug spam; dead raw-stage string builders; kept per-type OCR routing and VM/gallery failure warnings only. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **MAIN_SHEET gallery routing:** Scan type captured when cropped gallery image arrives; Apply passes resolved type into `analyzeTicketFromUri`; `MAIN_SHEET` always calls `MainSheetBingoOcr` with internal grid crop bypass. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-27 - **MAIN_SHEET routing guard fix:** too-zoomed pre-OCR guard now runs only for `PLAY_PAPER`; `MAIN_SHEET` and `ONLINE` skip guard so close-up formats reach their own OCR paths. `./gradlew :app:assembleDebug` OK.
 

@@ -1,6 +1,5 @@
 package com.example.mamunbingoapp.ui.screens.scan
 
-import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -68,8 +67,6 @@ import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.theme.Dimens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-private const val SCAN_TAB_SCAN_TYPE_LOG = "scan-entry-handoff"
 
 private val SlantGreenBottomLeftYFrac = 0.50f
 private val SlantGreenBottomRightYFrac = 0.58f
@@ -193,7 +190,6 @@ fun ScanScreen(
             onDismiss = { showScanTypeSheet = false },
             onScanTypeSelected = { type ->
                 showScanTypeSheet = false
-                Log.d(SCAN_TAB_SCAN_TYPE_LOG, "selectedScanType=${type.name}")
                 onLaunchCamera(type)
             },
         )
