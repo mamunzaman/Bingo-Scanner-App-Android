@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,6 +40,11 @@ import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTopBar
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.mamunbingoapp.ui.components.BingoOcrStatusCard
+import com.example.mamunbingoapp.ui.components.ScanningAnalysisAnimation
 import com.example.mamunbingoapp.ui.screens.ImportTicketMainContent
 import com.example.mamunbingoapp.ui.screens.rememberImportTicketGalleryImagePickLauncher
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
@@ -200,30 +207,37 @@ fun HistoryPhotoImportScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = Dimens.spacing8)
-                        .padding(horizontal = Dimens.screenHorizontalPadding)
-                        .padding(bottom = Dimens.spacing8)
-                ) {
-                    ImportTicketMainContent(
-                        selectedUri = displayUri,
-                        galleryPendingEditUri = galleryPendingUri,
-                        scanResult = scanResult,
-                        isAnalyzing = isAnalyzingUi,
-                        imageSource = null,
-                        idleHint = idleHint,
-                        onTakePhoto = { scanTypeSheetTarget = HistoryImportScanTypeTarget.Camera },
-                        onPickFromGallery = {
-                            scanTypeSheetTarget = HistoryImportScanTypeTarget.Gallery
-                        },
-                        onSecondaryOutlinedClick = onScanAgainClick,
-                        onGalleryApply = { l, t, r, b -> importVm.applyGalleryPendingEdit(context, l, t, r, b) },
-                        onGalleryCancel = { importVm.cancelGalleryPendingEdit() },
-                        suppressHeroImage = suppressHeroImage,
-                        modifier = Modifier.fillMaxSize()
+                if (isAnalyzingUi) {
+                    ImportTicketAnalyzingFullScreen(
+                        imageUri = displayUri,
+                        modifier = Modifier.fillMaxSize(),
                     )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = Dimens.spacing8)
+                            .padding(horizontal = Dimens.screenHorizontalPadding)
+                            .padding(bottom = Dimens.spacing8)
+                    ) {
+                        ImportTicketMainContent(
+                            selectedUri = displayUri,
+                            galleryPendingEditUri = galleryPendingUri,
+                            scanResult = scanResult,
+                            isAnalyzing = isAnalyzingUi,
+                            imageSource = null,
+                            idleHint = idleHint,
+                            onTakePhoto = { scanTypeSheetTarget = HistoryImportScanTypeTarget.Camera },
+                            onPickFromGallery = {
+                                scanTypeSheetTarget = HistoryImportScanTypeTarget.Gallery
+                            },
+                            onSecondaryOutlinedClick = onScanAgainClick,
+                            onGalleryApply = { l, t, r, b -> importVm.applyGalleryPendingEdit(context, l, t, r, b) },
+                            onGalleryCancel = { importVm.cancelGalleryPendingEdit() },
+                            suppressHeroImage = suppressHeroImage,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -239,6 +253,37 @@ fun HistoryPhotoImportScreen(
                     HistoryImportScanTypeTarget.Gallery -> pickImageFromGallery()
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun ImportTicketAnalyzingFullScreen(
+    imageUri: android.net.Uri?,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        // Faint ticket thumbnail as background context — surface colour shows through.
+        if (imageUri != null) {
+            AsyncImage(
+                model = imageUri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.20f),
+            )
+        }
+        ScanningAnalysisAnimation(modifier = Modifier.fillMaxSize())
+        BingoOcrStatusCard(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = Dimens.spacing16,
+                    end = Dimens.spacing16,
+                    bottom = Dimens.spacing24,
+                )
+                .fillMaxWidth(),
         )
     }
 }

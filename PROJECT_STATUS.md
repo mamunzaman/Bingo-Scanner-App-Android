@@ -1,6 +1,14 @@
 # Project status
 
-**Last update:** 2026-05-27 - **Scanner log cleanup:** Removed temporary `scan-entry-handoff` / OCR route debug spam; dead raw-stage string builders; kept per-type OCR routing and VM/gallery failure warnings only. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-27 - **Analyzing screen — ticket photo bg + bingo-specific card:** `ImportTicketAnalyzingFullScreen` shows ticket photo at 0.20 alpha (surface bg shows through), `BingoOcrStatusCard` with rotating titles ("Reading bingo numbers…" / "Detecting ticket grid…" / "Checking serial and LOS…"), bingo body text, shimmer-gradient progress bar, honest GRID CELLS / OCR STATUS / META DATA stats. Crosshair updated to medium green (`#2E9B5E`), scan line softened to 0.68 alpha. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Analyzing full-screen:** When `isAnalyzingUi`, `HistoryPhotoImportScreen` content area replaced by `ImportTicketAnalyzingFullScreen` — dark green gradient + scan-line/crosshair/rect animation + bottom "Processing Data..." card. Thumbnail, Take Photo, and Gallery completely hidden during loading. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Analyzing overlay redesign (code.html match):** Replaced radar with vertical scan-line sweep + floating crosshair (4 brackets + dashed ring + cross) + soft green scanning rectangle. New bottom "Processing Data..." card (white surface, ping dot, animated progress bar 35→96%, NODES/CONFIDENCE stats). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Analyzing overlay polish:** Larger radar with pulse ring + stronger sweep; gradient vertical scrim; glass text card with border + 3-dot progress; radar avoids center text band. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Scanner log cleanup:** Removed temporary `scan-entry-handoff` / OCR route debug spam; dead raw-stage string builders; kept per-type OCR routing and VM/gallery failure warnings only. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-27 - **MAIN_SHEET gallery routing:** Scan type captured when cropped gallery image arrives; Apply passes resolved type into `analyzeTicketFromUri`; `MAIN_SHEET` always calls `MainSheetBingoOcr` with internal grid crop bypass. `./gradlew :app:assembleDebug` OK.
 

@@ -113,6 +113,7 @@ import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.ImportTicketFailedScanContent
+import com.example.mamunbingoapp.ui.components.ProcessingDataCard
 import com.example.mamunbingoapp.ui.components.ScanningAnalysisAnimation
 import com.example.mamunbingoapp.viewmodel.GalleryManualTrim
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
@@ -913,35 +914,22 @@ private fun ImportTicketHeroAnalyzingOverlay(
     imageClipShape: RoundedCornerShape,
     modifier: Modifier = Modifier,
 ) {
-    val cs = MaterialTheme.colorScheme
     Box(
         modifier = modifier
             .clip(imageClipShape)
-            .background(Color.Black.copy(alpha = 0.54f)),
-        contentAlignment = Alignment.Center,
+            .background(Color.Black.copy(alpha = 0.50f)),
     ) {
         ScanningAnalysisAnimation(modifier = Modifier.fillMaxSize())
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+        ProcessingDataCard(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(horizontal = Dimens.spacing16),
-        ) {
-            Text(
-                text = stringResource(R.string.import_ticket_analyzing_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.92f),
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.import_ticket_analyzing_duration_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.62f),
-                textAlign = TextAlign.Center,
-            )
-        }
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = Dimens.spacing16,
+                    end = Dimens.spacing16,
+                    bottom = Dimens.spacing16,
+                )
+                .fillMaxWidth(),
+        )
     }
 }
 

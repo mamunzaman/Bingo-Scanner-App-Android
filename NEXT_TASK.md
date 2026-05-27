@@ -1,15 +1,15 @@
 ﻿# Next task
 
-**Goal:** Device QA — all three scan types after log cleanup (camera + gallery handoff unchanged).
+**Goal:** Device QA — full-screen analyzing state on a real device scan.
 
-**Verify:** Scan tab → each of PLAY_PAPER / ONLINE / MAIN_SHEET → capture → import screen shows grid; gallery path preserves type through uCrop Apply; Logcat has no `scan-entry-handoff` / `ImportTicketAnalyze` spam (only `ImportTicket` / `ImportTicketGallery` warnings on real failures); `./gradlew :app:assembleDebug` green.
+**Verify:** Scan/import → OCR running → thumbnail + Take Photo + Gallery all hidden; dark green gradient full screen; scan line sweeps; crosshair floats; bottom white "Processing Data..." card with progress bar and NODES/CONFIDENCE stats. After OCR completes → result/error screens appear normally. `./gradlew :app:assembleDebug` green.
 
-**Done (status):** Removed temporary scanner debug logs and dead handoff trace code; kept VM `when` routing to `PlayPaperBingoOcr` / `OnlineBingoOcr` / `MainSheetBingoOcr`; failure logs only in VM + camera. `./gradlew :app:assembleDebug` OK.
+**Done (status):** `HistoryPhotoImportScreen` — when `isAnalyzingUi`, content area replaced by `ImportTicketAnalyzingFullScreen` (dark gradient + `ScanningAnalysisAnimation` + `ProcessingDataCard`); normal content skipped entirely. `./gradlew :app:assembleDebug` OK.
 
 ---
 
-**Goal (previous):** Device QA — MAIN_SHEET gallery import matches camera OCR routing.
+**Goal (previous):** Device QA — all three scan types after log cleanup.
 
-**Verify:** History → Gallery → Bingo Main Sheet → uCrop → Apply → OCR uses `MainSheetBingoOcr`; `./gradlew :app:assembleDebug` green.
+**Verify:** Scan tab → PLAY_PAPER / ONLINE / MAIN_SHEET → capture → grid; gallery preserves type; no handoff log spam. `./gradlew :app:assembleDebug` OK.
 
-**Done (status):** Gallery flow snapshots scan type when uCrop returns; Apply passes explicit `scanType` into `onPhotoTaken` and `analyzeTicketFromUri`; `MAIN_SHEET` OCR always uses `bypassInternalGridCrop=true` at VM boundary. `./gradlew :app:assembleDebug` OK.
+**Done (status):** Scanner debug log cleanup; per-type OCR routing unchanged. `./gradlew :app:assembleDebug` OK.
