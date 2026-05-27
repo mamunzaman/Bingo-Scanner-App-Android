@@ -1,6 +1,7 @@
 package com.example.mamunbingoapp.ui.screens.history
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import com.example.mamunbingoapp.ui.screens.rememberImportTicketGalleryImagePick
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
+import com.example.mamunbingoapp.viewmodel.validFilledCellCount
 
 /**
  * **Route:** `historyPhotoImport` — **Take photo** / **Gallery** = scan-type sheet first; camera or picker follows.
@@ -54,10 +56,13 @@ private sealed class HistoryImportScanTypeTarget {
     data object Gallery : HistoryImportScanTypeTarget()
 }
 
+private const val HISTORY_IMPORT_SCAN_TYPE_LOG = "scan-entry-handoff"
+
 @Composable
 fun HistoryPhotoImportScreen(
     onBackClick: () -> Unit,
     onLaunchCamera: (BingoScanType) -> Unit,
+    importViewModel: ImportTicketViewModel = viewModel(),
     onClearImageClick: () -> Unit = {},
     onScanAgainClick: () -> Unit = {},
     onRetryAnalysisClick: () -> Unit = {},
@@ -76,7 +81,7 @@ fun HistoryPhotoImportScreen(
     suppressHeroImage: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val importVm: ImportTicketViewModel = viewModel()
+    val importVm = importViewModel
     val context = LocalContext.current
     var scanTypeSheetTarget by remember { mutableStateOf<HistoryImportScanTypeTarget?>(null) }
     val selectedUriVm by importVm.selectedImageUri.collectAsState()
@@ -84,6 +89,24 @@ fun HistoryPhotoImportScreen(
     val displayUri = galleryPendingUri ?: selectedUriVm
     val scanResult by importVm.scanResult.collectAsState()
     val isAnalyzingUi = scanResult is ScanResultUiState.Loading
+    LaunchedEffect(scanResult, displayUri, importVm) {
+        val stateLabel = scanResult::class.simpleName ?: "unknown"
+        Log.d(
+            HISTORY_IMPORT_SCAN_TYPE_LOG,
+            "ScanResultUiState=$stateLabel vm@${System.identityHashCode(importVm)} uri=$displayUri",
+        )
+        when (val state = scanResult) {
+            is ScanResultUiState.Error -> Log.w(
+                HISTORY_IMPORT_SCAN_TYPE_LOG,
+                "ScanResultUiState error=${state.message} valid=${state.detectedValidCount}",
+            )
+            is ScanResultUiState.Success -> Log.d(
+                HISTORY_IMPORT_SCAN_TYPE_LOG,
+                "ScanResultUiState success valid=${validFilledCellCount(state.numbers)}",
+            )
+            else -> Unit
+        }
+    }
     val successState = scanResult as? ScanResultUiState.Success
     val finalUiGrid = successState?.let { finalUiGridRowMajor(it.numbers) }
     val detectedCountUi = finalUiGrid?.count { it != 0 } ?: 0
@@ -233,10 +256,17 @@ fun HistoryPhotoImportScreen(
             onDismiss = { scanTypeSheetTarget = null },
             onScanTypeSelected = { type ->
                 scanTypeSheetTarget = null
+                Log.d(HISTORY_IMPORT_SCAN_TYPE_LOG, "selectedScanType=${type.name}")
                 importVm.setPendingScanType(type)
                 when (target) {
                     HistoryImportScanTypeTarget.Camera -> onLaunchCamera(type)
-                    HistoryImportScanTypeTarget.Gallery -> pickImageFromGallery()
+                    HistoryImportScanTypeTarget.Gallery -> {
+                        Log.d(
+                            HISTORY_IMPORT_SCAN_TYPE_LOG,
+                            "gallery selectedScanType=${type.name} opening picker peek=${importVm.peekPendingScanType()?.name}",
+                        )
+                        pickImageFromGallery()
+                    }
                 }
             },
         )

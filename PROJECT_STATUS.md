@@ -1,8 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-27 - **Scanner animation:** `ScanningAnalysisAnimation` (Canvas/Compose) replaces static spinner overlay on `ImportTicketHeroAnalyzingOverlay`; green grid, patrolling crosshair, rotating ring, corner brackets, pulsing nodes, drift particles. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-27 - **MAIN_SHEET gallery routing:** Scan type captured when cropped gallery image arrives; Apply passes resolved type into `analyzeTicketFromUri`; `MAIN_SHEET` always calls `MainSheetBingoOcr` with internal grid crop bypass. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** 2026-05-24 - **ONLINE scan routing fix:** `ImportTicketViewModel` scoped to `main`; camera stages `PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY` + `setPendingScanType`; handoff falls back to VM pending type; `ImportTicketOcrRoute` / `OnlineBingoOcr` debug logs. `./gradlew :app:assembleDebug` OK.
+**Previous:** 2026-05-27 - **MAIN_SHEET routing guard fix:** too-zoomed pre-OCR guard now runs only for `PLAY_PAPER`; `MAIN_SHEET` and `ONLINE` skip guard so close-up formats reach their own OCR paths. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-24 - **OCR isolation:** per-type OCR files + VM `when` branches. `./gradlew :app:assembleDebug` OK.
 

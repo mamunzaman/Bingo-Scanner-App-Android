@@ -1,6 +1,46 @@
 ﻿# Next task
 
-**Goal:** Device QA — Import workflow restored + scanner animation visible on-device.
+**Goal:** Device QA — MAIN_SHEET gallery import matches camera OCR routing.
+
+**Verify:** History → Gallery → Bingo Main Sheet → uCrop → Apply → Logcat: `gallery selectedScanType=MAIN_SHEET` → `gallery image pending … selectedScanType=MAIN_SHEET` → `gallery apply scanType=MAIN_SHEET` → `before analyzeTicketFromUri selectedType=MAIN_SHEET` → `MainSheetBingoOcr selected`; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Gallery flow snapshots scan type when uCrop returns; Apply resolves snapshot + pending, passes explicit `scanType` into `onPhotoTaken` and `analyzeTicketFromUri`; `MAIN_SHEET` OCR always uses `bypassInternalGridCrop=true` at VM boundary. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — MAIN_SHEET close-up flow reaches OCR (no pre-block).
+
+**Verify:** MAIN_SHEET capture → Logcat includes `tooZoomed check skipped type=MAIN_SHEET` then `MainSheetBingoOcr selected`; PLAY_PAPER still shows too-zoomed guard when over-cropped; ONLINE unchanged; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `ImportTicketViewModel.analyzeTicketFromUri` now applies too-zoomed guard only to `PLAY_PAPER`; `ONLINE` and `MAIN_SHEET` skip guard with explicit audit log. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — MAIN_SHEET camera handoff no crash + OCR logs appear.
+
+**Verify:** Scan tab → MAIN_SHEET → capture → no `String cannot be cast to Void` crash; Logcat handoff chain through `MainSheetBingoOcr selected`; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Fixed `getStateFlow(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY, "")` (was `null` → Void cast crash on String URI). `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — MAIN_SHEET routing reaches MainSheetBingoOcr on real tickets.
+
+**Verify:** Scan tab OR History import → select MAIN_SHEET → capture → Logcat chain: `selectedScanType=MAIN_SHEET` → `camera route arg scanType=MAIN_SHEET` → `savedStateHandle pendingHistoryPhotoImportScanType=MAIN_SHEET` → `before analyzeTicketFromUri selectedType=MAIN_SHEET` → `MainSheetBingoOcr selected`; gallery path logs `setPendingScanType=MAIN_SHEET` before Apply; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** Fixed dual-VM (NavGraph passes `importVm` to `HistoryPhotoImportScreen`); pending URI handoff now uses `savedStateHandle.getStateFlow` so return-from-camera re-triggers analyze; scan type staged on Scan tab selection; full handoff logs added. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — MAIN_SHEET OCR on real printed Master Bingo tickets.
+
+**Verify:** Scan tab → MAIN_SHEET → photo of printed ticket → Logcat `MainSheetBingoOcr`: `selected`, `rawCandidateCount`, `grouped row count`, `valid cell count`, `detected serie/los`, `selected best variant`; grid prefills ≥15 cells; Serie/Los-Nr. shown; Super 6/Spiel 77 noise ignored; `./gradlew :app:assembleDebug` green.
+
+**Done (status):** `MainSheetBingoOcr` rebuilt from scratch as a standalone Online-style parser: position-based + cell-grid OCR, 4 preprocessing variants (original/contrast-enhanced/sharpened+contrast/grayscale-threshold), BINGO text header detection, Serie/Los-Nr. footer regex, Super 6/Spiel 77 noise exclusion. `ImportTicketViewModel` now uses `MainSheetBingoOcr.MIN_VALID_CELLS_FOR_SUCCESS` (15) for MAIN_SHEET threshold. `./gradlew :app:assembleDebug` OK.
+
+---
+
+**Goal (previous):** Device QA — Import workflow restored + scanner animation visible on-device.
 
 **Verify:** (1) History → Add from photo → gallery/camera actions visible immediately (no stale scan result); (2) Scan tab → capture → overlay shows green grid animation + "Analyzing your ticket…" centred over image; (3) After OCR → result card, save/manual buttons visible; (4) ONLINE/PLAY_PAPER/MAIN_SHEET all route correctly; `./gradlew :app:assembleDebug` green.
 

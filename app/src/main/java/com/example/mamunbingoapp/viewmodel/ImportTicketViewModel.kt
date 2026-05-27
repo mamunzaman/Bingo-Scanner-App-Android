@@ -33,6 +33,7 @@ private const val FINAL_UI_GRID_LOG = "ImportTicketFinalUi"
 private const val IMPORT_TICKET_GALLERY_LOG = "ImportTicketGallery"
 private const val IMPORT_TICKET_ZOOM_LOG = "ImportTicketZoomGuard"
 private const val IMPORT_TICKET_OCR_ROUTE_LOG = "ImportTicketOcrRoute"
+private const val IMPORT_TICKET_ANALYZE_AUDIT = "ImportTicketAnalyze"
 private const val TOO_ZOOMED_GRID_AREA_THRESHOLD = 0.88f
 
 /**
@@ -234,8 +235,15 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
 
     private val _pendingScanType = MutableStateFlow<BingoScanType?>(null)
 
+    /**
+     * Scan type in effect when the gallery pipeline produced the pending crop URI (picker + uCrop).
+     * Survives async handoff so Apply still routes MAIN_SHEET even if [_pendingScanType] was disturbed.
+     */
+    private var galleryImportScanTypeSnapshot: BingoScanType? = null
+
     /** Set before gallery pick or camera handoff so [analyzeTicketFromUri] routes OCR by scan target. */
     fun setPendingScanType(scanType: BingoScanType) {
+        Log.d(IMPORT_TICKET_OCR_ROUTE_LOG, "setPendingScanType=${scanType.name}")
         _pendingScanType.value = scanType
     }
 
@@ -260,6 +268,11 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
     fun setGalleryPendingEdit(uri: Uri) {
         analysisJob?.cancel()
         galleryQrProbeJob?.cancel()
+        galleryImportScanTypeSnapshot = _pendingScanType.value
+        Log.d(
+            IMPORT_TICKET_GALLERY_LOG,
+            "gallery image pending uri=$uri selectedScanType=${galleryImportScanTypeSnapshot?.name} pendingScanType=${_pendingScanType.value?.name}",
+        )
         _galleryPendingEditUri.value = uri
         _scanResult.value = ScanResultUiState.Idle
         _candidateNumbers.value = emptyList()
@@ -272,6 +285,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
             if (_galleryPendingEditUri.value != uri) return@launch
             if (qrPre !is ImportTicketQrPreOcr.Decoded) return@launch
             _galleryPendingEditUri.value = null
+            galleryImportScanTypeSnapshot = null
             _selectedImageUri.value = uri
             setScanResult(
                 ScanResultUiState.Success(
@@ -291,13 +305,33 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         galleryApplyJob = null
         galleryQrProbeJob?.cancel()
         galleryQrProbeJob = null
+        galleryImportScanTypeSnapshot = null
         _galleryPendingEditUri.value = null
+    }
+
+    /** Resolves OCR scan type for gallery Apply: prefers snapshot taken when uCrop delivered the image. */
+    private fun resolveGalleryApplyScanType(): BingoScanType {
+        val snap = galleryImportScanTypeSnapshot
+        val pend = _pendingScanType.value
+        val merged = snap ?: pend
+        return if (merged != null) {
+            _pendingScanType.value = merged
+            Log.d(
+                IMPORT_TICKET_GALLERY_LOG,
+                "gallery apply scanType=${merged.name} snapshot=${snap?.name} pending=${pend?.name}",
+            )
+            merged
+        } else {
+            Log.w(IMPORT_TICKET_GALLERY_LOG, "gallery apply missing scan type; defaulting PLAY_PAPER")
+            BingoScanType.PLAY_PAPER
+        }
     }
 
     fun applyGalleryPendingEdit(context: Context, trimLeft: Float, trimTop: Float, trimRight: Float, trimBottom: Float) {
         galleryQrProbeJob?.cancel()
         galleryQrProbeJob = null
         val uri = _galleryPendingEditUri.value ?: return
+        val scanTypeForApply = resolveGalleryApplyScanType()
         val app = context.applicationContext
         val l = trimLeft.coerceIn(0f, GalleryManualTrim.TRIM_SLIDER_MAX)
         val t = trimTop.coerceIn(0f, GalleryManualTrim.TRIM_SLIDER_MAX)
@@ -305,12 +339,12 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         val b = trimBottom.coerceIn(0f, GalleryManualTrim.TRIM_SLIDER_MAX)
         if (l <= 1e-5f && t <= 1e-5f && r <= 1e-5f && b <= 1e-5f) {
             _galleryPendingEditUri.value = null
-            onPhotoTaken(uri)
+            onPhotoTaken(uri, scanTypeForApply)
             analyzeTicketFromUri(
                 app,
                 uri,
                 bypassInternalGridCrop = true,
-                scanType = _pendingScanType.value,
+                scanType = scanTypeForApply,
             )
             return
         }
@@ -324,12 +358,12 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 if (_galleryPendingEditUri.value != uri) return@launch
                 val finalUri = trimmedUri ?: uri
                 _galleryPendingEditUri.value = null
-                onPhotoTaken(finalUri)
+                onPhotoTaken(finalUri, scanTypeForApply)
                 analyzeTicketFromUri(
                     app,
                     finalUri,
                     bypassInternalGridCrop = true,
-                    scanType = _pendingScanType.value,
+                    scanType = scanTypeForApply,
                 )
             } finally {
                 galleryApplyJob = null
@@ -347,20 +381,41 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         bypassInternalGridCrop: Boolean = false,
         scanType: BingoScanType? = null,
     ) {
-        val effectiveScanType = scanType ?: _pendingScanType.value ?: BingoScanType.PLAY_PAPER
+        val effectiveScanType = scanType ?: _pendingScanType.value ?: run {
+            Log.w(
+                IMPORT_TICKET_OCR_ROUTE_LOG,
+                "missing scan type before analyze; defaulting to PLAY_PAPER argScanType=null pendingScanType=null",
+            )
+            BingoScanType.PLAY_PAPER
+        }
         Log.d(
             IMPORT_TICKET_OCR_ROUTE_LOG,
-            "selectedType=${effectiveScanType.name} argScanType=${scanType?.name} pendingScanType=${_pendingScanType.value?.name}",
+            "before analyzeTicketFromUri selectedType=${effectiveScanType.name} argScanType=${scanType?.name} pendingScanType=${_pendingScanType.value?.name}",
+        )
+        Log.d(
+            IMPORT_TICKET_ANALYZE_AUDIT,
+            "analyzeTicketFromUri start uri=$uri type=${effectiveScanType.name} vm@${System.identityHashCode(this)}",
         )
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
+            Log.d(
+                IMPORT_TICKET_ANALYZE_AUDIT,
+                "analyze coroutine start uri=$uri selectedUri=${_selectedImageUri.value}",
+            )
             _scanResult.value = ScanResultUiState.Loading
             val qrPre = withContext(Dispatchers.IO) {
                 tryDecodeBingoQrFromImageUri(context.applicationContext, uri)
             }
-            if (uri != _selectedImageUri.value) return@launch
+            if (uri != _selectedImageUri.value) {
+                Log.w(
+                    IMPORT_TICKET_ANALYZE_AUDIT,
+                    "analyze aborted after QR pre-check: uri=$uri selectedUri=${_selectedImageUri.value}",
+                )
+                return@launch
+            }
             when (qrPre) {
                 is ImportTicketQrPreOcr.Decoded -> {
+                    Log.d(IMPORT_TICKET_ANALYZE_AUDIT, "analyze QR short-circuit success")
                     setScanResult(
                         ScanResultUiState.Success(
                             numbers = qrPre.numbers,
@@ -375,17 +430,26 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 }
                 is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
             }
-            if (effectiveScanType != BingoScanType.ONLINE) {
+            if (effectiveScanType == BingoScanType.PLAY_PAPER) {
                 val tooZoomed = withContext(Dispatchers.IO) {
                     isLikelyTooZoomedForOcr(context.applicationContext, uri)
                 }
-                if (uri != _selectedImageUri.value) return@launch
+                if (uri != _selectedImageUri.value) {
+                    Log.w(
+                        IMPORT_TICKET_ANALYZE_AUDIT,
+                        "analyze aborted after zoom check: uri=$uri selectedUri=${_selectedImageUri.value}",
+                    )
+                    return@launch
+                }
                 if (tooZoomed) {
+                    Log.w(IMPORT_TICKET_ANALYZE_AUDIT, "analyze tooZoomed=true type=${effectiveScanType.name}")
                     _scanResult.value = ScanResultUiState.Error(
                         message = "Move camera slightly back so full ticket is visible",
                     )
                     return@launch
                 }
+            } else {
+                Log.d(IMPORT_TICKET_ANALYZE_AUDIT, "tooZoomed check skipped type=${effectiveScanType.name}")
             }
             // TODO: Re-enable camera-only padded crop after device QA: preCropCameraForStripOcr = isCameraXStillCaptureUri(uri) && !bypassInternalGridCrop
             val result = withContext(Dispatchers.IO) {
@@ -397,7 +461,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                         MainSheetBingoOcr.analyzeUri(
                             context.applicationContext,
                             uri,
-                            bypassInternalGridCrop = bypassInternalGridCrop,
+                            bypassInternalGridCrop = true,
                             preCropCameraForStripOcr = false,
                         )
                     }
@@ -411,22 +475,39 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     }
                 }
             }
-            if (uri != _selectedImageUri.value) return@launch
+            if (uri != _selectedImageUri.value) {
+                Log.w(
+                    IMPORT_TICKET_ANALYZE_AUDIT,
+                    "analyze aborted after OCR: uri=$uri selectedUri=${_selectedImageUri.value}",
+                )
+                return@launch
+            }
             val minValidForScan = when (effectiveScanType) {
                 BingoScanType.ONLINE -> OnlineBingoOcr.MIN_VALID_CELLS_FOR_SUCCESS
+                BingoScanType.MAIN_SHEET -> MainSheetBingoOcr.MIN_VALID_CELLS_FOR_SUCCESS
                 else -> MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
             }
             result.fold(
                 onSuccess = { outcome ->
                     val validCount = validFilledCellCount(outcome.numbersRowMajor)
+                    Log.d(
+                        IMPORT_TICKET_ANALYZE_AUDIT,
+                        "OCR success type=${effectiveScanType.name} validCount=$validCount minRequired=$minValidForScan",
+                    )
                     when {
-                        validCount < minValidForScan ->
+                        validCount < minValidForScan -> {
+                            val message = weakScanFailureMessage(validCount)
+                            Log.w(
+                                IMPORT_TICKET_ANALYZE_AUDIT,
+                                "OCR weak result validCount=$validCount errorMessage=$message",
+                            )
                             _scanResult.value = ScanResultUiState.Error(
-                                message = weakScanFailureMessage(validCount),
+                                message = message,
                                 detectedValidCount = validCount,
                                 losNumber = outcome.losNumber?.takeIf { it.isNotBlank() },
                                 serialNumber = outcome.serialNumber?.takeIf { it.isNotBlank() },
                             )
+                        }
                         else ->
                             setScanResult(
                                 ScanResultUiState.Success(
@@ -438,9 +519,18 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                                 ),
                             )
                     }
+                    Log.d(
+                        IMPORT_TICKET_ANALYZE_AUDIT,
+                        "analyze end state=${_scanResult.value::class.simpleName}",
+                    )
                 },
                 onFailure = { e ->
+                    Log.e(IMPORT_TICKET_ANALYZE_AUDIT, "OCR failure type=${effectiveScanType.name}: ${e.message}", e)
                     _scanResult.value = ScanResultUiState.Error(e.message ?: "OCR failed")
+                    Log.d(
+                        IMPORT_TICKET_ANALYZE_AUDIT,
+                        "analyze end state=${_scanResult.value::class.simpleName}",
+                    )
                 },
             )
         }
@@ -508,6 +598,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _candidateBuckets.value = emptyMap()
         _prefilledSource.value = null
         _prefilledConfidence.value = null
+        galleryImportScanTypeSnapshot = null
         _pendingScanType.value = null
     }
 
