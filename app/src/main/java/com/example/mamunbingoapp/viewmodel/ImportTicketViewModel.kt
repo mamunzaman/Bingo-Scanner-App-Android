@@ -18,6 +18,7 @@ import com.example.mamunbingoapp.scanner.MainSheetBingoOcr
 import com.example.mamunbingoapp.scanner.OnlineBingoOcr
 import com.example.mamunbingoapp.scanner.PlayPaperBingoOcr
 import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromImageUri
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -155,6 +156,16 @@ enum class ImportScanSource {
     QR,
 }
 
+enum class DetectionStatus { Checking, Found, NotFound }
+
+data class ImportOcrProgressUiState(
+    val stageLabel: String = "Starting analysis…",
+    val detectedGridCells: Int = 0,
+    val totalGridCells: Int = 25,
+    val losStatus: DetectionStatus = DetectionStatus.Checking,
+    val serialStatus: DetectionStatus = DetectionStatus.Checking,
+)
+
 sealed class ScanResultUiState {
     data object Idle : ScanResultUiState()
     data object Loading : ScanResultUiState()
@@ -199,6 +210,9 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
 
     private val _prefilledConfidence = MutableStateFlow<Float?>(null)
     val prefilledConfidence: StateFlow<Float?> = _prefilledConfidence.asStateFlow()
+
+    private val _ocrProgress = MutableStateFlow<ImportOcrProgressUiState?>(null)
+    val ocrProgress: StateFlow<ImportOcrProgressUiState?> = _ocrProgress.asStateFlow()
 
     private var analysisJob: Job? = null
     private var galleryApplyJob: Job? = null
@@ -350,6 +364,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
             _scanResult.value = ScanResultUiState.Loading
+            _ocrProgress.value = ImportOcrProgressUiState(stageLabel = "Checking for QR code…")
             val qrPre = withContext(Dispatchers.IO) {
                 tryDecodeBingoQrFromImageUri(context.applicationContext, uri)
             }
@@ -373,6 +388,8 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 }
                 is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
             }
+            _ocrProgress.value = (_ocrProgress.value ?: ImportOcrProgressUiState())
+                .copy(stageLabel = "Detecting ticket grid…")
             if (effectiveScanType == BingoScanType.PLAY_PAPER) {
                 val tooZoomed = withContext(Dispatchers.IO) {
                     isLikelyTooZoomedForOcr(context.applicationContext, uri)
@@ -390,6 +407,17 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                         message = "Move camera slightly back so full ticket is visible",
                     )
                     return@launch
+                }
+            }
+            _ocrProgress.value = (_ocrProgress.value ?: ImportOcrProgressUiState())
+                .copy(stageLabel = "Reading bingo numbers…")
+            // Advance to "Reading ticket markers…" after 1.8 s if OCR is still running.
+            // Cancelled immediately when OCR returns — does not delay the result.
+            val markerStageJob = launch {
+                delay(1800)
+                if (_scanResult.value is ScanResultUiState.Loading) {
+                    _ocrProgress.value = (_ocrProgress.value ?: ImportOcrProgressUiState())
+                        .copy(stageLabel = "Reading ticket markers…")
                 }
             }
             val result = withContext(Dispatchers.IO) {
@@ -415,6 +443,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     }
                 }
             }
+            markerStageJob.cancel()
             if (uri != _selectedImageUri.value) {
                 Log.w(IMPORT_TICKET_LOG, "analyze aborted after OCR: uri no longer selected")
                 return@launch
@@ -427,6 +456,12 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
             result.fold(
                 onSuccess = { outcome ->
                     val validCount = validFilledCellCount(outcome.numbersRowMajor)
+                    _ocrProgress.value = ImportOcrProgressUiState(
+                        stageLabel = "Finalizing result…",
+                        detectedGridCells = validCount,
+                        losStatus = if (!outcome.losNumber.isNullOrBlank()) DetectionStatus.Found else DetectionStatus.NotFound,
+                        serialStatus = if (!outcome.serialNumber.isNullOrBlank()) DetectionStatus.Found else DetectionStatus.NotFound,
+                    )
                     when {
                         validCount < minValidForScan -> {
                             val message = weakScanFailureMessage(validCount)
@@ -522,6 +557,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _candidateBuckets.value = emptyMap()
         _prefilledSource.value = null
         _prefilledConfidence.value = null
+        _ocrProgress.value = null
         galleryImportScanTypeSnapshot = null
         _pendingScanType.value = null
     }

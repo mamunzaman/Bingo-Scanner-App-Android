@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.viewmodel.DetectionStatus
+import com.example.mamunbingoapp.viewmodel.ImportOcrProgressUiState
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 
@@ -373,13 +375,20 @@ fun AnalyzingProgressDots(modifier: Modifier = Modifier) {
 }
 
 /**
- * Bingo-specific OCR status card with rotating contextual title and honest status labels.
- * Designed for a bright/light background (white card, subtle border).
+ * Bingo-specific OCR status card.
+ * When [progress] is null falls back to animated defaults.
+ * When [progress] has real data from the OCR pipeline, shows live stage label,
+ * actual detected cell count and LOS / serial detection status.
  */
 @Composable
-fun BingoOcrStatusCard(modifier: Modifier = Modifier) {
+fun BingoOcrStatusCard(
+    progress: ImportOcrProgressUiState? = null,
+    modifier: Modifier = Modifier,
+) {
     val cs = MaterialTheme.colorScheme
-    val titles = listOf(
+
+    // Stage label — real when available, else rotates through defaults
+    val defaultTitles = listOf(
         "Reading bingo numbers…",
         "Detecting ticket grid…",
         "Checking serial and LOS…",
@@ -388,30 +397,88 @@ fun BingoOcrStatusCard(modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) {
         while (true) {
             delay(2500)
-            titleIndex = (titleIndex + 1) % titles.size
+            titleIndex = (titleIndex + 1) % defaultTitles.size
         }
     }
+    val stageLabel = progress?.stageLabel ?: defaultTitles[titleIndex]
 
-    var progressTarget by remember { mutableFloatStateOf(0.22f) }
+    // Progress bar — real ratio when cells detected, else animated placeholder
+    val hasRealCells = (progress?.detectedGridCells ?: 0) > 0
+    var fakeProgressTarget by remember { mutableFloatStateOf(0.22f) }
+    LaunchedEffect(hasRealCells) {
+        if (!hasRealCells) {
+            while (fakeProgressTarget < 0.88f) {
+                delay(900)
+                fakeProgressTarget = (fakeProgressTarget + 0.01f + (Math.random() * 0.03f).toFloat())
+                    .coerceAtMost(0.88f)
+            }
+        }
+    }
+    val rawTarget = if (hasRealCells) {
+        (progress!!.detectedGridCells.toFloat() / progress.totalGridCells.toFloat()).coerceIn(0f, 1f)
+    } else fakeProgressTarget
     val animatedProgress by animateFloatAsState(
-        targetValue = progressTarget,
+        targetValue = rawTarget,
         animationSpec = tween(500, easing = FastOutSlowInEasing),
         label = "binoProgress",
     )
-    LaunchedEffect(Unit) {
-        while (progressTarget < 0.88f) {
-            delay(900)
-            progressTarget = (progressTarget + 0.01f + (Math.random() * 0.03f).toFloat())
-                .coerceAtMost(0.88f)
-        }
-    }
 
+    // Ping dot
     val pingInf = rememberInfiniteTransition(label = "pingB")
     val pingAlpha by pingInf.animateFloat(
         initialValue = 0.95f, targetValue = 0.15f,
         animationSpec = infiniteRepeatable(tween(700, easing = LinearEasing), RepeatMode.Reverse),
         label = "pingBAlpha",
     )
+
+    // Animated placeholder grid counter: cycles 6→12→18→24 while real count is unknown
+    val animGridSteps = remember { listOf(6, 12, 18, 24) }
+    var animGridIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(700)
+            animGridIndex = (animGridIndex + 1) % animGridSteps.size
+        }
+    }
+    val gridCellsText = if (hasRealCells) "${progress!!.detectedGridCells} / ${progress.totalGridCells}"
+        else "${animGridSteps[animGridIndex]} / 25"
+
+    // Stage-aware marker status — advances text/colour with each OCR stage until real values arrive
+    val currentStage = progress?.stageLabel ?: ""
+    val markerStatusText = when {
+        currentStage.contains("QR", ignoreCase = true) -> "Queued"
+        currentStage.contains("grid", ignoreCase = true) -> "Waiting"
+        currentStage.contains("numbers", ignoreCase = true) ||
+            currentStage.contains("markers", ignoreCase = true) -> "Scanning"
+        else -> "Checking"
+    }
+    val losText = when (progress?.losStatus) {
+        DetectionStatus.Found -> "Found"
+        DetectionStatus.NotFound -> "Not found"
+        else -> markerStatusText
+    }
+    val serialText = when (progress?.serialStatus) {
+        DetectionStatus.Found -> "Found"
+        DetectionStatus.NotFound -> "Not found"
+        else -> markerStatusText
+    }
+    val losColor = when {
+        progress?.losStatus == DetectionStatus.Found -> cs.primary
+        progress?.losStatus == DetectionStatus.NotFound -> cs.onSurfaceVariant
+        markerStatusText == "Scanning" -> cs.primary
+        markerStatusText == "Waiting" -> cs.onSurfaceVariant
+        else -> cs.outline  // Queued / Checking
+    }
+    val serialColor = when {
+        progress?.serialStatus == DetectionStatus.Found -> cs.primary
+        progress?.serialStatus == DetectionStatus.NotFound -> cs.onSurfaceVariant
+        markerStatusText == "Scanning" -> cs.primary
+        markerStatusText == "Waiting" -> cs.onSurfaceVariant
+        else -> cs.outline
+    }
+    val knownStatuses = listOf(DetectionStatus.Found, DetectionStatus.NotFound)
+    val losShowPulse = markerStatusText == "Scanning" && progress?.losStatus !in knownStatuses
+    val serialShowPulse = markerStatusText == "Scanning" && progress?.serialStatus !in knownStatuses
 
     Box(
         modifier = modifier
@@ -434,7 +501,7 @@ fun BingoOcrStatusCard(modifier: Modifier = Modifier) {
                         .background(cs.primary, CircleShape),
                 )
                 Text(
-                    text = titles[titleIndex],
+                    text = stageLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = cs.primary,
@@ -464,7 +531,7 @@ fun BingoOcrStatusCard(modifier: Modifier = Modifier) {
                         ),
                 )
             }
-            // Stats row
+            // Stats row: GRID CELLS | LOS | SERIAL
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -472,29 +539,30 @@ fun BingoOcrStatusCard(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BingoStatItem(label = "GRID CELLS", value = "Detecting")
-                Box(
-                    Modifier
-                        .height(28.dp)
-                        .width(1.dp)
-                        .background(cs.outlineVariant.copy(alpha = 0.45f)),
-                )
-                BingoStatItem(label = "OCR STATUS", value = "Active")
-                Box(
-                    Modifier
-                        .height(28.dp)
-                        .width(1.dp)
-                        .background(cs.outlineVariant.copy(alpha = 0.45f)),
-                )
-                BingoStatItem(label = "META DATA", value = "Checking")
+                BingoStatItem(label = "GRID CELLS", value = gridCellsText, valueColor = cs.primary)
+                Box(Modifier.height(28.dp).width(1.dp).background(cs.outlineVariant.copy(alpha = 0.45f)))
+                BingoStatItem(label = "LOS-NR", value = losText, valueColor = losColor, showPulse = losShowPulse)
+                Box(Modifier.height(28.dp).width(1.dp).background(cs.outlineVariant.copy(alpha = 0.45f)))
+                BingoStatItem(label = "SERIE", value = serialText, valueColor = serialColor, showPulse = serialShowPulse)
             }
         }
     }
 }
 
 @Composable
-private fun BingoStatItem(label: String, value: String) {
+private fun BingoStatItem(
+    label: String,
+    value: String,
+    valueColor: Color = Color.Unspecified,
+    showPulse: Boolean = false,
+) {
     val cs = MaterialTheme.colorScheme
+    val pulseInf = rememberInfiniteTransition(label = "pulse_$label")
+    val pulseAlpha by pulseInf.animateFloat(
+        initialValue = 1f, targetValue = 0.15f,
+        animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "pulseAlpha_$label",
+    )
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
@@ -505,12 +573,32 @@ private fun BingoStatItem(label: String, value: String) {
             fontWeight = FontWeight.Bold,
             color = cs.outline,
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = cs.primary,
-        )
+        if (showPulse) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .alpha(pulseAlpha)
+                        .background(valueColor, CircleShape),
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = valueColor,
+                )
+            }
+        } else {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+            )
+        }
     }
 }
 

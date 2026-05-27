@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-27 - **Analyzing screen — ticket photo bg + bingo-specific card:** `ImportTicketAnalyzingFullScreen` shows ticket photo at 0.20 alpha (surface bg shows through), `BingoOcrStatusCard` with rotating titles ("Reading bingo numbers…" / "Detecting ticket grid…" / "Checking serial and LOS…"), bingo body text, shimmer-gradient progress bar, honest GRID CELLS / OCR STATUS / META DATA stats. Crosshair updated to medium green (`#2E9B5E`), scan line softened to 0.68 alpha. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-27 - **Real OCR progress in analyzing screen:** `DetectionStatus` + `ImportOcrProgressUiState` in ViewModel; `_ocrProgress` StateFlow emits at 4 stages: "Checking for QR code…" → "Detecting ticket grid…" → "Reading bingo numbers…" → "Finalizing result…" (with real cell count + LOS/serial Found/NotFound). `BingoOcrStatusCard` shows live stage label, real GRID CELLS count, LOS and SERIAL detection status with green/muted colouring. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Analyzing screen — ticket photo bg + bingo-specific card:** `ImportTicketAnalyzingFullScreen` shows ticket photo at 0.20 alpha (surface bg shows through), `BingoOcrStatusCard` with rotating titles ("Reading bingo numbers…" / "Detecting ticket grid…" / "Checking serial and LOS…"), bingo body text, shimmer-gradient progress bar, honest GRID CELLS / OCR STATUS / META DATA stats. Crosshair updated to medium green (`#2E9B5E`), scan line softened to 0.68 alpha. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-27 - **Analyzing full-screen:** When `isAnalyzingUi`, `HistoryPhotoImportScreen` content area replaced by `ImportTicketAnalyzingFullScreen` — dark green gradient + scan-line/crosshair/rect animation + bottom "Processing Data..." card. Thumbnail, Take Photo, and Gallery completely hidden during loading. `./gradlew :app:assembleDebug` OK.
 

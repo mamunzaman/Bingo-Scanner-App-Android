@@ -45,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.example.mamunbingoapp.ui.components.BingoOcrStatusCard
 import com.example.mamunbingoapp.ui.components.ScanningAnalysisAnimation
+import com.example.mamunbingoapp.viewmodel.ImportOcrProgressUiState
 import com.example.mamunbingoapp.ui.screens.ImportTicketMainContent
 import com.example.mamunbingoapp.ui.screens.rememberImportTicketGalleryImagePickLauncher
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
@@ -91,6 +92,7 @@ fun HistoryPhotoImportScreen(
     val displayUri = galleryPendingUri ?: selectedUriVm
     val scanResult by importVm.scanResult.collectAsState()
     val isAnalyzingUi = scanResult is ScanResultUiState.Loading
+    val ocrProgress by importVm.ocrProgress.collectAsState()
     val successState = scanResult as? ScanResultUiState.Success
     val finalUiGrid = successState?.let { finalUiGridRowMajor(it.numbers) }
     val detectedCountUi = finalUiGrid?.count { it != 0 } ?: 0
@@ -210,6 +212,7 @@ fun HistoryPhotoImportScreen(
                 if (isAnalyzingUi) {
                     ImportTicketAnalyzingFullScreen(
                         imageUri = displayUri,
+                        ocrProgress = ocrProgress,
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else {
@@ -260,6 +263,7 @@ fun HistoryPhotoImportScreen(
 @Composable
 private fun ImportTicketAnalyzingFullScreen(
     imageUri: android.net.Uri?,
+    ocrProgress: ImportOcrProgressUiState?,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
@@ -276,6 +280,7 @@ private fun ImportTicketAnalyzingFullScreen(
         }
         ScanningAnalysisAnimation(modifier = Modifier.fillMaxSize())
         BingoOcrStatusCard(
+            progress = ocrProgress,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(
