@@ -36,6 +36,9 @@ fun CalledNumbersDetailSheet(
     onDismiss: () -> Unit,
     calledNumbers: List<Int>,
     maxCalls: Int = MAX_LIVE_CALLS,
+    title: String = "Called Numbers",
+    countPillText: String? = null,
+    footerText: String? = null,
     onOverflowMenuClick: (() -> Unit)? = null,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
@@ -76,7 +79,7 @@ fun CalledNumbersDetailSheet(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
                 ) {
                     Text(
-                        text = "Called Numbers",
+                        text = title,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface,
@@ -88,7 +91,7 @@ fun CalledNumbersDetailSheet(
                         border = BorderStroke(Dimens.cardBorderDefault, scheme.primary.copy(alpha = 0.28f)),
                     ) {
                         Text(
-                            text = "${calledNumbers.size} / $maxCalls",
+                            text = countPillText ?: "${calledNumbers.size} / $maxCalls",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = scheme.primary,
@@ -107,7 +110,7 @@ fun CalledNumbersDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = "$distinctCallCount called numbers",
+                text = footerText ?: "$distinctCallCount called numbers",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium,
                 color = scheme.onSurfaceVariant.copy(alpha = 0.68f),

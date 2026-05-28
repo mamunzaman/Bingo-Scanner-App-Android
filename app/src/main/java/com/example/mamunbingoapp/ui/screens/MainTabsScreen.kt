@@ -63,10 +63,17 @@ fun MainTabsScreen(
         ) {
             when (selectedTab) {
             AppTab.Home -> HomeScreen(
-                onScanClick = { },
-                onQuickActionClick = { },
+                onScanClick = onJackpotScanSheet,
+                onQuickActionClick = { action ->
+                    when (action) {
+                        "tickets" -> onNavigateToHistory()
+                        "results" -> onTabSelected(AppTab.Jackpot)
+                        "help" -> onNavigateToSupport()
+                        else -> onJackpotScanSheet()
+                    }
+                },
                 onTicketClick = onNavigateToTicketDetail,
-                onViewAllTickets = { },
+                onViewAllTickets = onNavigateToHistory,
                 onTabSelected = onTabSelected,
                 showBottomBar = false,
                 profileDisplayName = authDisplayName,

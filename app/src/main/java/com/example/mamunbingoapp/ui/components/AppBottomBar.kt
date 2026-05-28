@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,6 +62,9 @@ enum class AppTab(
     Jackpot("jackpot", "Jackpot", Icons.Filled.EmojiEvents),
     Profile("profile", "Profile", Icons.Filled.Person)
 }
+
+/** Space reserved above [AppBottomBar] for Home floating scan FAB. */
+val AppBottomBarFabClearance: Dp = 80.dp
 
 @Composable
 fun AppBottomBar(

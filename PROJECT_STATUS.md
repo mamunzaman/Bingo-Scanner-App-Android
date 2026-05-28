@@ -1,8 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-28 - **ActiveTicketCard premium polish:** More top padding; live-room green glow/border vs saved neutral border; 5dp pill progress bar; white sheet paper shadow; Home carousel start/end padding. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-28 - **Home crash fix:** Safe LazyRow quick actions (no negative padding); static 56dp scan FAB; guarded action callbacks. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** 2026-05-28 - **Home Active Tickets called-numbers fix:** Progress/grid from live-room called list (not draw matches); chips Live room / Saved ticket; summary shows called count when active session exists. `./gradlew :app:assembleDebug` OK.
+**Previous:** 2026-05-28 - **Home Quick Actions scroll + FAB polish.** `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-28 - **Home polish:** Time-aware greeting + “Ready for the next draw?”; Draw Status strip (Upcoming + countdown); Active Tickets summary from local tickets (match/marked progress, almost bingo via `BingoWinChecker`); real ticket preview row. No player-online stats. `./gradlew :app:assembleDebug` OK.
 

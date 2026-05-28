@@ -51,6 +51,7 @@
     <string name="home_current_jackpot">Current Jackpot</string>
     <string name="home_next_draw">Next draw in 4h 22m. Every ticket helps the planet.</string>
     <string name="home_scan_ticket">Scan Ticket</string>
+    <string name="home_my_tickets">My Tickets</string>
     <string name="home_quick_actions">Quick Actions</string>
     <string name="home_scan">Scan</string>
     <string name="home_tickets">Tickets</string>

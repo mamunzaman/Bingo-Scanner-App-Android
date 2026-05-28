@@ -4,6 +4,6 @@
 
 **Verify:** View All opens ticket/history screen; ticket card tap opens detail.
 
-**Done (status):** Home greeting, Draw Status strip, Active Tickets summary from local Room + remote winning numbers.
+**Done (status):** Compact two-column `CurrentJackpotCard`; latest-numbers bottom sheet on Home.
 
-**Previous:** `CurrentJackpotCard` premium hero polish.
+**Previous:** Active Tickets summary + row alignment polish.

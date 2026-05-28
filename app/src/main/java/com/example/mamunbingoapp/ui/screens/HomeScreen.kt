@@ -10,26 +10,27 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CenterFocusWeak
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Forest
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +55,7 @@ import com.example.mamunbingoapp.viewmodel.HomeViewModel
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -62,14 +64,21 @@ import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.GreenImpactBg
+import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarFabClearance
 import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.ProfileAvatar
 import com.example.mamunbingoapp.ui.components.profileAvatarInitials
-import com.example.mamunbingoapp.ui.components.AppCard
+import com.example.mamunbingoapp.ui.components.home.HomeQuickScanFab
+import com.example.mamunbingoapp.ui.components.home.QuickActionItem
+import com.example.mamunbingoapp.ui.components.home.QuickActionsScrollRow
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
+import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppSectionHeader
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
+import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCard
@@ -86,6 +95,17 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 
 private val berlinZone: ZoneId = ZoneId.of("Europe/Berlin")
+
+private fun dispatchHomeQuickAction(
+    action: String,
+    onQuickActionClick: (String) -> Unit,
+) {
+    runCatching { onQuickActionClick(action) }
+}
+
+private val homeFabScrollClearance = AppBottomBarFabClearance
+private val homeFabBottomGap = 12.dp
+private val homeFabBottomGapWithBar = 80.dp
 
 @Composable
 fun HomeScreen(
@@ -175,17 +195,44 @@ fun HomeScreen(
         )
         },
         content = {
+        val fabBottomGap = if (showBottomBar) homeFabBottomGapWithBar else homeFabBottomGap
         val homeScrollModifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Dimens.screenHorizontalPadding)
-            .padding(top = Dimens.spacing8, bottom = Dimens.spacing16)
-        if (showProfileSummary) {
-            AppPullRefresh(
-                isRefreshing = isProfileRefreshing,
-                onRefresh = onProfileRefresh,
-                modifier = Modifier.weight(1f),
-            ) {
+            .padding(
+                top = Dimens.spacing8,
+                bottom = Dimens.spacing16 + homeFabScrollClearance,
+            )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
+            if (showProfileSummary) {
+                AppPullRefresh(
+                    isRefreshing = isProfileRefreshing,
+                    onRefresh = onProfileRefresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    Column(modifier = homeScrollModifier) {
+                        HomeScrollBody(
+                            onScanClick = onScanClick,
+                            onQuickActionClick = onQuickActionClick,
+                            onTicketClick = onTicketClick,
+                            onViewAllTickets = onViewAllTickets,
+                            latestDraw = latestDraw,
+                            isRemoteLoading = isRemoteLoading,
+                            remoteError = remoteError,
+                            tickets = tickets,
+                            cellsByTicket = cellsByTicket,
+                            ticketToRoom = ticketToRoom,
+                            calledNumbersByRoom = calledNumbersByRoom,
+                            archivedByRoom = archivedByRoom,
+                        )
+                    }
+                }
+            } else {
                 Column(modifier = homeScrollModifier) {
                     HomeScrollBody(
                         onScanClick = onScanClick,
@@ -203,27 +250,16 @@ fun HomeScreen(
                     )
                 }
             }
-        } else {
-            Column(
+            HomeQuickScanFab(
+                onClick = onScanClick,
                 modifier = Modifier
-                    .weight(1f)
-                    .then(homeScrollModifier),
-            ) {
-                HomeScrollBody(
-                    onScanClick = onScanClick,
-                    onQuickActionClick = onQuickActionClick,
-                    onTicketClick = onTicketClick,
-                    onViewAllTickets = onViewAllTickets,
-                    latestDraw = latestDraw,
-                    isRemoteLoading = isRemoteLoading,
-                    remoteError = remoteError,
-                    tickets = tickets,
-                    cellsByTicket = cellsByTicket,
-                    ticketToRoom = ticketToRoom,
-                    calledNumbersByRoom = calledNumbersByRoom,
-                    archivedByRoom = archivedByRoom,
-                )
-            }
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(
+                        end = Dimens.screenHorizontalPadding,
+                        bottom = fabBottomGap,
+                    ),
+            )
         }
         if (showBottomBar) {
             AppBottomBar(selectedTab = AppTab.Home, onTabSelected = onTabSelected)
@@ -265,12 +301,17 @@ private fun HomeScrollBody(
                 activeLiveRoomId = activeLiveRoomId,
             )
         }
+        val latestNumbers = latestDraw?.winningNumbers.orEmpty()
+        var showLatestNumbersSheet by remember { mutableStateOf(false) }
         Column {
             CurrentJackpotCard(
                 latestDraw = latestDraw,
                 isRemoteLoading = isRemoteLoading,
                 remoteError = remoteError,
                 onScanClick = onScanClick,
+                onLatestNumbersClick = {
+                    if (latestNumbers.isNotEmpty()) showLatestNumbersSheet = true
+                },
             )
             Spacer(modifier = Modifier.height(Dimens.spacing12))
             HomeDrawStatusStrip(isRemoteLoading = isRemoteLoading)
@@ -281,15 +322,32 @@ private fun HomeScrollBody(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(Dimens.spacing12))
-            Row(
+            QuickActionsScrollRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                QuickActionButton("Scan", Icons.Filled.CenterFocusWeak) { onQuickActionClick("scan") }
-                QuickActionButton("Tickets", Icons.Filled.ConfirmationNumber) { onQuickActionClick("tickets") }
-                QuickActionButton("Results", Icons.Filled.EmojiEvents) { onQuickActionClick("results") }
-                QuickActionButton("Help", Icons.AutoMirrored.Filled.Help) { onQuickActionClick("help") }
-            }
+                items = listOf(
+                    QuickActionItem(
+                        label = stringResource(R.string.home_scan_ticket),
+                        icon = Icons.Filled.QrCodeScanner,
+                        onClick = { runCatching { onScanClick() } },
+                        emphasized = true,
+                    ),
+                    QuickActionItem(
+                        label = stringResource(R.string.home_my_tickets),
+                        icon = Icons.Filled.ConfirmationNumber,
+                        onClick = { dispatchHomeQuickAction("tickets", onQuickActionClick) },
+                    ),
+                    QuickActionItem(
+                        label = stringResource(R.string.home_results),
+                        icon = Icons.Filled.EmojiEvents,
+                        onClick = { dispatchHomeQuickAction("results", onQuickActionClick) },
+                    ),
+                    QuickActionItem(
+                        label = stringResource(R.string.home_help),
+                        icon = Icons.AutoMirrored.Filled.Help,
+                        onClick = { dispatchHomeQuickAction("help", onQuickActionClick) },
+                    ),
+                ),
+            )
             Spacer(modifier = Modifier.height(Dimens.spacing24))
             AppSectionHeader(
                 title = stringResource(R.string.home_active_tickets),
@@ -307,7 +365,6 @@ private fun HomeScrollBody(
                         .padding(vertical = Dimens.spacing4),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacing14),
                 ) {
-                    Spacer(modifier = Modifier.width(Dimens.spacing8))
                     tickets
                         .sortedByDescending { it.effectivePlayedAtMillis() }
                         .take(5)
@@ -349,6 +406,15 @@ private fun HomeScrollBody(
             EcoNewsItem(
                 title = stringResource(R.string.home_news_2),
                 meta = stringResource(R.string.home_news_2_meta)
+            )
+        }
+        if (showLatestNumbersSheet && latestNumbers.isNotEmpty()) {
+            CalledNumbersDetailSheet(
+                onDismiss = { showLatestNumbersSheet = false },
+                calledNumbers = latestNumbers,
+                title = "Latest Numbers",
+                countPillText = "${latestNumbers.size} numbers",
+                footerText = "${latestNumbers.distinct().size} latest numbers",
             )
         }
 }
@@ -407,41 +473,126 @@ private fun HomeDrawStatusStrip(isRemoteLoading: Boolean) {
 
 @Composable
 private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
-    AppSectionSurface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Dimens.radiusLarge),
-    ) {
-        Column(
+    val shape = RoundedCornerShape(Dimens.radiusLarge)
+    val cs = MaterialTheme.colorScheme
+    val glassSurface = Color.White.copy(alpha = 0.94f)
+    val borderColor = cs.outlineVariant.copy(alpha = 0.45f)
+    val calledValue = if (summary.hasActiveLiveRoom) summary.calledCount.toString() else "—"
+    val calledLabel = if (summary.hasActiveLiveRoom) {
+        if (summary.calledCount == 1) "number called" else "numbers called"
+    } else {
+        "no live session"
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.spacing14),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                .iosElevatedShadow(elevation = 4.dp, shape = shape)
+                .clip(shape)
+                .background(glassSurface)
+                .border(Dimens.cardBorderDefault, borderColor, shape),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spacing14, vertical = Dimens.spacing12),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "${summary.activeCount} active ${if (summary.activeCount == 1) "ticket" else "tickets"}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                HomeActiveTicketsStatItem(
+                    icon = Icons.Filled.ConfirmationNumber,
+                    valueText = summary.activeCount.toString(),
+                    labelText = if (summary.activeCount == 1) "active ticket" else "active tickets",
+                    iconContainerColor = Primary.copy(alpha = 0.09f),
+                    iconTint = Primary.copy(alpha = 0.88f),
+                    valueColor = cs.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
-                summary.calledNumbersLabel?.let { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = Dimens.spacing10)
+                        .width(1.dp)
+                        .height(34.dp)
+                        .background(cs.outlineVariant.copy(alpha = 0.28f)),
+                )
+                HomeActiveTicketsStatItem(
+                    icon = Icons.Filled.LiveTv,
+                    valueText = calledValue,
+                    labelText = calledLabel,
+                    iconContainerColor = if (summary.hasActiveLiveRoom) {
+                        Primary.copy(alpha = 0.10f)
+                    } else {
+                        cs.surfaceVariant.copy(alpha = 0.72f)
+                    },
+                    iconTint = if (summary.hasActiveLiveRoom) Primary.copy(alpha = 0.88f) else cs.onSurfaceVariant,
+                    valueColor = if (summary.hasActiveLiveRoom) Primary else cs.onSurfaceVariant,
+                    showLiveDot = summary.hasActiveLiveRoom,
+                    modifier = Modifier.weight(1f),
+                )
             }
-            if (summary.activeCount == 0) {
+        }
+        if (summary.activeCount == 0) {
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+            Text(
+                text = "Scan a ticket to start tracking progress.",
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeActiveTicketsStatItem(
+    icon: ImageVector,
+    valueText: String,
+    labelText: String,
+    iconContainerColor: Color,
+    iconTint: Color,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+    showLiveDot: Boolean = false,
+) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            AppIconTile(
+                icon = icon,
+                size = 32.dp,
+                iconSize = 18.dp,
+                containerColor = iconContainerColor,
+                iconTint = iconTint,
+            )
+            if (showLiveDot) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 2.dp, y = (-2).dp)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Primary)
+                        .border(1.dp, Color.White, CircleShape),
+                )
+            }
+        }
+        Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Scan a ticket to start tracking progress.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = valueText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = valueColor,
+                )
+                Text(
+                    text = " $labelText",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Normal,
+                    color = cs.onSurfaceVariant,
+                    maxLines = 1,
                 )
             }
         }
@@ -460,7 +611,8 @@ private data class HomeTicketPreview(
 
 private data class HomeActiveTicketsSummary(
     val activeCount: Int,
-    val calledNumbersLabel: String?,
+    val calledCount: Int,
+    val hasActiveLiveRoom: Boolean,
     val previews: List<HomeTicketPreview>,
 )
 
@@ -520,14 +672,10 @@ private fun buildHomeActiveTicketsSummary(
             cellStates = cellStates,
         )
     }
-    val calledNumbersLabel = if (activeLiveRoomId != null && activeCalledCount > 0) {
-        "$activeCalledCount numbers called"
-    } else {
-        null
-    }
     return HomeActiveTicketsSummary(
         activeCount = tickets.size,
-        calledNumbersLabel = calledNumbersLabel,
+        calledCount = activeCalledCount,
+        hasActiveLiveRoom = activeLiveRoomId != null,
         previews = previews,
     )
 }
@@ -597,41 +745,6 @@ private fun formatHomeTicketDate(millis: Long): String {
         java.time.Instant.ofEpochMilli(millis),
         berlinZone,
     ).format(formatter)
-}
-
-@Composable
-private fun QuickActionButton(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-    ) {
-        AppCard(
-            modifier = Modifier
-                .size(56.dp)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                .clip(CircleShape),
-            onClick = onClick,
-            shape = CircleShape,
-            contentPadding = PaddingValues(0.dp),
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
 @Composable
