@@ -46,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import android.app.Activity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,6 +64,7 @@ import com.example.mamunbingoapp.theme.Secondary
 import com.example.mamunbingoapp.theme.SecondaryContainer
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppIconContainer
+import com.example.mamunbingoapp.ui.components.ProfileComingSoonBadge
 import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
@@ -207,6 +209,7 @@ fun SettingsScreen(
                     checked = pushNotifications,
                     onCheckedChange = { viewModel.setPushNotifications(it) },
                     groupedInCard = true,
+                    comingSoon = true,
                 )
                 AppInsetDivider(
                     startInset = settingsInsetDividerStart,
@@ -219,6 +222,7 @@ fun SettingsScreen(
                     checked = dailyReminders,
                     onCheckedChange = { viewModel.setDailyReminders(it) },
                     groupedInCard = true,
+                    comingSoon = true,
                 )
             }
             SettingsGroupedSection(title = "SECURITY") {
@@ -228,6 +232,7 @@ fun SettingsScreen(
                     checked = faceIdTouchId,
                     onCheckedChange = { viewModel.setFaceIdTouchId(it) },
                     groupedInCard = true,
+                    comingSoon = true,
                 )
                 AppInsetDivider(
                     startInset = settingsInsetDividerStart,
@@ -397,26 +402,44 @@ private fun SettingsToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     groupedInCard: Boolean = false,
+    comingSoon: Boolean = false,
 ) {
     val horizontal = if (groupedInCard) Dimens.spacing16 else Dimens.screenHorizontalPadding
     val textStart = if (groupedInCard) Dimens.spacing12 else Dimens.screenHorizontalPadding
+    val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val titleColor = if (comingSoon) mutedColor else MaterialTheme.colorScheme.onSurface
+  val iconContainerColor = if (comingSoon) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+    } else {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f)
+    }
+    val iconTint = if (comingSoon) mutedColor else MaterialTheme.colorScheme.primary
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .alpha(if (comingSoon) 0.55f else 1f)
             .then(if (groupedInCard) Modifier.heightIn(min = 72.dp) else Modifier)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { onCheckedChange(!checked) }
+            .then(
+                if (comingSoon) {
+                    Modifier
+                } else {
+                    Modifier.clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = { onCheckedChange(!checked) },
+                    )
+                },
+            )
             .padding(horizontal = horizontal, vertical = if (groupedInCard) Dimens.spacing8 else Dimens.spacing16),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         if (groupedInCard) {
             AppIconTile(
                 icon = icon,
                 size = settingsIconTileSize,
                 iconSize = 22.dp,
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f),
+                containerColor = iconContainerColor,
+                iconTint = iconTint,
             )
         } else {
             AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
@@ -424,30 +447,35 @@ private fun SettingsToggleRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = textStart)
+                .padding(start = textStart),
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = titleColor,
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
+                    color = mutedColor,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = MaterialTheme.colorScheme.primary
+        if (comingSoon) {
+            ProfileComingSoonBadge()
+        } else {
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary,
+                ),
             )
-        )
+        }
     }
 }
 
@@ -509,20 +537,31 @@ private fun SettingsNavRow(
     showChevron: Boolean = true,
     onClick: () -> Unit,
     groupedInCard: Boolean = false,
+    comingSoon: Boolean = false,
 ) {
     val horizontal = if (groupedInCard) Dimens.spacing16 else Dimens.screenHorizontalPadding
     val textStart =
         if (icon != null) (if (groupedInCard) Dimens.spacing12 else Dimens.screenHorizontalPadding) else 0.dp
+    val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val titleColor = if (comingSoon) mutedColor else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .alpha(if (comingSoon) 0.55f else 1f)
             .then(if (groupedInCard) Modifier.heightIn(min = 72.dp) else Modifier)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { onClick() }
+            .then(
+                if (comingSoon) {
+                    Modifier
+                } else {
+                    Modifier.clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = onClick,
+                    )
+                },
+            )
             .padding(horizontal = horizontal, vertical = if (groupedInCard) Dimens.spacing8 else Dimens.spacing16),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
             if (groupedInCard) {
@@ -530,7 +569,10 @@ private fun SettingsNavRow(
                     icon = icon,
                     size = settingsIconTileSize,
                     iconSize = 22.dp,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                        alpha = if (comingSoon) 0.28f else 0.50f,
+                    ),
+                    iconTint = if (comingSoon) mutedColor else MaterialTheme.colorScheme.primary,
                 )
             } else {
                 AppIconContainer(icon = icon, size = 40.dp, iconSize = 24.dp)
@@ -539,27 +581,30 @@ private fun SettingsNavRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = textStart)
+                .padding(start = textStart),
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = titleColor,
             )
             if (subtitle != null) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
+                    color = mutedColor,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
-        if (showChevron) {
+        if (comingSoon) {
+            ProfileComingSoonBadge()
+        } else if (showChevron) {
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = mutedColor,
             )
         }
     }

@@ -40,7 +40,7 @@
     <string name="forgot_send_button">Send Reset Link</string>
     <string name="forgot_remember_prompt">Remember your password?</string>
     <string name="forgot_remember_cta">Log In</string>
-    <string name="forgot_inbox_hint">Check your inbox and spam folder.</string>
+    <string name="forgot_inbox_hint">Check your inbox and spam folder. Use only the newest reset email; older links may open localhost until Supabase URL config is updated.</string>
     <string name="forgot_success_title">Check your email</string>
     <string name="forgot_success_subtitle">We\'ve sent password recovery instructions to your email address.</string>
     <string name="forgot_success_banner">Reset link sent to your email.</string>

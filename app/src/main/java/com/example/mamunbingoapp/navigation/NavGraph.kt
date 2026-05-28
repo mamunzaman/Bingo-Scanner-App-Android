@@ -73,6 +73,13 @@ import androidx.compose.material3.Scaffold
 import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.platform.LocalContext
 import com.example.mamunbingoapp.data.SettingsRepository
+import com.example.mamunbingoapp.data.auth.AuthPasswordRecoveryState
+import com.example.mamunbingoapp.data.auth.AuthRepository
+import com.example.mamunbingoapp.data.auth.AuthState
+import com.example.mamunbingoapp.viewmodel.LoginViewModel
+import com.example.mamunbingoapp.viewmodel.ProfileViewModel
+import com.example.mamunbingoapp.ui.components.profileAvatarInitials
+import com.example.mamunbingoapp.viewmodel.RegisterViewModel
 import com.example.mamunbingoapp.history.HistoryOcrSource
 /**
  * Scan / import navigation map (which composable owns which flow):
@@ -248,6 +255,76 @@ private fun isBlockingRouteForImportDeepLink(route: String?): Boolean {
     return false
 }
 
+private fun isPublicAuthRoute(route: String?): Boolean = isBlockingRouteForImportDeepLink(route)
+
+private suspend fun performLogout(navController: NavHostController) {
+    AuthRepository.signOut()
+    navController.navigateToLoginClearingBackStack()
+}
+
+private fun NavHostController.navigateToLoginClearingBackStack() {
+    if (currentBackStackEntry?.destination?.route == "auth/login") return
+    navigate("auth/login") {
+        popUpTo(graph.id) {
+            inclusive = true
+            saveState = false
+        }
+        launchSingleTop = true
+    }
+}
+
+@Suppress("UNUSED_PARAMETER")
+private fun NavHostController.navigateToMainFromAuth(authRoute: String) {
+    if (currentBackStackEntry?.destination?.route == "main") return
+    navigate("main") {
+        popUpTo(graph.id) {
+            inclusive = true
+            saveState = false
+        }
+        launchSingleTop = true
+    }
+}
+
+private fun NavHostController.navigateToLoginFromApp() {
+    navigateToLoginClearingBackStack()
+}
+
+private fun navigateAfterOnboardingOrSplash(
+    navController: NavHostController,
+    authState: AuthState,
+    recoveryPending: Boolean,
+) {
+    when (authState) {
+        AuthState.Loading -> Unit
+        is AuthState.SignedIn -> {
+            if (recoveryPending) {
+                if (navController.currentBackStackEntry?.destination?.route == "auth/forgot") return
+                navController.navigate("auth/forgot") {
+                    popUpTo("splash") { inclusive = true }
+                    launchSingleTop = true
+                }
+            } else {
+                navController.navigate("main") {
+                    popUpTo("splash") { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+        AuthState.SignedOut, is AuthState.Error -> {
+            if (navController.currentBackStackEntry?.destination?.route == "auth/login") return
+            navController.navigate("auth/login") {
+                popUpTo("splash") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+}
+
+private fun shouldRedirectToLogin(route: String?, authState: AuthState): Boolean {
+    if (route == null || isPublicAuthRoute(route)) return false
+    return authState is AuthState.SignedOut || authState is AuthState.Error
+}
+
 @Composable
 private fun ImportTicketDeepLinkHandler(
     navController: NavHostController,
@@ -290,6 +367,12 @@ fun NavGraph(
     importDeepLinkViewModel: ImportTicketDeepLinkViewModel,
 ) {
     val navController = rememberNavController()
+    val authScope = rememberCoroutineScope()
+    val authState by AuthRepository.authState.collectAsStateWithLifecycle()
+    val passwordRecovery by AuthRepository.passwordRecovery.collectAsStateWithLifecycle()
+    val recoveryPending = passwordRecovery is AuthPasswordRecoveryState.PendingSetNewPassword
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     ImportTicketDeepLinkHandler(
         navController = navController,
         importDeepLinkViewModel = importDeepLinkViewModel
@@ -301,24 +384,52 @@ fun NavGraph(
                 if (route?.startsWith("historyPhotoImport") != true) photoImportLeaveHandler = null
             }
     }
+    LaunchedEffect(authState, currentRoute, recoveryPending) {
+        val route = currentRoute ?: return@LaunchedEffect
+        when {
+            recoveryPending -> {
+                if (route != "auth/forgot") {
+                    navController.navigate("auth/forgot") {
+                        popUpTo(navController.graph.id) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                }
+            }
+            isPublicAuthRoute(route) -> {
+                if (authState is AuthState.SignedIn && !recoveryPending &&
+                    (route == "auth/login" || route == "auth/register")
+                ) {
+                    navController.navigateToMainFromAuth(route)
+                }
+            }
+            shouldRedirectToLogin(route, authState) -> {
+                navController.navigateToLoginFromApp()
+            }
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
         composable("splash") {
+            var splashFinished by remember { mutableStateOf(false) }
+            var skipOnboarding by remember { mutableStateOf(false) }
             SplashScreen(
-                onFinished = { skipOnboarding ->
-                    if (skipOnboarding) {
-                        navController.navigate("auth/login") {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate("onboarding") {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    }
+                onFinished = { skip ->
+                    splashFinished = true
+                    skipOnboarding = skip
                 },
             )
+            LaunchedEffect(splashFinished, skipOnboarding, authState, recoveryPending) {
+                if (!splashFinished) return@LaunchedEffect
+                if (!skipOnboarding) {
+                    navController.navigate("onboarding") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                    return@LaunchedEffect
+                }
+                navigateAfterOnboardingOrSplash(navController, authState, recoveryPending)
+            }
         }
         composable("onboarding") {
             val scope = rememberCoroutineScope()
@@ -326,47 +437,119 @@ fun NavGraph(
                 onFinished = {
                     scope.launch {
                         SettingsRepository.setOnboardingCompleted(true)
-                        navController.navigate("auth/login") {
-                            popUpTo("onboarding") { inclusive = true }
+                        if (authState is AuthState.SignedIn) {
+                            val target = if (recoveryPending) "auth/forgot" else "main"
+                            navController.navigate(target) {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("auth/login") {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
                         }
                     }
                 },
             )
         }
         composable("auth/login") {
+            val loginVm: LoginViewModel = viewModel()
+            val isLoading by loginVm.isLoading.collectAsStateWithLifecycle()
+            val validationError by loginVm.validationError.collectAsStateWithLifecycle()
+            val authActionError by loginVm.authActionError.collectAsStateWithLifecycle()
+            val errorMessage = validationError ?: authActionError
             LoginScreen(
                 onForgotPassword = { navController.navigate("auth/forgot") },
-                onLogin = {
-                    navController.navigate("main") {
-                        popUpTo("auth/login") { inclusive = true }
-                    }
-                },
-                onRegister = { navController.navigate("auth/register") }
+                onLogin = loginVm::signIn,
+                onRegister = { navController.navigate("auth/register") },
+                isLoading = isLoading,
+                errorMessage = errorMessage,
             )
         }
         composable("auth/forgot") {
+            val authActionError by AuthRepository.authActionError.collectAsStateWithLifecycle()
+            val authRecoveryHint by AuthRepository.authRecoveryHint.collectAsStateWithLifecycle()
+            val isLoading by AuthRepository.authActionInProgress.collectAsStateWithLifecycle()
+            val resetEmailSent = authRecoveryHint?.startsWith("Check your email") == true
+            val recoveryEmail =
+                (passwordRecovery as? AuthPasswordRecoveryState.PendingSetNewPassword)?.email
+            LaunchedEffect(Unit) {
+                if (!recoveryPending && !resetEmailSent) {
+                    AuthRepository.clearRecoveryState(
+                        clearError = true,
+                        clearHint = true,
+                        clearHandledDeepLink = false,
+                        reason = "open_forgot_screen_normal",
+                    )
+                }
+            }
+            LaunchedEffect(authRecoveryHint, recoveryPending, authState) {
+                if (recoveryPending) return@LaunchedEffect
+                if (authRecoveryHint?.startsWith("Password updated") != true) return@LaunchedEffect
+                AuthRepository.clearAuthRecoveryHint()
+                if (authState is AuthState.SignedIn) {
+                    navController.navigateToMainFromAuth("auth/forgot")
+                } else {
+                    navController.navigate("auth/login") {
+                        popUpTo("auth/forgot") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
             ForgotPasswordScreen(
                 onBack = { navController.popBackStack() },
-                onLogIn = { navController.popBackStack() }
+                onLogIn = { navController.popBackStack() },
+                onSendResetLink = { email ->
+                    authScope.launch { AuthRepository.requestPasswordResetEmail(email) }
+                },
+                onUpdatePassword = { password ->
+                    authScope.launch { AuthRepository.updatePasswordAfterRecovery(password) }
+                },
+                recoveryEmail = recoveryEmail,
+                errorMessage = authActionError,
+                infoMessage = authRecoveryHint,
+                isLoading = isLoading,
+                resetEmailSent = resetEmailSent,
+                recoveryPending = recoveryPending,
             )
         }
         composable("auth/register") {
+            val registerVm: RegisterViewModel = viewModel()
+            val isLoading by registerVm.isLoading.collectAsStateWithLifecycle()
+            val validationError by registerVm.validationError.collectAsStateWithLifecycle()
+            val authActionError by registerVm.authActionError.collectAsStateWithLifecycle()
+            val errorMessage = validationError ?: authActionError
             RegisterScreen(
                 onBack = { navController.popBackStack() },
-                onSignUp = {
-                    navController.navigate("main") {
-                        popUpTo("auth/register") { inclusive = true }
-                    }
-                },
+                onSignUp = registerVm::signUp,
                 onLogin = { navController.popBackStack() },
-                onForgotPassword = { navController.navigate("auth/forgot") }
+                onForgotPassword = { navController.navigate("auth/forgot") },
+                isLoading = isLoading,
+                errorMessage = errorMessage,
             )
         }
         composable(route = "main") { backStackEntry ->
             val tabsViewModel: MainTabsViewModel = viewModel(backStackEntry)
             val accountViewModel: AccountViewModel = viewModel(backStackEntry)
+            val profileViewModel: ProfileViewModel = viewModel(backStackEntry)
             val selectedTab by tabsViewModel.selectedTab.collectAsState()
             val lastActiveRoomId by tabsViewModel.lastActiveRoomId.collectAsState()
+            val authEmail by profileViewModel.authEmail.collectAsStateWithLifecycle()
+            val authUserId by profileViewModel.authUserId.collectAsStateWithLifecycle()
+            val authDisplayName by profileViewModel.displayNameInput.collectAsStateWithLifecycle()
+            val authAvatarUrl by profileViewModel.avatarUrl.collectAsStateWithLifecycle()
+            val profileForm by profileViewModel.profileForm.collectAsStateWithLifecycle()
+            val isProfileLoading by profileViewModel.isLoading.collectAsStateWithLifecycle()
+            val isProfileRefreshing by profileViewModel.isProfileRefreshing.collectAsStateWithLifecycle()
+            val profileMessage by profileViewModel.uiMessage.collectAsStateWithLifecycle()
+            val profileMessageType by profileViewModel.uiMessageType.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            val authAvatarInitials = profileAvatarInitials(
+                authDisplayName.orEmpty(),
+                profileForm.fullName,
+            )
+            LaunchedEffect(backStackEntry) {
+                profileViewModel.refreshAuthProfile()
+            }
             LaunchedEffect(backStackEntry) {
                 backStackEntry.savedStateHandle.get<String>("selectedTab")?.let { tabName ->
                     runCatching { AppTab.valueOf(tabName) }.getOrNull()?.let { tab ->
@@ -401,14 +584,27 @@ fun NavGraph(
                 onNavigateToMyAccount = { navController.navigate("myAccount") },
                 onNavigateToPaymentMethods = { navController.navigate("paymentMethods") },
                 onNavigateToSupport = { navController.navigate("support") },
+                onNavigateToChangePassword = { navController.navigate("changePassword") },
                 onNavigateToTicketDetail = { id -> navController.navigate("ticket/$id") },
                 onCallNumber = { n, onResult -> tabsViewModel.callNumber(n, onResult) },
                 onLogout = {
-                    navController.navigate("auth/login") {
-                        popUpTo("main") { inclusive = true }
-                    }
+                    authScope.launch { performLogout(navController) }
                 },
                 accountViewModel = accountViewModel,
+                authEmail = authEmail,
+                authUserId = authUserId,
+                authDisplayName = authDisplayName,
+                authAvatarUrl = authAvatarUrl,
+                authAvatarInitials = authAvatarInitials,
+                profileLoading = isProfileLoading,
+                isProfileRefreshing = isProfileRefreshing,
+                onProfileRefresh = profileViewModel::refreshProfileFromRemote,
+                onAvatarPicked = { uri ->
+                    profileViewModel.uploadAvatar(context, uri, cachedUserId = authUserId)
+                },
+                onAvatarDelete = { profileViewModel.deleteAvatar(context) },
+                profileMessage = profileMessage,
+                profileMessageType = profileMessageType,
             )
         }
         composable(
@@ -1063,9 +1259,7 @@ fun NavGraph(
                 onTermsOfService = { navController.navigate("termsOfService") },
                 onPrivacyPolicy = { navController.navigate("privacyPolicy") },
                 onLogout = {
-                    navController.navigate("auth/login") {
-                        popUpTo("main") { inclusive = true }
-                    }
+                    authScope.launch { performLogout(navController) }
                 },
                 onTabSelected = { tab ->
                     runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
@@ -1075,14 +1269,62 @@ fun NavGraph(
         }
         composable("myAccount") {
             val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
-            val accountViewModel: AccountViewModel = if (mainEntry != null) {
+            val profileViewModel: ProfileViewModel = if (mainEntry != null) {
                 viewModel(mainEntry)
             } else {
                 viewModel()
             }
+            val authEmail by profileViewModel.authEmail.collectAsStateWithLifecycle()
+            val authUserId by profileViewModel.authUserId.collectAsStateWithLifecycle()
+            val displayNameInput by profileViewModel.displayNameInput.collectAsStateWithLifecycle()
+            val emailInput by profileViewModel.emailInput.collectAsStateWithLifecycle()
+            val profileForm by profileViewModel.profileForm.collectAsStateWithLifecycle()
+            val profileMessage by profileViewModel.uiMessage.collectAsStateWithLifecycle()
+            val profileMessageType by profileViewModel.uiMessageType.collectAsStateWithLifecycle()
+            val isProfileSaving by profileViewModel.isLoading.collectAsStateWithLifecycle()
+            val isProfileRefreshing by profileViewModel.isProfileRefreshing.collectAsStateWithLifecycle()
+            val authAvatarUrl by profileViewModel.avatarUrl.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            val avatarInitials = profileAvatarInitials(
+                displayNameInput,
+                profileForm.fullName,
+            )
+            LaunchedEffect(Unit) {
+                profileViewModel.refreshAuthProfile()
+            }
             AccountFormScreen(
                 onBack = { navController.popBackStack() },
-                viewModel = accountViewModel,
+                signedInEmail = authEmail,
+                displayName = displayNameInput,
+                emailInput = emailInput,
+                profileForm = profileForm,
+                profileMessage = profileMessage,
+                profileMessageType = profileMessageType,
+                profileLoading = isProfileSaving,
+                isProfileRefreshing = isProfileRefreshing,
+                onProfileRefresh = profileViewModel::refreshProfileFromRemote,
+                avatarUrl = authAvatarUrl,
+                avatarInitials = avatarInitials,
+                onAvatarPicked = { uri ->
+                    profileViewModel.uploadAvatar(context, uri, cachedUserId = authUserId)
+                },
+                onAvatarDelete = { profileViewModel.deleteAvatar(context) },
+                onDisplayNameChange = profileViewModel::updateDisplayNameInput,
+                onSaveDisplayName = profileViewModel::saveDisplayName,
+                onEmailChange = profileViewModel::updateEmailInput,
+                onUpdateEmail = profileViewModel::saveEmail,
+                onFullNameChange = profileViewModel::updateFullName,
+                onSecondaryEmailChange = profileViewModel::updateSecondaryEmail,
+                onPhoneChange = profileViewModel::updatePhone,
+                onCountryChange = profileViewModel::updateCountry,
+                onRegionChange = profileViewModel::updateRegion,
+                onCityChange = profileViewModel::updateCity,
+                onPostalCodeChange = profileViewModel::updatePostalCode,
+                onStreetAddressChange = profileViewModel::updateStreetAddress,
+                onApartmentOrHouseNoChange = profileViewModel::updateApartmentOrHouseNo,
+                onBioChange = profileViewModel::updateBio,
+                onLanguageChange = profileViewModel::updateLanguage,
+                onSaveProfileDetails = profileViewModel::saveProfileDetails,
             )
         }
         composable("paymentMethods") {
@@ -1092,7 +1334,19 @@ fun NavGraph(
             SupportScreen(onBack = { navController.popBackStack() })
         }
         composable("changePassword") {
-            ChangePasswordScreen(onBack = { navController.popBackStack() })
+            val profileVm: ProfileViewModel = viewModel()
+            val isLoading by profileVm.isLoading.collectAsStateWithLifecycle()
+            val message by profileVm.uiMessage.collectAsStateWithLifecycle()
+            val messageType by profileVm.uiMessageType.collectAsStateWithLifecycle()
+            val formResetKey by profileVm.formResetKey.collectAsStateWithLifecycle()
+            ChangePasswordScreen(
+                onBack = { navController.popBackStack() },
+                isLoading = isLoading,
+                message = message,
+                messageType = messageType,
+                formResetKey = formResetKey,
+                onChangePassword = profileVm::changePassword,
+            )
         }
         composable("locationServices") {
             LocationServicesScreen(onBack = { navController.popBackStack() })

@@ -3,6 +3,7 @@ package com.example.mamunbingoapp
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import com.example.mamunbingoapp.data.DemoSeeder
 import com.example.mamunbingoapp.data.db.DatabaseProvider
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mamunbingoapp.data.auth.AuthRepository
 import com.example.mamunbingoapp.navigation.NavGraph
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
@@ -38,11 +40,24 @@ import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
 
 class MainActivity : ComponentActivity() {
 
+    private companion object {
+        private const val TAG = "MainActivity"
+    }
+
     private val importDeepLinkViewModel: ImportTicketDeepLinkViewModel by viewModels()
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        dispatchIncomingIntent(intent)
+    }
+
+    private fun dispatchIncomingIntent(intent: Intent?) {
+        if (intent == null) {
+            Log.d(TAG, "dispatchIncomingIntent: no intent")
+            return
+        }
+        if (AuthRepository.handleAuthDeepLink(intent)) return
         importDeepLinkViewModel.setFromIntent(intent)
     }
 
@@ -58,10 +73,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        importDeepLinkViewModel.setFromIntent(intent)
         DatabaseProvider.init(applicationContext)
         com.example.mamunbingoapp.data.SettingsRepository.init(applicationContext)
         com.example.mamunbingoapp.data.AccountRepository.init(applicationContext)
+        AuthRepository.startup(applicationContext)
+        dispatchIncomingIntent(intent)
         lifecycleScope.launch(Dispatchers.IO) { DemoSeeder.seedIfNeeded() }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {

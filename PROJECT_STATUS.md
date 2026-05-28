@@ -1,6 +1,52 @@
 # Project status
 
-**Last update:** 2026-05-27 - **Real OCR progress in analyzing screen:** `DetectionStatus` + `ImportOcrProgressUiState` in ViewModel; `_ocrProgress` StateFlow emits at 4 stages: "Checking for QR code…" → "Detecting ticket grid…" → "Reading bingo numbers…" → "Finalizing result…" (with real cell count + LOS/serial Found/NotFound). `BingoOcrStatusCard` shows live stage label, real GRID CELLS count, LOS and SERIAL detection status with green/muted colouring. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-28 - **ActiveTicketCard premium polish:** More top padding; live-room green glow/border vs saved neutral border; 5dp pill progress bar; white sheet paper shadow; Home carousel start/end padding. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home Active Tickets called-numbers fix:** Progress/grid from live-room called list (not draw matches); chips Live room / Saved ticket; summary shows called count when active session exists. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home polish:** Time-aware greeting + “Ready for the next draw?”; Draw Status strip (Upcoming + countdown); Active Tickets summary from local tickets (match/marked progress, almost bingo via `BingoWinChecker`); real ticket preview row. No player-online stats. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home layout trim:** Removed Active Tickets preview section (header, View All, horizontal ticket row); Quick Actions → Green Impact flow unchanged otherwise. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home CurrentJackpotCard:** Premium green gradient hero (`CurrentJackpotCard`) with remote EUR jackpot, Sunday Berlin countdown, latest-number chips, Scan Ticket; removed duplicate `HomeNextDrawCard`; `HomeViewModel` → `viewmodel/`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home Next Draw card:** Replaced debug draw card with `HomeNextDrawCard` — Sunday 17:00 Europe/Berlin live countdown, remote EUR jackpot, compact latest-numbers row; loading/error in-card. Active Tickets unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Avatar delete UI cache fix:** Immediate local `avatarUrl` clear + Coil eviction; `normalizeAvatarUrl` (null/blank/`"null"`); upload-only cache buster; `ProfileAvatar` `key()` forces initials after delete. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Profile avatar delete:** `ProfileRepository.deleteAvatar()` removes `avatars/{userId}.jpg` and clears `profiles.avatar_url`; `ProfileViewModel.deleteAvatar()`; `ProfileAvatar` edit badge when empty, delete badge when set; confirm dialog on Profile + My Account; `AppAuthMessage` success/error. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Profile avatar upload (Supabase Storage):** `storage-kt` + `profile-avatars` bucket upload (`avatars/{userId}.jpg`), URL saved to `profiles.avatar_url`; gallery picker on Profile + My Account; shared `ProfileAvatar` with Coil; `AppAuthMessage` feedback; bucket policy TODO in `ProfileAvatarStorage`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Password policy + strength meter:** Added reusable `PasswordStrengthMeter` (Weak/Medium/Strong) for new-password fields; min password length standardized to 8 in Register, Profile Change Password, and recovery update validation. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Logout → login navigation:** `signOut()` sets `SignedOut` immediately, clears recovery flags, blocks stale `SignedIn` during sign-out; `navigateToLoginClearingBackStack()` pops full graph. Profile/Settings unchanged (await `performLogout`). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Login → main navigation:** After `signInWithEmail`, `syncAuthStateFromCurrentSession()` sets `SignedIn` immediately; `navigateToMainFromAuth` clears auth back stack to `main`. Session observer restore unchanged.
+
+**Previous:** 2026-05-27 - **Auth inline messages UI:** `AppAuthMessage` (Error/Success/Info) on Login, Register, ForgotPassword; theme tokens (`SecondaryContainer`, `IconContainerBg`, `PrimaryContainer`). Auth logic unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Auth signup rate-limit UX:** `AuthRepository.mapAuthError` maps `over_email_send_rate_limit` to a friendly message; strips raw Supabase URLs/headers/tokens from UI (`Log.w` keeps full errors). Register screen unchanged (uses `authActionError`). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Fresh-install auth startup crash fix:** `AuthRepository.startup()` after app init (no eager object init); session observe on `Dispatchers.Default` + timeout → `SignedOut`; `getClientOrNull()` + try/catch; guarded deep links; `SupabaseClientProvider.ensureInitialized` + `lifecycle-process`/`startup-runtime`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Password reset step 2 complete:** `ForgotPasswordScreen` set-new-password UI; NavGraph success routing.
+
+**Previous:** 2026-05-27 - **Supabase email verification deep link:** `mamunbingo://auth/callback` intent-filter; Auth `scheme`/`host`; `SupabaseAuthDeepLink` + `AuthRepository.handleAuthDeepLink`; `MainActivity` dispatches before ticket import; sign-up uses redirect URL; dashboard Site URL + Redirect URLs documented. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Supabase app-side auth foundation complete:** Config URL/key validation; network + credential error mapping; session restore on cold start; nav loop guards; logout clears stack; TODOs for email verify / reset password / profiles / access status; `SupabaseAuthPlan` dashboard checklist. No DB tables; Room unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Supabase auth gate stabilization:** Split session state (`authState`) from transient `authActionError` so wrong-password/missing-keys errors persist and retry works; `authActionInProgress` disables login/register buttons; splash waits on session `Loading` before routing (signed-in restart → main); protected routes redirect on `SignedOut` only (prevents login/register redirect loops); sign-out no longer forces global Loading. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Supabase auth wired to UI + NavGraph gate:** `LoginViewModel` / `RegisterViewModel` call `AuthRepository`; existing login/register screens show loading + errors; splash/onboarding route by `AuthState`; signed-out blocked from app routes; Profile/Settings logout calls `signOut()`. Room unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **AuthRepository (session layer):** `AuthState` sealed types; `AuthRepository` exposes `authState` StateFlow from Supabase `sessionStatus`, plus `signInWithEmail` / `signUpWithEmail` / `signOut` with readable errors; uses `SupabaseClientProvider.requireConfigured()`. No NavGraph or login UI wiring; Room unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Supabase client provider (Auth-only):** `BuildConfig.SUPABASE_URL` / `SUPABASE_ANON_KEY` from gitignored `local.properties`; `SupabaseClientProvider` lazy singleton with Auth plugin only (Ktor OkHttp on classpath); `requireConfigured()` + clear error when keys missing. No login UI or Room changes. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Supabase Auth plan (identity only, Bingo data local):** Architecture decision: Supabase stores user account/session/profile/access only; all Bingo tickets, sessions, history, and called numbers remain in on-device Room. Added Auth-only Gradle deps (`supabase-bom`, `auth-kt`, `ktor-client-okhttp`); `data/auth/SupabaseAuthPlan.kt` documents boundary, phases, and future NavGraph access gate. No Auth UI/client wiring yet. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-27 - **Real OCR progress in analyzing screen:** `DetectionStatus` + `ImportOcrProgressUiState` in ViewModel; `_ocrProgress` StateFlow emits at 4 stages: "Checking for QR code…" → "Detecting ticket grid…" → "Reading bingo numbers…" → "Finalizing result…" (with real cell count + LOS/serial Found/NotFound). `BingoOcrStatusCard` shows live stage label, real GRID CELLS count, LOS and SERIAL detection status with green/muted colouring. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-27 - **Analyzing screen — ticket photo bg + bingo-specific card:** `ImportTicketAnalyzingFullScreen` shows ticket photo at 0.20 alpha (surface bg shows through), `BingoOcrStatusCard` with rotating titles ("Reading bingo numbers…" / "Detecting ticket grid…" / "Checking serial and LOS…"), bingo body text, shimmer-gradient progress bar, honest GRID CELLS / OCR STATUS / META DATA stats. Crosshair updated to medium green (`#2E9B5E`), scan line softened to 0.68 alpha. `./gradlew :app:assembleDebug` OK.
 
@@ -262,6 +308,7 @@
 
 ## In progress
 
+- **Supabase:** dashboard setup (keys, email auth) — see `SupabaseAuthPlan.kt`; app-side auth + verify + full password reset flow complete.
 - Device validation: verify too-zoomed captures trigger guidance and skip OCR; verify normal captures still run OCR.
 - Device validation: run 3-5 known fail-prone ticket images and compare 25-cell completion vs baseline with new adaptive inset mode.
 - Device QA: `BingoLiveCameraImportScreen` **Scan ticket** ? feel shutter + scale, confirm no QR regression; GMS + gallery still OK. Build: `./gradlew :app:assembleDebug`.
@@ -269,6 +316,7 @@
 
 ## Pending tasks
 
+- Supabase: optional `profiles` upsert (no ticket/history sync).
 - Tune zoom threshold only if needed based on device QA (keep OCR pipeline unchanged).
 - If edge-preserve mode is stable, tune only inset thresholds/fractions incrementally (no crop/consensus redesign).
 - **Roadmap (see `NEXT_TASK` table):** optional Phase 3 **crop/confirm** UI, Phase 4 **drop GMS** after sustained QA ? **do not** remove GMS or OCR early.

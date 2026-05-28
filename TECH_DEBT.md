@@ -28,6 +28,24 @@
 - **Docs vs code:** `AGENTS.md` can drift (e.g. flags / routes) — verify against `NavGraph.kt` and source before relying on a single line.
 - **Resolved in past work (do not re-add without intent):** **`LiveHeaderStyle` / `UserPreferencesRepository`** removed; history/live list UIs have evolved — compare screenshots to `HistorySheetCard` / `ListSheetRow` if “looks wrong” reports return.
 
+## Compose BOM alignment
+
+`implementation(enforcedPlatform(compose-bom))` keeps all `androidx.compose.*` artifacts on one version (e.g. foundation/runtime **1.6.1** with BOM `2024.02.00`). Without `enforcedPlatform`, `coil-compose` can pull `ui-tooling` **1.9.0** and cause `HorizontalPager` `NoSuchMethodError` at runtime.
+
+Use **`lifecycle` / `lifecycleCompose` = 2.7.0** + `resolutionStrategy` on `androidx.lifecycle` (CameraX 1.5 can pull 2.10 and win the atomic group). `lifecycle-viewmodel-compose` 2.10 + Compose BOM `2024.02.00` (runtime **1.6.1**) causes `Composer.startReplaceGroup` `NoSuchMethodError`.
+
+## Device install (Android Studio / ADB)
+
+If **Run** fails but `./gradlew :app:assembleDebug` succeeds, check the **Run** or **Build** tool window for `INSTALL_FAILED_*`.
+
+| Symptom | Fix |
+|--------|-----|
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` / signature mismatch | Uninstall old build: `adb uninstall com.example.mamunbingoapp` then Run again |
+| `INSTALL_FAILED_VERSION_DOWNGRADE` | Same uninstall, or use Gradle `installDebug` (project sets `-r` + `-d`) |
+| App installs but crashes on launch | Logcat — auth startup: `AuthRepository`, `SupabaseClientProvider` (not an install failure) |
+
+`app/build.gradle.kts` `installation { installOptions -r -d }` helps Gradle/Android Studio replace an existing debug APK.
+
 ## UI / platform QA (not always “debt” but open)
 
 - Device QA for **bottom sheets + cards view** on Live play (`LivePlayScreen`, `RoomSettingsBottomSheet`, `RoomInfoBottomSheet`, `MyTicketsBottomSheet`) — see `NEXT_TASK.md`.

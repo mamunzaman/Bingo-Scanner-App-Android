@@ -24,6 +24,7 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,6 +33,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +46,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.FlashOff
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material3.Button
@@ -793,22 +796,40 @@ fun BingoLiveCameraImportScreen(
                         ),
                     ),
                 )
-                .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing16),
+                .padding(horizontal = Dimens.screenHorizontalPadding)
+                .padding(top = Dimens.spacing16, bottom = Dimens.spacing32),
         ) {
-            Column {
-                Text(
-                    text = "Scan a Bingo QR to import instantly.",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                )
-                Spacer(Modifier.height(Dimens.spacing8))
-                Text(
-                    text = "Or scan your ticket.",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.8f),
-                )
-                Spacer(Modifier.height(Dimens.spacing12))
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Dimens.radiusXL),
+                    color = Color.Black.copy(alpha = 0.52f),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+                    ),
+                    shadowElevation = 0.dp,
+                    tonalElevation = 0.dp,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing16),
+                    ) {
+                        Text(
+                            text = "Scan a Bingo QR to import instantly.",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White.copy(alpha = 0.96f),
+                        )
+                        Spacer(Modifier.height(Dimens.spacing4))
+                        Text(
+                            text = "Or tap below to capture the full ticket grid.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.58f),
+                        )
+                    }
+                }
                 val buttonInteraction = remember { MutableInteractionSource() }
                 val buttonPressed by buttonInteraction.collectIsPressedAsState()
                 Button(
@@ -896,17 +917,17 @@ fun BingoLiveCameraImportScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(Dimens.buttonHeight + Dimens.spacing4)
+                        .height(60.dp)
                         .graphicsLayer {
-                            val s = if (buttonPressed) 0.97f else 1f
+                            val s = if (buttonPressed) 0.96f else 1f
                             scaleX = s
                             scaleY = s
                         },
                     interactionSource = buttonInteraction,
-                    shape = RoundedCornerShape(Dimens.radiusPill),
+                    shape = RoundedCornerShape(Dimens.radiusXL),
                     elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 8.dp,
-                        pressedElevation = 10.dp,
+                        defaultElevation = 12.dp,
+                        pressedElevation = 16.dp,
                         disabledElevation = 0.dp,
                     ),
                     colors = ButtonDefaults.buttonColors(
@@ -922,17 +943,28 @@ fun BingoLiveCameraImportScreen(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
                                         MaterialTheme.colorScheme.primary,
-                                        lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.14f),
+                                        lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.24f),
                                     ),
                                 ),
-                                shape = RoundedCornerShape(Dimens.radiusPill),
+                                shape = RoundedCornerShape(Dimens.radiusXL),
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = if (capturing) "Capturing" else "Scan ticket",
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = if (capturing) "Capturing…" else "Scan ticket",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }

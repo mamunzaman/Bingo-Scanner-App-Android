@@ -36,6 +36,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.AppAuthMessage
+import com.example.mamunbingoapp.ui.components.AppAuthMessageType
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTextField
@@ -45,8 +47,10 @@ import com.example.mamunbingoapp.ui.components.AuthFooterPrompt
 @Composable
 fun LoginScreen(
     onForgotPassword: () -> Unit = {},
-    onLogin: () -> Unit = {},
-    onRegister: () -> Unit = {}
+    onLogin: (email: String, password: String) -> Unit = { _, _ -> },
+    onRegister: () -> Unit = {},
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -151,10 +155,19 @@ fun LoginScreen(
                     modifier = Modifier.clickable { onForgotPassword() }
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
+            AppAuthMessage(
+                message = errorMessage,
+                type = AppAuthMessageType.Error,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (!errorMessage.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(Dimens.spacing12))
+            }
             AppPrimaryButton(
                 text = stringResource(R.string.login_button),
-                onClick = onLogin,
+                onClick = { onLogin(email, password) },
+                loading = isLoading,
                 trailingIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Login,

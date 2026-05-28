@@ -14,14 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,27 +35,57 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.theme.Success
+import com.example.mamunbingoapp.ui.components.AppAuthMessage
+import com.example.mamunbingoapp.ui.components.AppAuthMessageType
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AuthBottomWave
 import com.example.mamunbingoapp.ui.components.AuthFooterPrompt
+import com.example.mamunbingoapp.ui.components.PasswordStrengthMeter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
     onBack: () -> Unit = {},
     onLogIn: () -> Unit = {},
-    onSendResetLink: (String) -> Unit = {}
+    onSendResetLink: (String) -> Unit = {},
+    onUpdatePassword: (String) -> Unit = {},
+    recoveryEmail: String? = null,
+    errorMessage: String? = null,
+    infoMessage: String? = null,
+    isLoading: Boolean = false,
+    resetEmailSent: Boolean = false,
+    recoveryPending: Boolean = false,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var emailSent by rememberSaveable { mutableStateOf(false) }
+    var newPassword by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var newPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var localValidationError by rememberSaveable { mutableStateOf<String?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(resetEmailSent) {
+        if (resetEmailSent) emailSent = true
+    }
+
+    androidx.compose.runtime.LaunchedEffect(recoveryEmail) {
+        if (!recoveryEmail.isNullOrBlank()) email = recoveryEmail
+    }
+
+    val topBarTitleRes = when {
+        recoveryPending -> R.string.change_password_title
+        emailSent -> R.string.forgot_success_title
+        else -> R.string.forgot_title
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -74,9 +104,9 @@ fun ForgotPasswordScreen(
             )
             Column(Modifier.fillMaxSize()) {
                 AppTopBar(
-                    title = stringResource(if (emailSent) R.string.forgot_success_title else R.string.forgot_title),
+                    title = stringResource(topBarTitleRes),
                     showBack = true,
-                    onBackClick = if (emailSent) onLogIn else onBack
+                    onBackClick = if (emailSent && !recoveryPending) onLogIn else onBack
                 )
                 Column(
                     modifier = Modifier
@@ -84,7 +114,127 @@ fun ForgotPasswordScreen(
                         .padding(top = Dimens.spacing5)
                         .padding(horizontal = Dimens.screenHorizontalPadding)
                 ) {
-                    if (emailSent) {
+                    if (recoveryPending) {
+                        Spacer(modifier = Modifier.height(Dimens.spacing16))
+                        Text(
+                            text = stringResource(R.string.change_password_title),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AppAuthMessage(
+                            message = infoMessage,
+                            type = AppAuthMessageType.Info,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (!infoMessage.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(Dimens.spacing12))
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = stringResource(R.string.change_password_new_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AppTextField(
+                            value = newPassword,
+                            onValueChange = {
+                                newPassword = it
+                                localValidationError = null
+                            },
+                            placeholder = stringResource(R.string.change_password_new_placeholder),
+                            visualTransformation = if (newPasswordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (newPasswordVisible) {
+                                            Icons.Filled.VisibilityOff
+                                        } else {
+                                            Icons.Filled.Visibility
+                                        },
+                                        contentDescription = null,
+                                    )
+                                }
+                            },
+                        )
+                        if (newPassword.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(Dimens.spacing8))
+                            PasswordStrengthMeter(password = newPassword)
+                            if (newPassword.length < 8) {
+                                Spacer(modifier = Modifier.height(Dimens.spacing4))
+                                Text(
+                                    text = "Use at least 8 characters.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(Dimens.spacing16))
+                        Text(
+                            text = stringResource(R.string.change_password_confirm_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AppTextField(
+                            value = confirmPassword,
+                            onValueChange = {
+                                confirmPassword = it
+                                localValidationError = null
+                            },
+                            placeholder = stringResource(R.string.change_password_confirm_placeholder),
+                            visualTransformation = if (confirmPasswordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (confirmPasswordVisible) {
+                                            Icons.Filled.VisibilityOff
+                                        } else {
+                                            Icons.Filled.Visibility
+                                        },
+                                        contentDescription = null,
+                                    )
+                                }
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.spacing16))
+                        val displayError = localValidationError ?: errorMessage
+                        AppAuthMessage(
+                            message = displayError,
+                            type = AppAuthMessageType.Error,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (!displayError.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(Dimens.spacing12))
+                        }
+                        AppPrimaryButton(
+                            text = stringResource(R.string.change_password_button),
+                            onClick = {
+                                localValidationError = when {
+                                    newPassword.isBlank() -> "Enter a new password."
+                                    newPassword.length < 8 -> "Password must be at least 8 characters."
+                                    confirmPassword.isBlank() -> "Confirm your new password."
+                                    newPassword != confirmPassword -> "Passwords do not match."
+                                    else -> null
+                                }
+                                if (localValidationError == null) {
+                                    onUpdatePassword(newPassword)
+                                }
+                            },
+                            loading = isLoading,
+                        )
+                    } else if (emailSent) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -127,29 +277,11 @@ fun ForgotPasswordScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Success.copy(alpha = 0.15f),
-                            RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing16),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        tint = Success,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.size(12.dp))
-                    Text(
-                        text = stringResource(R.string.forgot_success_banner),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Success
-                    )
-                }
+                AppAuthMessage(
+                    message = stringResource(R.string.forgot_success_banner),
+                    type = AppAuthMessageType.Success,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = stringResource(R.string.login_email_label),
@@ -171,7 +303,7 @@ fun ForgotPasswordScreen(
                         )
                     }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
                 AppPrimaryButton(
                     text = stringResource(R.string.forgot_back_to_login),
                     onClick = onLogIn,
@@ -191,7 +323,7 @@ fun ForgotPasswordScreen(
                     onClick = { onSendResetLink(email) }
                 )
             } else {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
                 Text(
                     text = stringResource(R.string.forgot_title),
                     style = MaterialTheme.typography.headlineMedium,
@@ -216,13 +348,27 @@ fun ForgotPasswordScreen(
                     placeholder = stringResource(R.string.forgot_email_placeholder),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
+                AppAuthMessage(
+                    message = errorMessage,
+                    type = AppAuthMessageType.Error,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (!errorMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(Dimens.spacing12))
+                }
+                if (!infoMessage.isNullOrBlank() && (emailSent || recoveryPending)) {
+                    AppAuthMessage(
+                        message = infoMessage,
+                        type = AppAuthMessageType.Info,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.spacing12))
+                }
                 AppPrimaryButton(
                     text = stringResource(R.string.forgot_send_button),
-                    onClick = {
-                        onSendResetLink(email)
-                        emailSent = true
-                    }
+                    onClick = { onSendResetLink(email) },
+                    loading = isLoading,
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Column(
@@ -245,7 +391,7 @@ fun ForgotPasswordScreen(
                             modifier = Modifier.clickable(onClick = onLogIn)
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(Dimens.spacing16))
                     Text(
                         text = stringResource(R.string.forgot_inbox_hint),
                         style = MaterialTheme.typography.bodySmall,

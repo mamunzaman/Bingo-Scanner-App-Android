@@ -11,16 +11,16 @@ enum class BingoScanType {
 
     val title: String
         get() = when (this) {
-            PLAY_PAPER -> "Bingo Play Paper"
-            ONLINE -> "Bingo Online"
-            MAIN_SHEET -> "Bingo Main Sheet"
+            PLAY_PAPER -> "Player Sheet"
+            ONLINE -> "Digital Sheet"
+            MAIN_SHEET -> "Master Sheet"
         }
 
     val subtitle: String
         get() = when (this) {
             PLAY_PAPER -> "Physical bingo ticket paper"
             ONLINE -> "Online/digital bingo format"
-            MAIN_SHEET -> "Main/master bingo sheet"
+            MAIN_SHEET -> "Official/master bingo proof"
         }
 
     companion object {

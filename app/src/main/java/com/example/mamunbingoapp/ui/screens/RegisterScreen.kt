@@ -41,20 +41,25 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.AppAuthMessage
+import com.example.mamunbingoapp.ui.components.registerFeedbackMessageType
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AuthBottomPlant
 import com.example.mamunbingoapp.ui.components.AuthFooterPrompt
+import com.example.mamunbingoapp.ui.components.PasswordStrengthMeter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onBack: () -> Unit = {},
-    onSignUp: () -> Unit = {},
+    onSignUp: (email: String, password: String) -> Unit = { _, _ -> },
     onLogin: () -> Unit = {},
-    onForgotPassword: () -> Unit = {}
+    onForgotPassword: () -> Unit = {},
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
 ) {
     var fullName by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
@@ -93,7 +98,7 @@ fun RegisterScreen(
                         .padding(top = Dimens.spacing5)
                         .padding(horizontal = Dimens.screenHorizontalPadding)
                 ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
                 Text(
                     text = stringResource(R.string.register_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
@@ -168,6 +173,18 @@ fun RegisterScreen(
                     }
                 }
             )
+                if (password.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(Dimens.spacing8))
+                    PasswordStrengthMeter(password = password)
+                    if (password.length < 8) {
+                        Spacer(modifier = Modifier.height(Dimens.spacing4))
+                        Text(
+                            text = "Use at least 8 characters.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -197,15 +214,24 @@ fun RegisterScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
-                            .padding(top = 12.dp)
+                            .padding(top = Dimens.spacing12)
                             .clickable { termsChecked = !termsChecked }
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
+                AppAuthMessage(
+                    message = errorMessage,
+                    type = registerFeedbackMessageType(errorMessage),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (!errorMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(Dimens.spacing12))
+                }
                 AppPrimaryButton(
                     text = stringResource(R.string.register_button),
-                    onClick = onSignUp,
+                    onClick = { onSignUp(email, password) },
                     enabled = termsChecked,
+                    loading = isLoading,
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Filled.Eco,

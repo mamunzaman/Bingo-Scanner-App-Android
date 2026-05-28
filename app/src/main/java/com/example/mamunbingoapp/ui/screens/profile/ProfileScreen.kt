@@ -1,5 +1,9 @@
 package com.example.mamunbingoapp.ui.screens.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -21,12 +25,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Forest
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
@@ -57,12 +61,17 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.ui.components.AppIconTile
+import com.example.mamunbingoapp.ui.components.AppAuthMessage
+import com.example.mamunbingoapp.ui.components.AppAuthMessageType
+import com.example.mamunbingoapp.ui.components.ProfileAvatar
+import com.example.mamunbingoapp.ui.components.profileAvatarInitials
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.ProfileMenuItem
 import com.example.mamunbingoapp.ui.components.appPremiumCardBorder
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.theme.Secondary
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -84,15 +93,37 @@ fun ProfileScreen(
     onPaymentMethods: () -> Unit,
     onHistory: () -> Unit,
     onSupport: () -> Unit,
+    onChangePassword: () -> Unit = {},
     onLogout: () -> Unit,
     showBottomBar: Boolean = true,
     accountViewModel: AccountViewModel,
+    authEmail: String? = null,
+    authUserId: String? = null,
+    authDisplayName: String? = null,
+    authAvatarUrl: String? = null,
+    authAvatarInitials: String? = null,
+    profileLoading: Boolean = false,
+    isProfileRefreshing: Boolean = false,
+    onProfileRefresh: () -> Unit = {},
+    profileMessage: String? = null,
+    profileMessageType: AppAuthMessageType = AppAuthMessageType.Info,
+    onAvatarPicked: (Uri) -> Unit = {},
+    onAvatarDelete: () -> Unit = {},
 ) {
     val accountProfile by accountViewModel.profile.collectAsStateWithLifecycle()
-    val displayName = accountProfile.displayName()
-    val displayEmail = accountProfile.displayEmail()
-    val avatarInitials = accountProfile.avatarInitials()
+    val displayName = authDisplayName?.takeIf { it.isNotBlank() } ?: accountProfile.displayName()
+    val displayEmail = authEmail ?: accountProfile.displayEmail()
+    val avatarInitials = authAvatarInitials
+        ?: accountProfile.avatarInitials()
+        ?: profileAvatarInitials(displayName)
+    val pickAvatarLauncher = rememberLauncherForActivityResult(
+        contract = PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) onAvatarPicked(uri)
+    }
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
+    var showDeleteAvatarDialog by rememberSaveable { mutableStateOf(false) }
+    val hasAvatar = !authAvatarUrl.isNullOrBlank()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
@@ -105,6 +136,19 @@ fun ProfileScreen(
         onConfirm = { showLogoutDialog = false; onLogout() },
         onCancel = { showLogoutDialog = false },
         onDismiss = { showLogoutDialog = false }
+    )
+    AppConfirmDialog(
+        visible = showDeleteAvatarDialog,
+        title = "Remove profile photo?",
+        message = "Your profile photo will be removed from your account.",
+        confirmText = "Remove",
+        cancelText = "Cancel",
+        onConfirm = {
+            showDeleteAvatarDialog = false
+            onAvatarDelete()
+        },
+        onCancel = { showDeleteAvatarDialog = false },
+        onDismiss = { showDeleteAvatarDialog = false },
     )
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -133,9 +177,15 @@ fun ProfileScreen(
                 )
             },
             content = {
+        AppPullRefresh(
+            isRefreshing = isProfileRefreshing,
+            onRefresh = onProfileRefresh,
+            modifier = Modifier.weight(1f),
+            enabled = !profileLoading,
+        ) {
         Column(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(bottom = Dimens.spacing16)
@@ -144,48 +194,33 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp, bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    Box(
+                ProfileAvatar(
+                    avatarUrl = authAvatarUrl,
+                    initials = avatarInitials,
+                    showEditBadge = true,
+                    loading = profileLoading,
+                    onPickAvatar = {
+                        pickAvatarLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+                    },
+                    onDeleteAvatar = { showDeleteAvatarDialog = true },
+                )
+                Text(
+                    text = if (hasAvatar) "Tap remove to delete photo" else "Tap photo to add",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Dimens.spacing8),
+                )
+                if (!profileMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(Dimens.spacing12))
+                    AppAuthMessage(
+                        message = profileMessage,
+                        type = profileMessageType,
                         modifier = Modifier
-                            .size(112.dp)
-                            .iosElevatedShadow(elevation = 2.dp, shape = CircleShape)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (avatarInitials != null) {
-                            Text(
-                                text = avatarInitials,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .offset((-4).dp, 4.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                            .padding(4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.spacing8),
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -203,6 +238,16 @@ fun ProfileScreen(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                authUserId?.takeIf { it.isNotBlank() }?.let { userId ->
+                    Text(
+                        text = "ID: $userId",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Row(
                     modifier = Modifier.padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -339,7 +384,8 @@ fun ProfileScreen(
                 ProfileMenuItem(
                     icon = Icons.Default.Payments,
                     title = "Payment Methods",
-                    onClick = onPaymentMethods
+                    onClick = {},
+                    comingSoon = true,
                 )
                 AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
                 ProfileMenuItem(
@@ -351,7 +397,14 @@ fun ProfileScreen(
                 ProfileMenuItem(
                     icon = Icons.AutoMirrored.Filled.Help,
                     title = "Support",
-                    onClick = onSupport
+                    onClick = {},
+                    comingSoon = true,
+                )
+                AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
+                ProfileMenuItem(
+                    icon = Icons.Default.Lock,
+                    title = "Change Password",
+                    onClick = onChangePassword
                 )
             }
             Row(
@@ -379,6 +432,7 @@ fun ProfileScreen(
                     color = Secondary
                 )
             }
+        }
         }
             }
         )
@@ -466,37 +520,3 @@ private fun InviteParticipantsCard(
     }
 }
 
-@Composable
-private fun ProfileMenuItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { onClick() }
-            .background(MaterialTheme.colorScheme.surface, profileSectionCardShape)
-            .appPremiumCardBorder(profileSectionCardShape)
-            .padding(Dimens.spacing16),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AppIconTile(icon = icon, size = 40.dp, iconSize = 24.dp)
-        Spacer(modifier = Modifier.size(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}

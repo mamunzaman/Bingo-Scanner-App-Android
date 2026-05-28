@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,21 +34,37 @@ import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Success
+import com.example.mamunbingoapp.ui.components.AppAuthMessage
+import com.example.mamunbingoapp.ui.components.AppAuthMessageType
+import com.example.mamunbingoapp.ui.components.PasswordStrengthMeter
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTopBar
 
 @Composable
-fun ChangePasswordScreen(onBack: () -> Unit) {
+fun ChangePasswordScreen(
+    onBack: () -> Unit,
+    isLoading: Boolean = false,
+    message: String? = null,
+    messageType: AppAuthMessageType = AppAuthMessageType.Error,
+    formResetKey: Int = 0,
+    onChangePassword: (currentPassword: String, newPassword: String, confirmPassword: String) -> Unit = { _, _, _ -> },
+) {
     var currentPassword by rememberSaveable { mutableStateOf("") }
     var newPassword by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     var currentVisible by rememberSaveable { mutableStateOf(false) }
     var newVisible by rememberSaveable { mutableStateOf(false) }
     var confirmVisible by rememberSaveable { mutableStateOf(false) }
-    val strengthLabel = stringResource(R.string.change_password_strength_strong)
-    val strengthProgress = 0.75f
+
+    LaunchedEffect(formResetKey) {
+        if (formResetKey > 0) {
+            currentPassword = ""
+            newPassword = ""
+            confirmPassword = ""
+        }
+    }
 
     Box(
         Modifier
@@ -73,7 +90,7 @@ fun ChangePasswordScreen(onBack: () -> Unit) {
                     .padding(top = Dimens.spacing5)
                     .padding(horizontal = Dimens.screenHorizontalPadding)
             ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
             Text(
                 text = stringResource(R.string.change_password_current_label),
                 style = MaterialTheme.typography.labelLarge,
@@ -119,28 +136,17 @@ fun ChangePasswordScreen(onBack: () -> Unit) {
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.change_password_strength, strengthLabel),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        RoundedCornerShape(3.dp)
+            if (newPassword.isNotBlank()) {
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
+                PasswordStrengthMeter(password = newPassword)
+                if (newPassword.length < 8) {
+                    Spacer(modifier = Modifier.height(Dimens.spacing4))
+                    Text(
+                        text = "Use at least 8 characters.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
                     )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(strengthProgress)
-                        .height(6.dp)
-                        .background(Success, RoundedCornerShape(3.dp))
-                )
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -165,10 +171,20 @@ fun ChangePasswordScreen(onBack: () -> Unit) {
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
+            AppAuthMessage(
+                message = message,
+                type = messageType,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (!message.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(Dimens.spacing12))
+            }
             AppPrimaryButton(
                 text = stringResource(R.string.change_password_button),
-                onClick = { }
+                onClick = { onChangePassword(currentPassword, newPassword, confirmPassword) },
+                loading = isLoading,
+                enabled = !isLoading,
             )
             }
         }

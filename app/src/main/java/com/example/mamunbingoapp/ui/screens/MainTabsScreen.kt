@@ -32,10 +32,24 @@ fun MainTabsScreen(
     onNavigateToMyAccount: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
     onNavigateToSupport: () -> Unit,
+    onNavigateToChangePassword: () -> Unit = {},
     onNavigateToTicketDetail: (String) -> Unit = {},
     onCallNumber: (Int, (Boolean) -> Unit) -> Unit = { _, _ -> },
     onLogout: () -> Unit,
     accountViewModel: AccountViewModel,
+    authEmail: String? = null,
+    authUserId: String? = null,
+    authDisplayName: String? = null,
+    authAvatarUrl: String? = null,
+    authAvatarInitials: String? = null,
+    profileLoading: Boolean = false,
+    onAvatarPicked: (android.net.Uri) -> Unit = {},
+    onAvatarDelete: () -> Unit = {},
+    profileMessage: String? = null,
+    profileMessageType: com.example.mamunbingoapp.ui.components.AppAuthMessageType =
+        com.example.mamunbingoapp.ui.components.AppAuthMessageType.Info,
+    isProfileRefreshing: Boolean = false,
+    onProfileRefresh: () -> Unit = {},
 ) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -54,7 +68,12 @@ fun MainTabsScreen(
                 onTicketClick = onNavigateToTicketDetail,
                 onViewAllTickets = { },
                 onTabSelected = onTabSelected,
-                showBottomBar = false
+                showBottomBar = false,
+                profileDisplayName = authDisplayName,
+                profileAvatarUrl = authAvatarUrl,
+                homeAvatarInitials = authAvatarInitials,
+                isProfileRefreshing = isProfileRefreshing,
+                onProfileRefresh = onProfileRefresh,
             )
             AppTab.Scan -> ScanScreen(
                 modifier = Modifier.fillMaxSize(),
@@ -79,9 +98,22 @@ fun MainTabsScreen(
                 onPaymentMethods = onNavigateToPaymentMethods,
                 onHistory = onNavigateToHistory,
                 onSupport = onNavigateToSupport,
+                onChangePassword = onNavigateToChangePassword,
                 onLogout = onLogout,
                 showBottomBar = false,
                 accountViewModel = accountViewModel,
+                authEmail = authEmail,
+                authUserId = authUserId,
+                authDisplayName = authDisplayName,
+                authAvatarUrl = authAvatarUrl,
+                authAvatarInitials = authAvatarInitials,
+                profileLoading = profileLoading,
+                isProfileRefreshing = isProfileRefreshing,
+                onProfileRefresh = onProfileRefresh,
+                onAvatarPicked = onAvatarPicked,
+                onAvatarDelete = onAvatarDelete,
+                profileMessage = profileMessage,
+                profileMessageType = profileMessageType,
             )
             }
         }
