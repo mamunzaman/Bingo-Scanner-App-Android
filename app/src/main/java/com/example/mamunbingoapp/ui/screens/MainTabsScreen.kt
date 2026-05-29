@@ -64,7 +64,7 @@ fun MainTabsScreen(
         ) {
             when (selectedTab) {
             AppTab.Home -> HomeScreen(
-                onScanClick = onJackpotScanSheet,
+                onLaunchCamera = onNavigateToBingoLiveCamera,
                 onQuickActionClick = { action ->
                     when (action) {
                         "tickets" -> onNavigateToHistory()

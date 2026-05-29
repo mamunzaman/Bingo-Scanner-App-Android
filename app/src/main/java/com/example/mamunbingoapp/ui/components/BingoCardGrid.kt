@@ -71,22 +71,24 @@ fun BingoCardGrid(
     /** History detail: inner content area after sheet padding; both set to size from width and height. */
     historyDetailContentMaxWidth: Dp? = null,
     historyDetailContentMaxHeight: Dp? = null,
+    historyDetailMaxCellSize: Dp = 44.dp,
+    historyDetailCellGap: Dp = Dimens.spacing4,
+    historyDetailUseSheetSection: Boolean = true,
 ) {
     if (historyDetailCompact) {
-        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val gap = Dimens.spacing4
-            val headerGap = Dimens.spacing4
+        BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+            val gap = historyDetailCellGap
+            val headerGap = historyDetailCellGap
             val contentW = historyDetailContentMaxWidth ?: maxWidth
             val contentH = historyDetailContentMaxHeight
             val rawFromWidth = (contentW - gap * 4) / 5f
             val compactCellSize = if (contentH != null) {
                 val rawFromHeight = (contentH - headerGap - gap * 4) / 6f
-                minOf(rawFromWidth, rawFromHeight).coerceIn(22.dp, 44.dp)
+                minOf(rawFromWidth, rawFromHeight).coerceIn(22.dp, historyDetailMaxCellSize)
             } else {
-                rawFromWidth.coerceIn(22.dp, 44.dp)
+                rawFromWidth.coerceIn(22.dp, historyDetailMaxCellSize)
             }
             val bingoGridWidth = gap * 4 + compactCellSize * 5
-            val sheetOuterWidth = bingoGridWidth + Dimens.spacing16 * 2
             val letterStyle = when {
                 compactCellSize < 28.dp ->
                     MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
@@ -94,6 +96,37 @@ fun BingoCardGrid(
                     MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 else ->
                     MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            }
+            val gridColumn: @Composable () -> Unit = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(headerGap),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        modifier = Modifier.width(bingoGridWidth),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BingoHeaderRow(
+                            modifier = Modifier,
+                            cellSpacing = gap,
+                            cellSize = compactCellSize,
+                            letterTextStyle = letterStyle,
+                            style = bingoHeaderStyle,
+                        )
+                    }
+                    BingoGrid5x5(
+                        cells = cells,
+                        modifier = Modifier.width(bingoGridWidth),
+                        mode = mode,
+                        cellSpacing = gap,
+                        editUseFixedCellSize = editUseFixedCellSize,
+                        editCellSize = editCellSize,
+                        winningCells = winningCells,
+                        onCellClick = onCellClick,
+                        fixedLayoutCellSize = compactCellSize,
+                    )
+                }
             }
             Box(
                 modifier = if (contentH != null) {
@@ -103,38 +136,14 @@ fun BingoCardGrid(
                 },
                 contentAlignment = Alignment.Center,
             ) {
-                Box(modifier = Modifier.width(sheetOuterWidth)) {
-                    BingoSheetSection(premiumLayered = true) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(headerGap),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Box(
-                                modifier = Modifier.width(bingoGridWidth),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BingoHeaderRow(
-                                    modifier = Modifier,
-                                    cellSpacing = gap,
-                                    cellSize = compactCellSize,
-                                    letterTextStyle = letterStyle,
-                                    style = bingoHeaderStyle,
-                                )
-                            }
-                            BingoGrid5x5(
-                                cells = cells,
-                                modifier = Modifier.width(bingoGridWidth),
-                                mode = mode,
-                                cellSpacing = gap,
-                                editUseFixedCellSize = editUseFixedCellSize,
-                                editCellSize = editCellSize,
-                                winningCells = winningCells,
-                                onCellClick = onCellClick,
-                                fixedLayoutCellSize = compactCellSize,
-                            )
+                if (historyDetailUseSheetSection) {
+                    Box(modifier = Modifier.width(bingoGridWidth + Dimens.spacing16 * 2)) {
+                        BingoSheetSection(premiumLayered = true) {
+                            gridColumn()
                         }
                     }
+                } else {
+                    gridColumn()
                 }
             }
         }

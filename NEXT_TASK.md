@@ -1,9 +1,9 @@
 ﻿# Next task
 
-**Goal:** Device QA — Projects local cache (instant load, offline, pull-to-refresh).
+**Goal:** Device QA — History Detail hero alignment on live ticket.
 
-**Verify:** Open Projects online once → force-close → reopen (cached list instant). Airplane mode → cached content + soft refresh banner on pull. No cache + offline → full error state. "Last updated" shows after first fetch.
+**Verify:** Ticket ID + copy left; Join Room + LIVE right with spacer gap; 8dp vertical rhythm to stats; equal 28dp action height; stats top-aligned with 10dp gap.
 
-**Done (status):** DataStore cache (`ProjectsCache`); cache-first VM; soft error when API fails with cache; `MainActivity` init.
+**Done (status):** Hero action row alignment + spacing fix applied.
 
-**Previous:** Projects premium UI + featured slider.
+**Previous:** History Detail spacing polish (Live Feed, dot pulse, grid padding).

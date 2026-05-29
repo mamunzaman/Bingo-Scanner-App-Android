@@ -2,35 +2,40 @@ package com.example.mamunbingoapp.ui.screens.history
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +46,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,72 +56,41 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
-import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
-import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppConfirmDialog
+import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
-import com.example.mamunbingoapp.ui.components.AppSectionTitle
-import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
-import androidx.compose.material3.TextField
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.RoomRepository
+import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.theme.IconContainerBg
-import com.example.mamunbingoapp.theme.OnPrimary
-import com.example.mamunbingoapp.theme.OnSurface
-import com.example.mamunbingoapp.theme.Outline
 import com.example.mamunbingoapp.theme.Primary
-import com.example.mamunbingoapp.theme.SurfaceContainer
-import com.example.mamunbingoapp.theme.WarningBorder
-import com.example.mamunbingoapp.theme.WarningContainer
-import com.example.mamunbingoapp.theme.WarningIcon
-import com.example.mamunbingoapp.theme.WarningSubText
-import com.example.mamunbingoapp.theme.WarningText
-import com.example.mamunbingoapp.ui.components.AppBottomBar
-import com.example.mamunbingoapp.ui.components.AppHeaderBackground
-import com.example.mamunbingoapp.ui.components.AppPrimaryButton
-import com.example.mamunbingoapp.ui.components.AppConfirmDialog
-import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanelContext
 import com.example.mamunbingoapp.core.BingoWinChecker
-import com.example.mamunbingoapp.ui.components.LabelValueInfoRow
-import com.example.mamunbingoapp.ui.components.LabelValueInfoRowVariant
 import com.example.mamunbingoapp.ui.components.BingoDetailGridCard
 import com.example.mamunbingoapp.ui.components.CompactAlmostBingoRow
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
-import com.example.mamunbingoapp.ui.components.StatusPill
-import com.example.mamunbingoapp.data.LiveRoom
-import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.example.mamunbingoapp.domain.model.QrTicketPayload
 import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
@@ -123,9 +98,77 @@ import com.example.mamunbingoapp.ui.components.qr.TicketQrDialog
 import com.example.mamunbingoapp.ui.components.qr.cellsToQrGrid5x5
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.ui.model.SheetStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private fun formatHistoryDetailDate(millis: Long): String =
+    SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(millis))
+
+private fun formatHistoryDetailTimestamp(millis: Long): String =
+    SimpleDateFormat("d MMM yyyy · HH:mm", Locale.getDefault()).format(Date(millis))
+
+private val HistoryDetailCardShape = RoundedCornerShape(Dimens.radiusLarge)
+private val HistoryDetailCardPadding = Dimens.spacing16
+private val HistoryDetailStatCardPadding = Dimens.spacing12
+private val HistoryDetailGridVerticalPadding = Dimens.spacing12
+private val HistoryDetailBottomContentPadding = Dimens.spacing32
+private val HistoryDetailSectionSpacing = Dimens.spacing12
+private val HistoryDetailHeroVerticalSpacing = Dimens.spacing8
+private val HistoryDetailHeroActionHeight = 28.dp
+private val HistoryDetailLatestCallSize = 68.dp
+private val HistoryDetailRecentChipSize = 38.dp
+
+@Composable
+private fun HistoryDetailSectionCard(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(HistoryDetailCardPadding),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    AppSectionSurface(
+        modifier = modifier.fillMaxWidth(),
+        shape = HistoryDetailCardShape,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(contentPadding),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailSectionTitle(
+    title: String,
+    trailing: String? = null,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (trailing != null) {
+            Text(
+                text = trailing,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            )
+        }
+    }
+}
 
 @Composable
 fun HistoryDetailScreen(
@@ -158,14 +201,8 @@ fun HistoryDetailScreen(
     LaunchedEffect(snackbarMessage) {
         snackbarMessage?.collect { snackbarHostState.showSnackbar(it) }
     }
-    val roomsViewModel: LiveRoomsViewModel = viewModel()
-    val rooms by roomsViewModel.rooms.collectAsState()
-    val roomsWithStats by roomsViewModel.roomsWithStats.collectAsState()
     val scope = rememberCoroutineScope()
     var showLeaveLiveDialog by remember { mutableStateOf(false) }
-    var showAlreadyInRoomDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var showRoomPicker by remember { mutableStateOf(false) }
-    var showCreateRoomDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
     var qrErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -274,46 +311,6 @@ fun HistoryDetailScreen(
         onMoveToTargetRoom = onResolveMoveConflict,
         moveButtonEnabled = !actionLoading
     )
-    showAlreadyInRoomDialog?.let { (roomId, roomName) ->
-        AppConfirmDialog(
-            visible = true,
-            title = "Already in room",
-            message = "This sheet is already in Room $roomName.",
-            confirmText = "Open Room",
-            cancelText = "OK",
-            showCancelButton = true,
-            onConfirm = {
-                showAlreadyInRoomDialog = null
-                onOpenRoom(roomId)
-            },
-            onCancel = { showAlreadyInRoomDialog = null },
-            onDismiss = { showAlreadyInRoomDialog = null }
-        )
-    }
-    if (showRoomPicker) {
-        RoomPickerBottomSheet(
-            roomsWithStats = roomsWithStats,
-            onRoomSelected = { room ->
-                showRoomPicker = false
-                onAddToLivePlay(room.roomId)
-            },
-            onCreateRoom = { showCreateRoomDialog = true },
-            onDismiss = { showRoomPicker = false }
-        )
-    }
-    if (showCreateRoomDialog) {
-        CreateRoomDialog(
-            onConfirm = { name ->
-                scope.launch {
-                    val roomId = RoomRepository.createRoom(name.ifBlank { "New Room" })
-                    showCreateRoomDialog = false
-                    showRoomPicker = false
-                    onAddToLivePlay(roomId)
-                }
-            },
-            onDismiss = { showCreateRoomDialog = false }
-        )
-    }
     if (showQrDialog) {
         TicketQrDialog(
             bitmap = qrBitmap,
@@ -381,33 +378,17 @@ fun HistoryDetailScreen(
                     .align(Alignment.TopCenter)
             )
             Column(Modifier.fillMaxSize()) {
-                val configuration = LocalConfiguration.current
-                val historyDetailIconOnlyActions = configuration.screenWidthDp < 360
-                val historyDetailLiveActionLabel =
-                    if (displayAssignedRoomId != null) "Go to Live Room" else "Add to Live Play"
+                val clipboard = LocalClipboardManager.current
+                val ticketMeta by TicketRepository.observeTicket(ticketId)
+                    .collectAsStateWithLifecycle(initialValue = null)
                 AppTopBar(
                     title = "History Detail",
                     showBack = true,
                     onBackClick = onBack,
                     actions = {
                         HistoryDetailHeaderActions(
-                            iconOnlyActions = historyDetailIconOnlyActions,
-                            liveActionLabel = historyDetailLiveActionLabel,
-                            onLiveAction = {
-                                if (displayAssignedRoomId != null) {
-                                    displayAssignedRoomId?.let { onOpenRoom(it) }
-                                } else {
-                                    scope.launch {
-                                        val assigned = RoomRepository.findAssignedRoomId(ticketId)
-                                        if (assigned != null) {
-                                            val name = RoomRepository.getRoom(assigned)?.name ?: "another room"
-                                            showAlreadyInRoomDialog = Pair(assigned, name)
-                                        } else {
-                                            showRoomPicker = true
-                                        }
-                                    }
-                                }
-                            },
+                            showLeaveLive = displaySheetStatus == SheetStatus.ACTIVE,
+                            onLeaveLiveClick = { showLeaveLiveDialog = true },
                             onShowQrClick = {
                                 scope.launch {
                                     val cellsList = displayCells
@@ -458,125 +439,102 @@ fun HistoryDetailScreen(
                         )
                     }
                 )
-                val historyDetailSectionGap = Dimens.spacing8
-                val historyDetailStatusPadV = Dimens.spacing8
-                val historyDetailWinSpacer = Dimens.spacing4
-                val historyDetailBottomInset = Dimens.spacing8
-                val historyDetailCalledPanelPadH = Dimens.spacing8
-                Box(
+                LazyColumn(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(
+                        start = Dimens.screenHorizontalPadding,
+                        top = Dimens.spacing8,
+                        end = Dimens.screenHorizontalPadding,
+                        bottom = HistoryDetailBottomContentPadding,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(HistoryDetailSectionSpacing),
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = Dimens.screenHorizontalPadding)
-                            .padding(bottom = historyDetailBottomInset),
-                        verticalArrangement = Arrangement.spacedBy(historyDetailSectionGap),
-                    ) {
-                            when (displaySheetStatus) {
-                                SheetStatus.COMPLETED -> {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                horizontal = Dimens.spacing12,
-                                                vertical = historyDetailStatusPadV,
-                                            ),
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        StatusPill(status = SheetStatus.COMPLETED)
-                                    }
-                                }
-                                SheetStatus.IN_PROGRESS -> {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                horizontal = Dimens.spacing12,
-                                                vertical = historyDetailStatusPadV,
-                                            ),
-                                        horizontalArrangement = Arrangement.Start,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        StatusPill(status = SheetStatus.IN_PROGRESS)
-                                    }
-                                }
-                                else -> { }
-                            }
-                            val clipboard = LocalClipboardManager.current
-                            Column(
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
+                        ) {
+                            HistoryDetailHeroSection(
+                                sheetName = sessionForDisplay.effectiveSheetName().ifEmpty { "Unnamed sheet" },
+                                ticketId = ticketId,
+                                sheetStatus = displaySheetStatus,
+                                showJoinLive = displaySheetStatus == SheetStatus.ACTIVE &&
+                                    !displayAssignedRoomId.isNullOrBlank(),
+                                onJoinLive = {
+                                    displayAssignedRoomId?.let { onOpenRoom(it) }
+                                },
+                                onCopyTicketId = {
+                                    clipboard.setText(AnnotatedString(ticketId))
+                                    scope.launch { snackbarHostState.showSnackbar("Copied to clipboard") }
+                                },
+                            )
+                            HistoryDetailStatsRow(
+                                drawDate = formatHistoryDetailDate(sessionForDisplay.effectivePlayedAtMillis()),
+                                sheetsCount = sessionForDisplay.sheetsCount,
+                                calledCount = displayCalledNumbers.size,
+                            )
+                        }
+                    }
+                    item {
+                        HistoryDetailNumbersCalledCard(
+                            calledNumbers = displayCalledNumbers.takeLast(MAX_LIVE_CALLS),
+                            isCallLimitReached = displayCalledNumbers.size >= MAX_LIVE_CALLS,
+                        )
+                    }
+                    if (almostBingoInfo != null && displayCells != null && displayCells.size >= 25) {
+                        item {
+                            CompactAlmostBingoRow(
+                                lineType = almostBingoInfo.lineLabel,
+                                filled = almostBingoInfo.marked,
+                                total = almostBingoInfo.total,
+                                markedCells = markedSetForAlert,
+                            )
+                        }
+                    }
+                    if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
+                        item {
+                            BingoWinBanner(
+                                lineCount = winResult.winningLines.size,
                                 modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                if (displaySheetStatus == SheetStatus.ACTIVE) {
-                                    AppSectionSurface(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shadowElevation = 0.dp,
-                                    ) {
-                                        HistoryDetailCompactActiveStatusRow(
-                                            onLeaveClick = { showLeaveLiveDialog = true },
-                                        )
-                                    }
-                                }
-                                HistoryDetailCompactTicketSection(
-                                    session = sessionForDisplay,
-                                    ticketId = ticketId,
-                                    displaySheetStatus = displaySheetStatus,
-                                    displayAssignedRoomId = displayAssignedRoomId,
-                                    displayCalledNumbers = displayCalledNumbers,
-                                    onCopyTicketId = {
-                                        clipboard.setText(AnnotatedString(ticketId))
-                                        scope.launch { snackbarHostState.showSnackbar("Copied to clipboard") }
-                                    },
-                                )
-                            }
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                if (almostBingoInfo != null && displayCells != null && displayCells.size >= 25) {
-                                    CompactAlmostBingoRow(
-                                        lineType = almostBingoInfo.lineLabel,
-                                        filled = almostBingoInfo.marked,
-                                        total = almostBingoInfo.total,
-                                        markedCells = markedSetForAlert,
-                                    )
-                                }
-                                CalledHistoryPanel(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = historyDetailCalledPanelPadH),
-                                    calledNumbers = displayCalledNumbers.takeLast(MAX_LIVE_CALLS),
-                                    isCallLimitReached = displayCalledNumbers.size >= MAX_LIVE_CALLS,
-                                    showLimitMessage = displayCalledNumbers.size >= MAX_LIVE_CALLS,
-                                    panelContext = CalledHistoryPanelContext.HistoryDetail,
-                                )
-                            }
-                            if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
-                                BingoWinBanner(
-                                    lineCount = winResult.winningLines.size,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            if (winResult != null && winResult.isWin && displayCells != null && displayCells.size >= 25) {
-                                Spacer(modifier = Modifier.height(historyDetailWinSpacer))
-                            }
-                            AppSectionSurface(
+                            )
+                        }
+                    }
+                    item {
+                        HistoryDetailSectionCard(
+                            contentPadding = PaddingValues(
+                                horizontal = HistoryDetailCardPadding,
+                                vertical = HistoryDetailGridVerticalPadding,
+                            ),
+                        ) {
+                            BoxWithConstraints(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                                shadowElevation = 0.dp,
+                                    .fillMaxWidth()
+                                    .padding(vertical = Dimens.spacing4),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                                    BingoDetailGridCard(
-                                        cells = displayCells,
-                                        winningCells = if (winResult?.isWin == true) winResult.winningCells else emptySet(),
-                                        historyDetailOuterMaxWidth = maxWidth,
-                                        historyDetailOuterMaxHeight = maxHeight,
-                                    )
-                                }
+                                BingoDetailGridCard(
+                                    cells = displayCells,
+                                    winningCells = if (winResult?.isWin == true) {
+                                        winResult.winningCells
+                                    } else {
+                                        emptySet()
+                                    },
+                                    historyDetailOuterMaxWidth = maxWidth,
+                                    historyDetailOuterMaxHeight = null,
+                                    emphasized = true,
+                                    historyDetailPlainGrid = true,
+                                )
                             }
+                        }
+                    }
+                    item {
+                        HistoryDetailMetaFooter(
+                            createdAtMillis = ticketMeta?.createdAt
+                                ?: sessionForDisplay.effectivePlayedAtMillis(),
+                            updatedAtMillis = sessionForDisplay.effectivePlayedAtMillis(),
+                        )
                     }
                 }
                 AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
@@ -585,401 +543,316 @@ fun HistoryDetailScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RoomPickerBottomSheet(
-    roomsWithStats: List<com.example.mamunbingoapp.viewmodel.RoomWithStats>,
-    onRoomSelected: (LiveRoom) -> Unit,
-    onCreateRoom: () -> Unit,
-    onDismiss: () -> Unit
+private fun HistoryDetailHeroSection(
+    sheetName: String,
+    ticketId: String,
+    sheetStatus: SheetStatus,
+    showJoinLive: Boolean,
+    onJoinLive: () -> Unit,
+    onCopyTicketId: () -> Unit,
 ) {
-    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
-    AppBottomSheetSurface(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+    val truncatedId = if (ticketId.length > 18) ticketId.take(16) + "…" else ticketId
+    val isLiveTicket = sheetStatus == SheetStatus.ACTIVE
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing16)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Add to Live Play",
-                style = MaterialTheme.typography.titleMedium,
+                text = sheetName,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing16))
-            if (roomsWithStats.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 320.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(roomsWithStats, key = { it.room.roomId }) { rws ->
-                        val room = rws.room
-                        val ticketCount = rws.ticketCount
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = Dimens.buttonHeight)
-                                .clickable { onRoomSelected(rws.room) }
-                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.size(Dimens.iconDefault),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text = room.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "$ticketCount ticket(s)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                                )
-                            }
-                        }
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = Dimens.spacing24),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Text(
-                        text = "No rooms yet",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Create a room to add this ticket to live play.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                    )
-                    AppPrimaryButton(
-                        text = "Create Room",
-                        onClick = onCreateRoom,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+            if (!isLiveTicket) {
+                when (sheetStatus) {
+                    SheetStatus.COMPLETED,
+                    SheetStatus.IN_PROGRESS -> HistoryDetailStatusChip(status = sheetStatus)
+                    else -> Unit
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CreateRoomDialog(
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(Dimens.radiusCard))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(Dimens.spacing24)
-        ) {
-            Text(
-                text = "Create Room",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(Dimens.spacing16))
-            TextField(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = { Text("Room name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            Spacer(modifier = Modifier.height(Dimens.spacing24))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                TextButton(onClick = { onConfirm(name) }) { Text("Create") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoryDetailCompactActiveStatusRow(
-    onLeaveClick: () -> Unit,
-    compactVertical: Boolean = false,
-) {
-    val padV = if (compactVertical) Dimens.spacing4 else Dimens.spacing5
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimens.spacing12, vertical = padV),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(Dimens.radiusPill))
-                .background(IconContainerBg)
-                .padding(horizontal = Dimens.spacing12, vertical = 3.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "Active",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Primary,
-            )
         }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
+        ) {
+            Text(
+                text = truncatedId,
+                style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            IconButton(onClick = onCopyTicketId, modifier = Modifier.size(HistoryDetailHeroActionHeight)) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "Copy ticket id",
+                    modifier = Modifier.size(Dimens.iconCompact),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            if (isLiveTicket) {
+                if (showJoinLive) {
+                    HistoryDetailJoinButton(onClick = onJoinLive)
+                }
+                HistoryDetailLiveBadge()
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailJoinButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(Dimens.radiusPill)
+    Row(
+        modifier = modifier
+            .height(HistoryDetailHeroActionHeight)
+            .clip(shape)
+            .background(Primary.copy(alpha = 0.12f))
+            .border(BorderStroke(Dimens.cardBorderDefault, Primary.copy(alpha = 0.28f)), shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = Dimens.spacing10),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.PlayArrow,
+            contentDescription = null,
+            tint = Primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = "Join Room",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Primary,
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailLiveBadge(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "historyDetailLiveDot")
+    val dotScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "historyDetailLiveDotScale",
+    )
+    val dotAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.55f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "historyDetailLiveDotAlpha",
+    )
+    val badgeShape = RoundedCornerShape(Dimens.radiusPill)
+    Row(
+        modifier = modifier
+            .height(HistoryDetailHeroActionHeight)
+            .clip(badgeShape)
+            .background(MaterialTheme.colorScheme.error)
+            .padding(horizontal = Dimens.spacing10),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+    ) {
+        Box(
+            modifier = Modifier.size(6.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(Dimens.radiusPill))
-                    .background(SurfaceContainer)
-                    .border(BorderStroke(1.dp, Outline), RoundedCornerShape(Dimens.radiusPill))
-                    .clickable(onClick = onLeaveClick)
-                    .padding(horizontal = Dimens.spacing10, vertical = Dimens.spacing5),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "Leave",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = OnSurface,
-                )
-            }
+                    .size(6.dp)
+                    .scale(dotScale)
+                    .alpha(dotAlpha)
+                    .clip(CircleShape)
+                    .background(Color.White),
+            )
         }
+        Text(
+            text = "LIVE",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
     }
 }
 
 @Composable
-private fun HistoryDetailCompactTicketSection(
-    session: HistorySession,
-    ticketId: String,
-    displaySheetStatus: SheetStatus,
-    displayAssignedRoomId: String?,
-    displayCalledNumbers: List<Int>,
-    onCopyTicketId: () -> Unit,
-    compactVertical: Boolean = false,
-) {
-    val dateStr = remember(session.id, session.playedAtMillis) {
-        SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(session.effectivePlayedAtMillis()))
+private fun HistoryDetailStatusChip(status: SheetStatus) {
+    if (status == SheetStatus.IDLE || status == SheetStatus.ACTIVE) return
+    val label = when (status) {
+        SheetStatus.COMPLETED -> "Finished"
+        SheetStatus.IN_PROGRESS -> "Active"
+        else -> return
     }
-    val sheetLabel = session.effectiveSheetName().ifEmpty { "Unnamed sheet" }
-    val truncatedId = if (ticketId.length > 16) ticketId.take(14) + "…" else ticketId
-    val n = session.sheetsCount
-    val sheetWord = if (n == 1) "Sheet" else "Sheets"
-    val summaryMiddle = "Numbers called"
-    val summaryTail = when {
-        displayAssignedRoomId != null && displayCalledNumbers.isNotEmpty() ->
-            "${displayCalledNumbers.size} called"
-        displayAssignedRoomId != null ->
-            "No calls yet"
-        else ->
-            "${displayCalledNumbers.size} called"
-    }
-    val statsAnnotated = buildAnnotatedString {
-        val baseStyle = SpanStyle(
-            color = OnSurface.copy(alpha = 0.6f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Normal,
-        )
-        val boldStyle = SpanStyle(
-            color = OnSurface,
-            fontSize = 11.sp,
+    val bg = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
+    val chipShape = RoundedCornerShape(Dimens.radiusPill)
+    Box(
+        modifier = Modifier
+            .clip(chipShape)
+            .background(bg)
+            .border(BorderStroke(Dimens.cardBorderDefault, borderColor), chipShape)
+            .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing5),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
+            color = textColor,
         )
-        withStyle(boldStyle) {
-            append("$n $sheetWord")
-        }
-        withStyle(baseStyle) {
-            append(" · $summaryMiddle · ")
-        }
-        withStyle(boldStyle) {
-            append(summaryTail)
-        }
-    }
-    val statusText = historyDetailStatusLabel(displaySheetStatus)
-    val ticketLabelTop = if (compactVertical) 2.dp else 4.dp
-    val ticketLabelBottom = if (compactVertical) 1.dp else 2.dp
-    AppSectionSurface(modifier = Modifier.fillMaxWidth(), shadowElevation = 0.dp) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Dimens.spacing4)
-        ) {
-            AppSectionTitle(
-                text = "TICKET INFORMATION",
-                uppercase = false,
-                usePrimaryColor = false,
-                color = Outline.copy(alpha = 0.9f),
-                modifier = Modifier.padding(
-                    top = ticketLabelTop,
-                    start = Dimens.spacing12,
-                    end = Dimens.spacing12,
-                    bottom = ticketLabelBottom,
-                ),
-            )
-            LabelValueInfoRow(
-                label = "Sheet name",
-                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-                showDivider = false,
-            ) {
-                Text(
-                    text = sheetLabel,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.End,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            AppInsetDivider(
-                startInset = Dimens.spacing12,
-                endInset = Dimens.spacing12,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
-            )
-            LabelValueInfoRow(
-                label = "Draw date",
-                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-                showDivider = false,
-            ) {
-                Text(
-                    text = dateStr,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.End,
-                )
-            }
-            AppInsetDivider(
-                startInset = Dimens.spacing12,
-                endInset = Dimens.spacing12,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
-            )
-            LabelValueInfoRow(
-                label = "Ticket ID",
-                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-                showDivider = false,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = truncatedId,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.Monospace,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    IconButton(onClick = onCopyTicketId, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy ticket id",
-                            modifier = Modifier.size(Dimens.iconCompact),
-                            tint = Primary,
-                        )
-                    }
-                }
-            }
-            AppInsetDivider(
-                startInset = Dimens.spacing12,
-                endInset = Dimens.spacing12,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
-            )
-            LabelValueInfoRow(
-                label = "Status",
-                variant = if (compactVertical) LabelValueInfoRowVariant.Compact else LabelValueInfoRowVariant.Default,
-                showDivider = false,
-            ) {
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (displaySheetStatus == SheetStatus.ACTIVE) {
-                        Primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    textAlign = TextAlign.End,
-                )
-            }
-            AppInsetDivider(
-                startInset = Dimens.spacing12,
-                endInset = Dimens.spacing12,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f),
-            )
-            val statsRowPadV = if (compactVertical) 2.dp else 4.dp
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = statsRowPadV, horizontal = Dimens.spacing12),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = statsAnnotated, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            session.ocrSource?.takeIf { it in listOf("GEMINI", "ML_KIT") }?.let { src ->
-                val via = if (src == "GEMINI") "Gemini OCR" else "ML Kit OCR"
-                val conf = session.ocrConfidence?.let { " · ${(it * 100).toInt()}%" } ?: ""
-                Text(
-                    text = "$via$conf",
-                    modifier = Modifier.padding(
-                        start = Dimens.spacing12,
-                        end = Dimens.spacing12,
-                        top = Dimens.spacing4,
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
     }
 }
 
-private fun historyDetailStatusLabel(status: SheetStatus): String = when (status) {
-    SheetStatus.ACTIVE -> "Live"
-    SheetStatus.COMPLETED -> "Completed"
-    SheetStatus.IN_PROGRESS -> "In progress"
-    SheetStatus.IDLE -> "—"
+@Composable
+private fun HistoryDetailStatsRow(
+    drawDate: String,
+    sheetsCount: Int,
+    calledCount: Int,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10),
+        verticalAlignment = Alignment.Top,
+    ) {
+        HistoryDetailStatCard(
+            label = "Draw Date",
+            value = drawDate,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+        HistoryDetailStatCard(
+            label = "Sheets",
+            value = sheetsCount.toString(),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+        HistoryDetailStatCard(
+            label = "Called",
+            value = calledCount.toString(),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailStatCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    HistoryDetailSectionCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(HistoryDetailStatCardPadding),
+    ) {
+        Text(
+            text = label.uppercase(Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.height(Dimens.spacing5))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailNumbersCalledCard(
+    calledNumbers: List<Int>,
+    isCallLimitReached: Boolean,
+) {
+    HistoryDetailSectionCard {
+        HistoryDetailSectionTitle(title = "Numbers Called", trailing = "Live Feed")
+        Spacer(modifier = Modifier.height(Dimens.spacing8))
+        CalledHistoryPanel(
+            modifier = Modifier.fillMaxWidth(),
+            calledNumbers = calledNumbers,
+            isCallLimitReached = isCallLimitReached,
+            showLimitMessage = isCallLimitReached,
+            showTvBoard = false,
+            applyOuterPadding = false,
+            premiumLatestRow = false,
+            latestCircleSize = HistoryDetailLatestCallSize,
+            recentChipSize = HistoryDetailRecentChipSize,
+            panelContext = CalledHistoryPanelContext.HistoryDetail,
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailMetaFooter(
+    createdAtMillis: Long,
+    updatedAtMillis: Long,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimens.spacing4),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Created ${formatHistoryDetailTimestamp(createdAtMillis)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(modifier = Modifier.width(Dimens.spacing8))
+        Text(
+            text = "Updated ${formatHistoryDetailTimestamp(updatedAtMillis)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 @Composable
 private fun HistoryDetailHeaderActions(
-    iconOnlyActions: Boolean,
-    liveActionLabel: String,
-    onLiveAction: () -> Unit,
+    showLeaveLive: Boolean,
+    onLeaveLiveClick: () -> Unit,
     onShowQrClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
@@ -987,46 +860,21 @@ private fun HistoryDetailHeaderActions(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        if (iconOnlyActions) {
-            IconButton(onClick = onLiveAction) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = liveActionLabel,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        } else {
-            TextButton(
-                onClick = onLiveAction,
-                contentPadding = PaddingValues(
-                    horizontal = Dimens.spacing8,
-                    vertical = Dimens.spacing8,
-                ),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.primary,
-                ),
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimens.iconCompact),
-                )
-                Spacer(modifier = Modifier.width(Dimens.spacing4))
-                Text(
-                    text = liveActionLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
         IconButton(onClick = onShowQrClick) {
             Icon(
                 imageVector = Icons.Filled.QrCode2,
                 contentDescription = "Show QR",
                 tint = MaterialTheme.colorScheme.onSurface,
             )
+        }
+        if (showLeaveLive) {
+            IconButton(onClick = onLeaveLiveClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
+                    contentDescription = "Leave live",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
         }
         IconButton(onClick = onDeleteClick) {
             Icon(

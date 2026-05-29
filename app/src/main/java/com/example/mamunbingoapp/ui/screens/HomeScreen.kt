@@ -77,6 +77,8 @@ import com.example.mamunbingoapp.ui.components.home.ActiveTicketCard
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCardModel
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.CurrentJackpotCard
+import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -95,7 +97,7 @@ private val homeContentBottomMargin = Dimens.spacing24
 
 @Composable
 fun HomeScreen(
-    onScanClick: () -> Unit = {},
+    onLaunchCamera: (BingoScanType) -> Unit = {},
     onQuickActionClick: (String) -> Unit = {},
     /** History session id → [HistoryDetailScreen] route (`historyDetail/{sessionId}`). */
     onTicketClick: (String) -> Unit = {},
@@ -123,6 +125,8 @@ fun HomeScreen(
         .collectAsStateWithLifecycle(initialValue = emptyMap())
     val welcomeName = profileDisplayName?.takeIf { it.isNotBlank() } ?: "Player"
     val showProfileSummary = profileDisplayName != null
+    var showScanTypeSheet by remember { mutableStateOf(false) }
+    val requestScan = { showScanTypeSheet = true }
     AppHeaderPageLayout(
         topBar = {
         AppTopBar(
@@ -200,7 +204,7 @@ fun HomeScreen(
                 ) {
                     Column(modifier = scrollModifier) {
                         HomeScrollBody(
-                            onScanClick = onScanClick,
+                            onScanClick = requestScan,
                             onQuickActionClick = onQuickActionClick,
                             onTicketClick = onTicketClick,
                             onViewAllTickets = onViewAllTickets,
@@ -218,7 +222,7 @@ fun HomeScreen(
             } else {
                 Column(modifier = scrollModifier) {
                     HomeScrollBody(
-                        onScanClick = onScanClick,
+                        onScanClick = requestScan,
                         onQuickActionClick = onQuickActionClick,
                         onTicketClick = onTicketClick,
                         onViewAllTickets = onViewAllTickets,
@@ -234,7 +238,7 @@ fun HomeScreen(
                 }
             }
             HomeQuickScanFab(
-                onClick = onScanClick,
+                onClick = requestScan,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(
@@ -248,6 +252,15 @@ fun HomeScreen(
         }
         }
     )
+    if (showScanTypeSheet) {
+        ScanTypeSelectionSheet(
+            onDismiss = { showScanTypeSheet = false },
+            onScanTypeSelected = { type ->
+                showScanTypeSheet = false
+                onLaunchCamera(type)
+            },
+        )
+    }
 }
 
 @Composable

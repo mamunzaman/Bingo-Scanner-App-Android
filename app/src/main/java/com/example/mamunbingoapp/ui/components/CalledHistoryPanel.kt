@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -80,9 +81,17 @@ fun CalledHistoryPanel(
     @Suppress("UNUSED_PARAMETER") showTitle: Boolean = true,
     showLimitMessage: Boolean = true,
     applyOuterPadding: Boolean = true,
+    showTvBoard: Boolean = true,
+    premiumLatestRow: Boolean = false,
+    latestCircleSize: Dp? = null,
+    recentChipSize: Dp? = null,
     panelContext: CalledHistoryPanelContext = CalledHistoryPanelContext.Default,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val mainRowHeight = latestCircleSize ?: if (premiumLatestRow) 88.dp else CalledHistoryMainRowHeight
+    val resolvedRecentChipSize = recentChipSize ?: if (premiumLatestRow) 48.dp else 44.dp
+    val recentChipSpacing = if (premiumLatestRow) Dimens.spacing10 else Dimens.spacing8
+    val recentOverlapOffset = if (premiumLatestRow) 10.dp else 8.dp
     val useOuterPadding = when (panelContext) {
         CalledHistoryPanelContext.HistoryDetail -> false
         CalledHistoryPanelContext.Default -> applyOuterPadding
@@ -114,6 +123,8 @@ fun CalledHistoryPanel(
             .then(
                 if (useOuterPadding) {
                     Modifier.padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8)
+                } else if (panelContext == CalledHistoryPanelContext.HistoryDetail) {
+                    Modifier
                 } else {
                     Modifier.padding(vertical = Dimens.spacing4)
                 },
@@ -123,7 +134,7 @@ fun CalledHistoryPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(CalledHistoryMainRowHeight),
+                    .height(mainRowHeight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 LatestCallCircle(
@@ -131,6 +142,8 @@ fun CalledHistoryPanel(
                     colorScheme = colorScheme,
                     isFinished = isCallLimitReached,
                     modifier = Modifier.zIndex(2f),
+                    circleSize = mainRowHeight,
+                    showGlowRing = premiumLatestRow,
                 )
                 Column(
                     modifier = Modifier
@@ -142,7 +155,7 @@ fun CalledHistoryPanel(
                     Text(
                         text = when (panelContext) {
                             CalledHistoryPanelContext.HistoryDetail ->
-                                "No live calls yet — use Go to Live Room for updates."
+                                "No numbers called yet"
                             CalledHistoryPanelContext.Default ->
                                 "No numbers called yet"
                         },
@@ -166,7 +179,7 @@ fun CalledHistoryPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(CalledHistoryMainRowHeight),
+                    .height(mainRowHeight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 LatestCallCircle(
@@ -174,16 +187,18 @@ fun CalledHistoryPanel(
                     colorScheme = colorScheme,
                     isFinished = isCallLimitReached,
                     modifier = Modifier.zIndex(2f),
+                    circleSize = mainRowHeight,
+                    showGlowRing = premiumLatestRow,
                 )
-                val overlapOffset = 8.dp
+                val overlapOffset = recentOverlapOffset
                 BoxWithConstraints(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .zIndex(1f),
                 ) {
-                    val chipSize = 44.dp
-                    val chipSpacing = Dimens.spacing8
+                    val chipSize = resolvedRecentChipSize
+                    val chipSpacing = recentChipSpacing
                     val chipCount = displayList.size
                     val totalSpacing = if (chipCount > 1) chipSpacing * (chipCount - 1) else 0.dp
                     val estimatedContentWidth = (chipSize * chipCount) + totalSpacing
@@ -204,6 +219,7 @@ fun CalledHistoryPanel(
                                         number = num,
                                         isLatest = num == lastCalled,
                                         colorScheme = colorScheme,
+                                        chipSize = chipSize,
                                     )
                                 }
                             }
@@ -224,6 +240,7 @@ fun CalledHistoryPanel(
                                         number = num,
                                         isLatest = num == lastCalled,
                                         colorScheme = colorScheme,
+                                        chipSize = chipSize,
                                     )
                                 }
                             }
@@ -232,17 +249,18 @@ fun CalledHistoryPanel(
                 }
             }
 
-            Spacer(modifier = Modifier.height(Dimens.spacing8))
-
-            TvBingoBoard(
-                numbersByColumn = numbersByColumn,
-                latest = lastCalled,
-                boardGreen = colorScheme.primary,
-                letterRed = colorScheme.secondary,
-                lineColor = Color.Black.copy(alpha = 0.38f),
-                callSequence = calledNumbers,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (showTvBoard) {
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
+                TvBingoBoard(
+                    numbersByColumn = numbersByColumn,
+                    latest = lastCalled,
+                    boardGreen = colorScheme.primary,
+                    letterRed = colorScheme.secondary,
+                    lineColor = Color.Black.copy(alpha = 0.38f),
+                    callSequence = calledNumbers,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         if (showLimitMessage && isCallLimitReached) {
@@ -264,6 +282,8 @@ private fun LatestCallCircle(
     colorScheme: ColorScheme,
     isFinished: Boolean = false,
     modifier: Modifier = Modifier,
+    circleSize: Dp = CalledHistoryMainRowHeight,
+    showGlowRing: Boolean = false,
 ) {
     val scaleAnim = remember { Animatable(1f) }
     val alphaAnim = remember { Animatable(1f) }
@@ -307,44 +327,58 @@ private fun LatestCallCircle(
         listOf(Color(0xFF7ABF3F), Color(0xFF529628))
     }
     Box(
-        modifier = modifier
-            .size(CalledHistoryMainRowHeight)
-            .scale(scaleAnim.value)
-            .alpha(alphaAnim.value),
+        modifier = modifier.size(circleSize),
         contentAlignment = Alignment.Center,
     ) {
+        if (showGlowRing) {
+            Box(
+                modifier = Modifier
+                    .size(circleSize + 10.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, colorScheme.primary.copy(alpha = 0.24f), CircleShape)
+                    .background(colorScheme.primary.copy(alpha = 0.06f)),
+            )
+        }
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .clip(CircleShape)
-                .background(Brush.radialGradient(colors = radialColors))
-                .border(1.dp, Color.White.copy(alpha = 0.38f), CircleShape),
+                .size(circleSize)
+                .scale(scaleAnim.value)
+                .alpha(alphaAnim.value),
             contentAlignment = Alignment.Center,
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.09f), Color.Transparent),
-                            center = Offset(28f, 26f),
-                            radius = 38f,
+                    .clip(CircleShape)
+                    .background(Brush.radialGradient(colors = radialColors))
+                    .border(1.dp, Color.White.copy(alpha = 0.38f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(Color.White.copy(alpha = 0.09f), Color.Transparent),
+                                center = Offset(28f, 26f),
+                                radius = 38f,
+                            ),
                         ),
+                )
+                Text(
+                    text = number?.let { formatBingoNumber(it) } ?: "—",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontSize = if (circleSize >= 84.dp) 26.sp else 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = 0.6.sp,
                     ),
-            )
-            Text(
-                text = number?.let { formatBingoNumber(it) } ?: "—",
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    letterSpacing = 0.6.sp,
-                ),
-                color = Color.White.copy(alpha = 0.98f),
-                maxLines = 1,
-                overflow = TextOverflow.Clip,
-                softWrap = false,
-            )
+                    color = Color.White.copy(alpha = 0.98f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    softWrap = false,
+                )
+            }
         }
     }
 }
@@ -354,6 +388,7 @@ private fun HistoryCallCircle(
     number: Int,
     isLatest: Boolean,
     colorScheme: ColorScheme,
+    chipSize: Dp = 44.dp,
 ) {
     val rowAlpha = remember { Animatable(1f) }
     var wasLatest by remember { mutableStateOf(false) }
@@ -402,7 +437,7 @@ private fun HistoryCallCircle(
     }
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(chipSize)
             .alpha(rowAlpha.value)
             .clip(CircleShape)
             .background(chipBg)
@@ -411,7 +446,11 @@ private fun HistoryCallCircle(
     ) {
         Text(
             text = formatBingoNumber(number),
-            style = MaterialTheme.typography.labelLarge.copy(
+            style = (if (chipSize <= 40.dp) {
+                MaterialTheme.typography.labelMedium
+            } else {
+                MaterialTheme.typography.labelLarge
+            }).copy(
                 fontWeight = if (isLatest) FontWeight.SemiBold else FontWeight.Medium,
                 letterSpacing = 0.2.sp,
             ),

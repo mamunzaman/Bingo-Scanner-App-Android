@@ -1,6 +1,22 @@
 # Project status
 
-**Last update:** 2026-05-28 - **Projects local cache:** DataStore cache of last successful API response; cache-first load + background refresh; soft error banner when offline with cache; "Last updated" label; pull-to-refresh preserved. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-28 - **History Detail hero alignment:** Ticket ID + copy left, Join Room + LIVE right (`Spacer.weight` gap); 8dp vertical rhythm; 28dp action pills; stats row top-aligned with 10dp spacing. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail spacing polish:** ~30% tighter hero; Join Room + LIVE grouped on ticket row; dot-only LIVE pulse; Live Feed label with 68/38dp call sizes; grid card vertical padding + centered board. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail finalize:** Green Join pill (live + assigned room → `onOpenRoom`); LIVE badge soft glow pulse; removed Bingo Sheet title; tighter 12/8dp section spacing. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail live hero cleanup:** Leave live in header; red LIVE badge. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail unified cards:** Single `AppSectionSurface` shell across sections. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail premium polish:** Stronger hierarchy on hero/stats/numbers/grid. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail redesign:** Compact hero; 3 stat cards; single Numbers Called card; emphasized bingo sheet; Created/Updated footer. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home scan type picker:** All Home scan entry points show `ScanTypeSelectionSheet` before camera. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Projects local cache:** DataStore cache of last successful API response; cache-first load + background refresh; soft error banner when offline with cache; "Last updated" label; pull-to-refresh preserved. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-28 - **Projects screen polish:** Header title + subtitle; 130dp images; **BINGO! Project** chip; compact location/date chips; Read More row; wider card spacing (`AppSectionSurface`, `AppInsetDivider`). `./gradlew :app:assembleDebug` OK.
 
