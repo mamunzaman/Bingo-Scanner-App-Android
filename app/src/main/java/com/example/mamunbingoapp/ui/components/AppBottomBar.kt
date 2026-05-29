@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ enum class AppTab(
     Home("home", "Home", Icons.Filled.Home),
     Scan("scan", "Scan", Icons.Filled.QrCodeScanner),
     Jackpot("jackpot", "Jackpot", Icons.Filled.EmojiEvents),
+    Projects("projects", "Projects", Icons.Filled.Newspaper),
     Profile("profile", "Profile", Icons.Filled.Person)
 }
 

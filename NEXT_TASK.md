@@ -1,9 +1,9 @@
 ﻿# Next task
 
-**Goal:** Device QA — Home Active Ticket tap opens History Detail; View All opens History list.
+**Goal:** Device QA — Projects local cache (instant load, offline, pull-to-refresh).
 
-**Verify:** Tap active ticket card → `historyDetail/{sessionId}`; unknown id falls back to ticket detail or no-op on blank id.
+**Verify:** Open Projects online once → force-close → reopen (cached list instant). Airplane mode → cached content + soft refresh banner on pull. No cache + offline → full error state. "Last updated" shows after first fetch.
 
-**Done (status):** Active Ticket navigation wired to History Detail route.
+**Done (status):** DataStore cache (`ProjectsCache`); cache-first VM; soft error when API fails with cache; `MainActivity` init.
 
-**Previous:** Home trim + FAB ripple; Quick Actions scroll row.
+**Previous:** Projects premium UI + featured slider.

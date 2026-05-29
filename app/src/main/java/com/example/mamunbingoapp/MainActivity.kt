@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
         DatabaseProvider.init(applicationContext)
         com.example.mamunbingoapp.data.SettingsRepository.init(applicationContext)
         com.example.mamunbingoapp.data.AccountRepository.init(applicationContext)
+        com.example.mamunbingoapp.data.projects.ProjectsRepository.init(applicationContext)
         AuthRepository.startup(applicationContext)
         dispatchIncomingIntent(intent)
         lifecycleScope.launch(Dispatchers.IO) { DemoSeeder.seedIfNeeded() }

@@ -99,6 +99,9 @@ fun MainTabsScreen(
                 onTabSelected = onTabSelected,
                 showBottomBar = false
             )
+            AppTab.Projects -> com.example.mamunbingoapp.ui.projects.ProjectsScreen(
+                modifier = Modifier.fillMaxSize(),
+            )
             AppTab.Profile -> com.example.mamunbingoapp.ui.screens.profile.ProfileScreen(
                 onTabSelected = onTabSelected,
                 onSettings = onNavigateToSettings,

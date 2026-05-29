@@ -1,6 +1,12 @@
 # Project status
 
-**Last update:** 2026-05-28 - **Home Active Ticket navigation:** Active ticket card tap → `historyDetail/{sessionId}` (same as History list); blank id no-op; unknown id falls back to `ticket/{id}`. View All unchanged → History list. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-28 - **Projects local cache:** DataStore cache of last successful API response; cache-first load + background refresh; soft error banner when offline with cache; "Last updated" label; pull-to-refresh preserved. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Projects screen polish:** Header title + subtitle; 130dp images; **BINGO! Project** chip; compact location/date chips; Read More row; wider card spacing (`AppSectionSurface`, `AppInsetDivider`). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Projects tab:** Main bottom nav **Projects** tab; remote fetch; loading/error/empty; tap opens `source_url`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Home Active Ticket navigation:** Active ticket card tap → `historyDetail/{sessionId}` (same as History list); blank id no-op; unknown id falls back to `ticket/{id}`. View All unchanged → History list. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-28 - **Home trim + FAB ripple:** Removed Upcoming strip and Eco News from Home; staggered dual-ring FAB pulse burst. `./gradlew :app:assembleDebug` OK.
 

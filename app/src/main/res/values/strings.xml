@@ -68,6 +68,17 @@
     <string name="home_news_2">Winner\'s story: How a $50 win helped a local charity</string>
     <string name="home_news_2_meta">Yesterday • Community</string>
     <string name="live_nav_title">Live Navigation</string>
+    <string name="projects_nav_title">Projects</string>
+    <string name="projects_nav_subtitle">Funded eco-projects and impact stories from the BINGO! network</string>
+    <string name="projects_category_chip">BINGO! Project</string>
+    <string name="projects_featured_section">Featured Project</string>
+    <string name="projects_featured_badge">Featured</string>
+    <string name="projects_recent_section">Recent Projects</string>
+    <string name="projects_funding_amount">€%1$s</string>
+    <string name="projects_read_more">Read More</string>
+    <string name="projects_empty">No projects available right now.</string>
+    <string name="projects_retry">Retry</string>
+    <string name="projects_last_updated">Last updated %1$s</string>
     <string name="live_nav_create_room_cd">Create new room</string>
     <string name="live_nav_subtitle">Choose how to start your session</string>
     <string name="live_nav_start_resume">Start / Resume Live</string>
