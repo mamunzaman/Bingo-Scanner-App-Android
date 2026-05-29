@@ -586,6 +586,15 @@ fun NavGraph(
                 onNavigateToSupport = { navController.navigate("support") },
                 onNavigateToChangePassword = { navController.navigate("changePassword") },
                 onNavigateToTicketDetail = { id -> navController.navigate("ticket/$id") },
+                onNavigateToHistoryDetail = { sessionId ->
+                    val id = sessionId.trim()
+                    if (id.isEmpty()) return@MainTabsScreen
+                    if (com.example.mamunbingoapp.data.HistoryRepository.getAll().any { it.id == id }) {
+                        navController.navigate("historyDetail/$id")
+                    } else {
+                        navController.navigate("ticket/$id")
+                    }
+                },
                 onCallNumber = { n, onResult -> tabsViewModel.callNumber(n, onResult) },
                 onLogout = {
                     authScope.launch { performLogout(navController) }

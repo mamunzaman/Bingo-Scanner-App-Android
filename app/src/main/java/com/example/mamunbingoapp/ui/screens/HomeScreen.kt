@@ -1,10 +1,5 @@
 package com.example.mamunbingoapp.ui.screens
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +59,6 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
 import com.example.mamunbingoapp.ui.components.AppBottomBar
-import com.example.mamunbingoapp.ui.components.AppBottomBarFabClearance
 import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.ProfileAvatar
 import com.example.mamunbingoapp.ui.components.profileAvatarInitials
@@ -85,14 +77,10 @@ import com.example.mamunbingoapp.ui.components.home.ActiveTicketCard
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCardModel
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.CurrentJackpotCard
-import java.time.DayOfWeek
-import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.TemporalAdjusters
 import java.util.Locale
-import kotlinx.coroutines.delay
 
 private val berlinZone: ZoneId = ZoneId.of("Europe/Berlin")
 
@@ -103,14 +91,13 @@ private fun dispatchHomeQuickAction(
     runCatching { onQuickActionClick(action) }
 }
 
-private val homeFabScrollClearance = AppBottomBarFabClearance
-private val homeFabBottomGap = 12.dp
-private val homeFabBottomGapWithBar = 80.dp
+private val homeContentBottomMargin = Dimens.spacing24
 
 @Composable
 fun HomeScreen(
     onScanClick: () -> Unit = {},
     onQuickActionClick: (String) -> Unit = {},
+    /** History session id → [HistoryDetailScreen] route (`historyDetail/{sessionId}`). */
     onTicketClick: (String) -> Unit = {},
     onViewAllTickets: () -> Unit = {},
     onTabSelected: (AppTab) -> Unit = {},
@@ -195,27 +182,23 @@ fun HomeScreen(
         )
         },
         content = {
-        val fabBottomGap = if (showBottomBar) homeFabBottomGapWithBar else homeFabBottomGap
-        val homeScrollModifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Dimens.screenHorizontalPadding)
-            .padding(
-                top = Dimens.spacing8,
-                bottom = Dimens.spacing16 + homeFabScrollClearance,
-            )
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
         ) {
+            val scrollModifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Dimens.screenHorizontalPadding)
+                .padding(top = Dimens.spacing8)
             if (showProfileSummary) {
                 AppPullRefresh(
                     isRefreshing = isProfileRefreshing,
                     onRefresh = onProfileRefresh,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    Column(modifier = homeScrollModifier) {
+                    Column(modifier = scrollModifier) {
                         HomeScrollBody(
                             onScanClick = onScanClick,
                             onQuickActionClick = onQuickActionClick,
@@ -233,7 +216,7 @@ fun HomeScreen(
                     }
                 }
             } else {
-                Column(modifier = homeScrollModifier) {
+                Column(modifier = scrollModifier) {
                     HomeScrollBody(
                         onScanClick = onScanClick,
                         onQuickActionClick = onQuickActionClick,
@@ -254,10 +237,9 @@ fun HomeScreen(
                 onClick = onScanClick,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .navigationBarsPadding()
                     .padding(
                         end = Dimens.screenHorizontalPadding,
-                        bottom = fabBottomGap,
+                        bottom = homeContentBottomMargin,
                     ),
             )
         }
@@ -313,8 +295,6 @@ private fun HomeScrollBody(
                     if (latestNumbers.isNotEmpty()) showLatestNumbersSheet = true
                 },
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing12))
-            HomeDrawStatusStrip(isRemoteLoading = isRemoteLoading)
             Spacer(modifier = Modifier.height(Dimens.spacing24))
             Text(
                 text = stringResource(R.string.home_quick_actions),
@@ -391,22 +371,7 @@ private fun HomeScrollBody(
             }
             Spacer(modifier = Modifier.height(Dimens.spacing32))
             GreenImpactCard(treesPlanted = 120, treesToMilestone = 30)
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = stringResource(R.string.home_eco_news),
-                style = AppTextStyles.sectionTitle,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            EcoNewsItem(
-                title = stringResource(R.string.home_news_1),
-                meta = stringResource(R.string.home_news_1_meta)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            EcoNewsItem(
-                title = stringResource(R.string.home_news_2),
-                meta = stringResource(R.string.home_news_2_meta)
-            )
+            Spacer(modifier = Modifier.height(homeContentBottomMargin))
         }
         if (showLatestNumbersSheet && latestNumbers.isNotEmpty()) {
             CalledNumbersDetailSheet(
@@ -417,58 +382,6 @@ private fun HomeScrollBody(
                 footerText = "${latestNumbers.distinct().size} latest numbers",
             )
         }
-}
-
-@Composable
-private fun HomeDrawStatusStrip(isRemoteLoading: Boolean) {
-    val statusText = rememberDrawStatusText()
-    val pulseTransition = rememberInfiniteTransition(label = "drawStatusPulse")
-    val dotAlpha by pulseTransition.animateFloat(
-        initialValue = 0.45f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "drawStatusDotAlpha",
-    )
-    AppSectionSurface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Dimens.radiusLarge),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimens.spacing14, vertical = Dimens.spacing12),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = dotAlpha)),
-            )
-            Text(
-                text = "Upcoming",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "•",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = if (isRemoteLoading) "Loading draw schedule…" else statusText,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
 }
 
 @Composable
@@ -690,45 +603,6 @@ private fun timeAwareGreeting(name: String): String {
     return "$salutation, $name"
 }
 
-@Composable
-private fun rememberDrawStatusText(): String {
-    var status by remember { mutableStateOf(formatDrawStatusText()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            status = formatDrawStatusText()
-            delay(60_000L)
-        }
-    }
-    return status
-}
-
-private fun nextSundayDrawBerlin(from: ZonedDateTime = ZonedDateTime.now(berlinZone)): ZonedDateTime {
-    var target = from.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-        .withHour(17)
-        .withMinute(0)
-        .withSecond(0)
-        .withNano(0)
-    if (!target.isAfter(from)) {
-        target = target.plusWeeks(1)
-    }
-    return target
-}
-
-private fun formatDrawStatusText(from: ZonedDateTime = ZonedDateTime.now(berlinZone)): String {
-    val nextDraw = nextSundayDrawBerlin(from)
-    if (from.toLocalDate() == nextDraw.toLocalDate()) {
-        return "Draw today at 17:00"
-    }
-    val remaining = Duration.between(from, nextDraw)
-    val days = remaining.toDays()
-    val hours = remaining.toHours() % 24
-    return when {
-        days > 0 -> "Next draw in ${days}d ${hours}h"
-        hours > 0 -> "Next draw in ${hours}h ${remaining.toMinutes() % 60}m"
-        else -> "Next draw in ${remaining.toMinutes()}m"
-    }
-}
-
 private fun sessionDisplayLabel(session: HistorySession): String {
     session.serialNumber?.trim()?.takeIf { it.isNotEmpty() }?.let { return "#$it" }
     session.losNumber?.trim()?.takeIf { it.isNotEmpty() }?.let { return "#$it" }
@@ -807,47 +681,6 @@ private fun GreenImpactCard(
                     text = stringResource(R.string.home_milestone, treesToMilestone),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EcoNewsItem(
-    title: String,
-    meta: String,
-    modifier: Modifier = Modifier
-) {
-    val shape = RoundedCornerShape(12.dp)
-    AppSectionSurface(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Text(
-                    text = meta,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

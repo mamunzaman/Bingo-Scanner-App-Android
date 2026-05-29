@@ -34,6 +34,7 @@ fun MainTabsScreen(
     onNavigateToSupport: () -> Unit,
     onNavigateToChangePassword: () -> Unit = {},
     onNavigateToTicketDetail: (String) -> Unit = {},
+    onNavigateToHistoryDetail: (String) -> Unit = {},
     onCallNumber: (Int, (Boolean) -> Unit) -> Unit = { _, _ -> },
     onLogout: () -> Unit,
     accountViewModel: AccountViewModel,
@@ -72,7 +73,7 @@ fun MainTabsScreen(
                         else -> onJackpotScanSheet()
                     }
                 },
-                onTicketClick = onNavigateToTicketDetail,
+                onTicketClick = onNavigateToHistoryDetail,
                 onViewAllTickets = onNavigateToHistory,
                 onTabSelected = onTabSelected,
                 showBottomBar = false,

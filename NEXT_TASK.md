@@ -1,9 +1,9 @@
 ﻿# Next task
 
-**Goal:** Wire Home “View All” tickets action to History list navigation.
+**Goal:** Device QA — Home Active Ticket tap opens History Detail; View All opens History list.
 
-**Verify:** View All opens ticket/history screen; ticket card tap opens detail.
+**Verify:** Tap active ticket card → `historyDetail/{sessionId}`; unknown id falls back to ticket detail or no-op on blank id.
 
-**Done (status):** Compact two-column `CurrentJackpotCard`; latest-numbers bottom sheet on Home.
+**Done (status):** Active Ticket navigation wired to History Detail route.
 
-**Previous:** Active Tickets summary + row alignment polish.
+**Previous:** Home trim + FAB ripple; Quick Actions scroll row.

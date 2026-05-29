@@ -1,8 +1,10 @@
 # Project status
 
-**Last update:** 2026-05-28 - **Home crash fix:** Safe LazyRow quick actions (no negative padding); static 56dp scan FAB; guarded action callbacks. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-28 - **Home Active Ticket navigation:** Active ticket card tap → `historyDetail/{sessionId}` (same as History list); blank id no-op; unknown id falls back to `ticket/{id}`. View All unchanged → History list. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** 2026-05-28 - **Home Quick Actions scroll + FAB polish.** `./gradlew :app:assembleDebug` OK.
+**Previous:** 2026-05-28 - **Home trim + FAB ripple:** Removed Upcoming strip and Eco News from Home; staggered dual-ring FAB pulse burst. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Quick Actions + FAB polish.** `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-28 - **Home polish:** Time-aware greeting + “Ready for the next draw?”; Draw Status strip (Upcoming + countdown); Active Tickets summary from local tickets (match/marked progress, almost bingo via `BingoWinChecker`); real ticket preview row. No player-online stats. `./gradlew :app:assembleDebug` OK.
 
