@@ -2,6 +2,8 @@ package com.example.mamunbingoapp.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -9,11 +11,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.MamunBingoTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppTextField(
@@ -34,12 +41,22 @@ fun AppTextField(
     tonalContainer: Boolean = false,
     readOnly: Boolean = false
 ) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val hadFocus = remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         enabled = enabled && !readOnly,
         modifier = (if (modifier == Modifier) Modifier.fillMaxWidth() else modifier)
-            .height(Dimens.textFieldHeight),
+            .height(Dimens.textFieldHeight)
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusEvent { focusState ->
+                if (focusState.isFocused && !hadFocus.value) {
+                    scope.launch { bringIntoViewRequester.bringIntoView() }
+                }
+                hadFocus.value = focusState.isFocused
+            },
         label = label?.let { { Text(it) } },
         placeholder = placeholder?.let { { Text(it) } },
         leadingIcon = leadingIcon,

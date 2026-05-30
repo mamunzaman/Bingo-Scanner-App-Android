@@ -44,7 +44,8 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppAuthMessage
 import com.example.mamunbingoapp.ui.components.AppAuthMessageType
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
-import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
+import com.example.mamunbingoapp.ui.components.AppImeFormScrollBottomSpacer
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AuthBottomWave
@@ -87,32 +88,23 @@ fun ForgotPasswordScreen(
         else -> R.string.forgot_title
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         AuthBottomWave(modifier = Modifier.align(Alignment.BottomCenter))
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            AppHeaderBackground(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.4f)
-                    .align(Alignment.TopCenter)
-            )
-            Column(Modifier.fillMaxSize()) {
+        AppHeaderPageLayout(
+            scrollableContent = true,
+            topBar = {
                 AppTopBar(
                     title = stringResource(topBarTitleRes),
                     showBack = true,
-                    onBackClick = if (emailSent && !recoveryPending) onLogIn else onBack
+                    onBackClick = if (emailSent && !recoveryPending) onLogIn else onBack,
                 )
+            },
+            content = {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .padding(top = Dimens.spacing5)
-                        .padding(horizontal = Dimens.screenHorizontalPadding)
+                        .padding(horizontal = Dimens.screenHorizontalPadding),
                 ) {
                     if (recoveryPending) {
                         Spacer(modifier = Modifier.height(Dimens.spacing16))
@@ -235,75 +227,75 @@ fun ForgotPasswordScreen(
                             loading = isLoading,
                         )
                     } else if (emailSent) {
-                Spacer(modifier = Modifier.height(32.dp))
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Eco,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Eco,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(R.string.forgot_success_title),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.forgot_success_subtitle),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+                        AppAuthMessage(
+                            message = stringResource(R.string.forgot_success_banner),
+                            type = AppAuthMessageType.Success,
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                    }
-                }
-                Spacer(modifier = Modifier.height(32.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = stringResource(R.string.forgot_success_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.forgot_success_subtitle),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                AppAuthMessage(
-                    message = stringResource(R.string.forgot_success_banner),
-                    type = AppAuthMessageType.Success,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(
-                    text = stringResource(R.string.login_email_label),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                AppTextField(
-                    value = email,
-                    onValueChange = { },
-                    placeholder = stringResource(R.string.forgot_email_placeholder),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    enabled = false,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Lock,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.outline
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = stringResource(R.string.login_email_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AppTextField(
+                            value = email,
+                            onValueChange = { },
+                            placeholder = stringResource(R.string.forgot_email_placeholder),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            enabled = false,
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Filled.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.spacing16))
                 AppPrimaryButton(
                     text = stringResource(R.string.forgot_back_to_login),
                     onClick = onLogIn,
@@ -316,39 +308,40 @@ fun ForgotPasswordScreen(
                         )
                     }
                 )
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(Dimens.spacing24))
                 AuthFooterPrompt(
                     primaryText = stringResource(R.string.forgot_resend_prompt),
                     linkText = stringResource(R.string.forgot_resend_cta),
                     onClick = { onSendResetLink(email) }
                 )
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
             } else {
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
-                Text(
-                    text = stringResource(R.string.forgot_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.forgot_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = stringResource(R.string.login_email_label),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                AppTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    placeholder = stringResource(R.string.forgot_email_placeholder),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                )
-                Spacer(modifier = Modifier.height(Dimens.spacing16))
+                        Spacer(modifier = Modifier.height(Dimens.spacing16))
+                        Text(
+                            text = stringResource(R.string.forgot_title),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.forgot_subtitle),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Text(
+                            text = stringResource(R.string.login_email_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AppTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            placeholder = stringResource(R.string.forgot_email_placeholder),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.spacing16))
                 AppAuthMessage(
                     message = errorMessage,
                     type = AppAuthMessageType.Error,
@@ -371,36 +364,38 @@ fun ForgotPasswordScreen(
                     loading = isLoading,
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.forgot_remember_prompt),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = " " + stringResource(R.string.forgot_remember_cta),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable(onClick = onLogIn)
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.forgot_remember_prompt),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = " " + stringResource(R.string.forgot_remember_cta),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable(onClick = onLogIn)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(Dimens.spacing16))
+                            Text(
+                                text = stringResource(R.string.forgot_inbox_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(Dimens.spacing24))
                     }
-                    Spacer(modifier = Modifier.height(Dimens.spacing16))
-                    Text(
-                        text = stringResource(R.string.forgot_inbox_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    AppImeFormScrollBottomSpacer()
                 }
-            }
-            }
-            }
-        }
+            },
+        )
     }
 }

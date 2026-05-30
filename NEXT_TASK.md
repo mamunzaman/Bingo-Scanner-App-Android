@@ -1,9 +1,9 @@
 ﻿# Next task
 
-**Goal:** Device QA — History Detail hero alignment on live ticket.
+**Goal:** Device QA — Login visual layout + scroll-to-submit on real device.
 
-**Verify:** Ticket ID + copy left; Join Room + LIVE right with spacer gap; 8dp vertical rhythm to stats; equal 28dp action height; stats top-aligned with 10dp gap.
+**Verify:** Login keyboard closed — compact wave behind button/footer, no blank area below footer. Password focused — drag up → Login button reachable. Other form screens unchanged.
 
-**Done (status):** Hero action row alignment + spacing fix applied.
+**Done (status):** LoginScreen restored from git `6f91d05` layout (single Box + wave + fillMaxSize column + weight spacer). Minimal add: `scrollableContent = true`, `heightIn(min)` preserves weight layout in scroll, trailing `AppImeFormScrollBottomSpacer` outside Box.
 
-**Previous:** History Detail spacing polish (Live Feed, dot pulse, grid padding).
+**Previous:** Split Login fields/wave sections — reverted.

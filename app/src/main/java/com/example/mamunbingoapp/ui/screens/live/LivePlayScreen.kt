@@ -19,6 +19,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -119,7 +120,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -255,9 +259,11 @@ fun LivePlayScreen(
     onOpenExistingRoom: () -> Unit = {},
     onMoveToTargetRoom: () -> Unit = {},
     showResetConfirm: Boolean = false,
+    showResetProtectionDialog: Boolean = false,
     onResetClick: () -> Unit = {},
     onResetConfirm: () -> Unit = {},
     onResetDismiss: () -> Unit = {},
+    onStartNewRoomFromReset: () -> Unit = {},
     onFinishClick: () -> Unit = {},
     onUndoLastCall: () -> Unit = {}
 ) {
@@ -443,6 +449,20 @@ fun LivePlayScreen(
             },
             onCancel = onResetDismiss,
             onDismiss = onResetDismiss
+        )
+    }
+    if (showResetProtectionDialog) {
+        LiveResetCalledNumbersDialog(
+            visible = true,
+            onCancel = onResetDismiss,
+            onStartNewRoom = onStartNewRoomFromReset,
+            onResetAnyway = {
+                onResetConfirm()
+                scope.launch {
+                    snackbarHostState.showSnackbar("New round started", duration = SnackbarDuration.Short)
+                }
+            },
+            onDismiss = onResetDismiss,
         )
     }
 
@@ -2347,6 +2367,118 @@ private fun LivePlayScreenPreview() {
             calledNumbers = called,
             lastCalled = 55
         )
+    }
+}
+
+@Composable
+private fun LiveResetCalledNumbersDialog(
+    visible: Boolean,
+    onCancel: () -> Unit,
+    onStartNewRoom: () -> Unit,
+    onResetAnyway: () -> Unit,
+    onDismiss: () -> Unit = onCancel,
+) {
+    if (!visible) return
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false,
+        ),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = onDismiss,
+                    )
+                    .background(MaterialTheme.colorScheme.scrim),
+            )
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimens.spacing24)
+                    .shadow(Dimens.cardElevationDefault, RoundedCornerShape(Dimens.radiusLarge)),
+                shape = RoundedCornerShape(Dimens.radiusLarge),
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(modifier = Modifier.padding(Dimens.spacing24)) {
+                    Text(
+                        text = "Called numbers will be lost",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.spacing8))
+                    Text(
+                        text = "This room already has called numbers. These may be your original live game record.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.spacing24))
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(Dimens.buttonHeight),
+                        shape = RoundedCornerShape(Dimens.radiusPill),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        border = BorderStroke(Dimens.cardBorderDefault, MaterialTheme.colorScheme.primary),
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spacing8))
+                    Button(
+                        onClick = onStartNewRoom,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(Dimens.buttonHeight),
+                        shape = RoundedCornerShape(Dimens.radiusPill),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                    ) {
+                        Text(
+                            text = "Start New Room",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spacing8))
+                    Button(
+                        onClick = onResetAnyway,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(Dimens.buttonHeight),
+                        shape = RoundedCornerShape(Dimens.radiusPill),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                    ) {
+                        Text(
+                            text = "Reset Anyway",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

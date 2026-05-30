@@ -35,7 +35,10 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -74,11 +77,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.data.HistorySession
+import com.example.mamunbingoapp.data.LiveRoom
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.theme.Dimens
@@ -102,6 +108,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -122,6 +130,15 @@ private val HistoryDetailHeroVerticalSpacing = Dimens.spacing8
 private val HistoryDetailHeroActionHeight = 28.dp
 private val HistoryDetailLatestCallSize = 68.dp
 private val HistoryDetailRecentChipSize = 38.dp
+
+private enum class HistoryDetailRoomAction {
+    JoinRoom,
+    ChangeRoom,
+}
+
+private fun resolveHistoryDetailRoomAction(assignedRoomId: String?): HistoryDetailRoomAction =
+    if (assignedRoomId.isNullOrBlank()) HistoryDetailRoomAction.JoinRoom
+    else HistoryDetailRoomAction.ChangeRoom
 
 @Composable
 private fun HistoryDetailSectionCard(
@@ -205,6 +222,7 @@ fun HistoryDetailScreen(
     var showLeaveLiveDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
+    var showRoomPicker by remember { mutableStateOf(false) }
     var qrErrorMessage by remember { mutableStateOf<String?>(null) }
     var qrBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var deletedAwaitingSnackbar by remember { mutableStateOf(false) }
@@ -281,6 +299,30 @@ fun HistoryDetailScreen(
     }
     val sessionForDisplay = s!!
     val ticketId = sessionForDisplay.sheetsPlayed.firstOrNull()?.ticketId ?: sessionForDisplay.id
+    val roomsViewModel: LiveRoomsViewModel = viewModel()
+    val liveRooms by roomsViewModel.rooms.collectAsState()
+    val roomAction = resolveHistoryDetailRoomAction(displayAssignedRoomId)
+    val showLiveBadge = displaySheetStatus == SheetStatus.ACTIVE
+
+    if (showRoomPicker) {
+        HistoryDetailRoomPickerSheet(
+            rooms = liveRooms,
+            changingRoom = roomAction == HistoryDetailRoomAction.ChangeRoom,
+            currentRoomId = displayAssignedRoomId,
+            onRoomSelected = { roomId ->
+                showRoomPicker = false
+                onAddToLivePlay(roomId)
+            },
+            onDismiss = { showRoomPicker = false },
+            onCreateRoom = {
+                showRoomPicker = false
+                if (liveRooms.isEmpty()) {
+                    scope.launch { roomsViewModel.createRoom("Room 1") }
+                }
+                onTabSelected(AppTab.Jackpot)
+            },
+        )
+    }
 
     if (showLeaveLiveDialog) {
         AppConfirmDialog(
@@ -460,10 +502,15 @@ fun HistoryDetailScreen(
                                 sheetName = sessionForDisplay.effectiveSheetName().ifEmpty { "Unnamed sheet" },
                                 ticketId = ticketId,
                                 sheetStatus = displaySheetStatus,
-                                showJoinLive = displaySheetStatus == SheetStatus.ACTIVE &&
-                                    !displayAssignedRoomId.isNullOrBlank(),
-                                onJoinLive = {
-                                    displayAssignedRoomId?.let { onOpenRoom(it) }
+                                roomAction = roomAction,
+                                showLiveBadge = showLiveBadge,
+                                onRoomActionClick = {
+                                    scope.launch {
+                                        if (liveRooms.isEmpty()) {
+                                            roomsViewModel.createRoom("Room 1")
+                                        }
+                                        showRoomPicker = true
+                                    }
                                 },
                                 onCopyTicketId = {
                                     clipboard.setText(AnnotatedString(ticketId))
@@ -548,8 +595,9 @@ private fun HistoryDetailHeroSection(
     sheetName: String,
     ticketId: String,
     sheetStatus: SheetStatus,
-    showJoinLive: Boolean,
-    onJoinLive: () -> Unit,
+    roomAction: HistoryDetailRoomAction,
+    showLiveBadge: Boolean,
+    onRoomActionClick: () -> Unit,
     onCopyTicketId: () -> Unit,
 ) {
     val truncatedId = if (ticketId.length > 18) ticketId.take(16) + "…" else ticketId
@@ -601,10 +649,11 @@ private fun HistoryDetailHeroSection(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
-            if (isLiveTicket) {
-                if (showJoinLive) {
-                    HistoryDetailJoinButton(onClick = onJoinLive)
-                }
+            HistoryDetailRoomActionButton(
+                action = roomAction,
+                onClick = onRoomActionClick,
+            )
+            if (showLiveBadge) {
                 HistoryDetailLiveBadge()
             }
         }
@@ -612,10 +661,15 @@ private fun HistoryDetailHeroSection(
 }
 
 @Composable
-private fun HistoryDetailJoinButton(
+private fun HistoryDetailRoomActionButton(
+    action: HistoryDetailRoomAction,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val (label, icon) = when (action) {
+        HistoryDetailRoomAction.JoinRoom -> "Join Room" to Icons.Filled.PlayArrow
+        HistoryDetailRoomAction.ChangeRoom -> "Change Room" to Icons.Filled.SwapHoriz
+    }
     val shape = RoundedCornerShape(Dimens.radiusPill)
     Row(
         modifier = modifier
@@ -629,13 +683,13 @@ private fun HistoryDetailJoinButton(
         horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
     ) {
         Icon(
-            imageVector = Icons.Filled.PlayArrow,
+            imageVector = icon,
             contentDescription = null,
             tint = Primary,
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = "Join Room",
+            text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = Primary,
@@ -886,3 +940,94 @@ private fun HistoryDetailHeaderActions(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryDetailRoomPickerSheet(
+    rooms: List<LiveRoom>,
+    changingRoom: Boolean,
+    currentRoomId: String?,
+    onRoomSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onCreateRoom: () -> Unit,
+) {
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    val actionLabel = if (changingRoom) "Move" else "Add"
+    AppBottomSheetSurface(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.spacing24, vertical = Dimens.spacing8),
+        ) {
+            Text(
+                text = if (changingRoom) "Change live room" else "Choose live room",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = Dimens.spacing16),
+            )
+            if (rooms.isEmpty()) {
+                Text(
+                    text = "No active live rooms",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Dimens.spacing12),
+                )
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onCreateRoom()
+                    },
+                ) {
+                    Text("Create live room")
+                }
+            } else {
+                rooms.forEachIndexed { index, room ->
+                    if (index > 0) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        )
+                    }
+                    val isCurrent = !currentRoomId.isNullOrBlank() && room.roomId == currentRoomId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isCurrent) { onRoomSelected(room.roomId) }
+                            .padding(vertical = Dimens.spacing12),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = room.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isCurrent) {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = if (isCurrent) "Current" else actionLabel,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (isCurrent) {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("Cancel")
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+        }
+    }
+}

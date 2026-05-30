@@ -694,6 +694,7 @@ fun NavGraph(
             val vm: LivePlayViewModel = viewModel(backStackEntry)
             val uiState by vm.state.collectAsState()
             val showResetConfirm by vm.showResetConfirm.collectAsState()
+            val showResetProtectionDialog by vm.showResetProtectionDialog.collectAsState()
             val roomConflict by vm.roomConflict.collectAsState()
             val pendingRoomId by vm.pendingNavigateToRoomId.collectAsState()
             val selectedTicketIdRequest by backStackEntry.savedStateHandle
@@ -764,9 +765,11 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 showResetConfirm = showResetConfirm,
+                showResetProtectionDialog = showResetProtectionDialog,
                 onResetClick = { vm.onResetClick() },
                 onResetConfirm = { vm.onResetConfirm() },
                 onResetDismiss = { vm.onResetDismiss() },
+                onStartNewRoomFromReset = { vm.onStartNewRoomFromReset() },
                 onFinishClick = { vm.markRoomArchived() },
                 onUndoLastCall = { vm.undoLastCalledNumber() }
             )

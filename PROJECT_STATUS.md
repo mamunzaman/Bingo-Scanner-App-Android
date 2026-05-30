@@ -1,6 +1,24 @@
 # Project status
 
-**Last update:** 2026-05-28 - **History Detail hero alignment:** Ticket ID + copy left, Join Room + LIVE right (`Spacer.weight` gap); 8dp vertical rhythm; 28dp action pills; stats row top-aligned with 10dp spacing. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Login wave/layout fix:** Split Login into fields column + compact bottom `AuthBottomWave` box (forgot/button/footer only). Moved `AppImeFormScrollBottomSpacer` outside wave box so IME scroll range does not stretch wave. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Login IME spacer placement fix:** Manual spacer per screen; removed auto-append from `AppHeaderPageLayout`.
+
+**Previous:** 2026-05-30 - **Form scroll-to-submit with keyboard open:** Removed drag-dismiss; added `AppImeFormScrollBottomSpacer()` for keyboard-only scroll range.
+
+**Previous:** 2026-05-30 - **Rollback pinned form bottomBar:** Removed `bottomBar` slot; restored inline submit buttons/footers on auth forms.
+
+**Previous:** 2026-05-30 - **IME scroll-with-keyboard fix:** Removed `imeNestedScroll()` from `appImeScrollable()` (root cause of keyboard moving with form scroll). Added drag-dismiss `NestedScrollConnection` to `AppHeaderPageLayout` + `AccountFormScreen` so scrolling clears focus and hides keyboard. Guarded `AppTextField` `bringIntoView` to fire only on unfocused→focused transition. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **IME regression fix:** Removed `navigationBarsPadding()` from `appImeFormInsets()` (root cause of permanent bottom blank space on all screens). ProfileScreen + SettingsScreen switched to plain `verticalScroll` (no text fields = no IME needed). `AppHeaderPageLayout` non-scrollable path cleaned of unnecessary `imeNestedScroll()`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Global IME / keyboard fix:** `enableEdgeToEdge` + shared `appImeScrollable`/`AppHeaderPageLayout` IME scroll; `AppTextField` bring-into-view; auth + profile forms migrated. Manifest already `adjustResize`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **Live room reset protection:** Warning dialog when room has called numbers; Start New Room / Reset Anyway. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail room actions:** Join Room (not in room) / Change Room (in room) hero pills open room picker → `onAddToLivePlay`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-28 - **History Detail hero alignment:** Ticket ID + copy left, Join Room + LIVE right (`Spacer.weight` gap); 8dp vertical rhythm; 28dp action pills; stats row top-aligned with 10dp spacing. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-28 - **History Detail spacing polish:** ~30% tighter hero; Join Room + LIVE grouped on ticket row; dot-only LIVE pulse; Live Feed label with 68/38dp call sizes; grid card vertical padding + centered board. `./gradlew :app:assembleDebug` OK.
 

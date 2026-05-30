@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 import kotlin.OptIn
@@ -68,6 +69,8 @@ class LivePlayViewModel(
     private val selectedTicketIdFlow = MutableStateFlow(savedStateHandle.get<String>("ticketId")?.takeIf { it.isNotBlank() })
     private val _showResetConfirm = MutableStateFlow(false)
     val showResetConfirm: StateFlow<Boolean> = _showResetConfirm.asStateFlow()
+    private val _showResetProtectionDialog = MutableStateFlow(false)
+    val showResetProtectionDialog: StateFlow<Boolean> = _showResetProtectionDialog.asStateFlow()
     private val _roomConflict = MutableStateFlow(RoomConflictUi())
     val roomConflict: StateFlow<RoomConflictUi> = _roomConflict.asStateFlow()
     private val _pendingNavigateToRoomId = MutableStateFlow<String?>(null)
@@ -238,16 +241,37 @@ class LivePlayViewModel(
         selectedTicketIdFlow.value = null
     }
 
-    fun onResetClick() { _showResetConfirm.value = true }
+    fun onResetClick() {
+        if (state.value.calledNumbers.isNotEmpty()) {
+            _showResetProtectionDialog.value = true
+        } else {
+            _showResetConfirm.value = true
+        }
+    }
+
     fun onResetConfirm() {
         val rid = currentRoomId.value ?: return
         viewModelScope.launch {
             RoomRepository.resetCalledNumbers(rid)
             RoomRepository.setRoomArchived(rid, false)
             _showResetConfirm.value = false
+            _showResetProtectionDialog.value = false
         }
     }
-    fun onResetDismiss() { _showResetConfirm.value = false }
+
+    fun onResetDismiss() {
+        _showResetConfirm.value = false
+        _showResetProtectionDialog.value = false
+    }
+
+    fun onStartNewRoomFromReset() {
+        viewModelScope.launch {
+            _showResetProtectionDialog.value = false
+            val roomCount = RoomRepository.getRooms().first().size
+            val newId = RoomRepository.createRoom("Room ${roomCount + 1}")
+            _pendingNavigateToRoomId.value = newId
+        }
+    }
 
     fun markRoomArchived() {
         val rid = currentRoomId.value ?: return
