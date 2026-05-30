@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -123,7 +124,8 @@ fun HomeScreen(
         .collectAsStateWithLifecycle(initialValue = emptyMap())
     val archivedByRoom by RoomRepository.roomsArchivedMapFlow()
         .collectAsStateWithLifecycle(initialValue = emptyMap())
-    val welcomeName = profileDisplayName?.takeIf { it.isNotBlank() } ?: "Player"
+    val defaultPlayerName = stringResource(R.string.home_default_player_name)
+    val welcomeName = profileDisplayName?.takeIf { it.isNotBlank() } ?: defaultPlayerName
     val showProfileSummary = profileDisplayName != null
     var showScanTypeSheet by remember { mutableStateOf(false) }
     val requestScan = { showScanTypeSheet = true }
@@ -167,7 +169,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(Dimens.spacing4))
                         Text(
-                            text = "Ready for the next draw?",
+                            text = stringResource(R.string.home_ready_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -178,7 +180,7 @@ fun HomeScreen(
                 IconButton(onClick = { }) {
                     Icon(
                         imageVector = Icons.Filled.Notifications,
-                        contentDescription = "Notifications",
+                        contentDescription = stringResource(R.string.home_notifications_cd),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -364,12 +366,15 @@ private fun HomeScrollBody(
                         .forEach { session ->
                             val preview = ticketSummary.previews.find { it.sessionId == session.id }
                             if (preview != null) {
+                                val calledLabel = preview.liveCalledCount?.let { count ->
+                                    stringResource(R.string.home_ticket_called_count, count)
+                                }
                                 ActiveTicketCard(
                                     model = ActiveTicketCardModel(
                                         ticketLabel = sessionDisplayLabel(session),
                                         drawDate = formatHomeTicketDate(session.effectivePlayedAtMillis()),
                                         isInLiveRoom = preview.isInLiveRoom,
-                                        calledCountLabel = preview.calledCountLabel,
+                                        calledCountLabel = calledLabel,
                                         calledProgress = preview.calledProgress,
                                         showCalledProgress = preview.showCalledProgress,
                                         neutralGrid = preview.neutralGrid,
@@ -390,9 +395,17 @@ private fun HomeScrollBody(
             CalledNumbersDetailSheet(
                 onDismiss = { showLatestNumbersSheet = false },
                 calledNumbers = latestNumbers,
-                title = "Latest Numbers",
-                countPillText = "${latestNumbers.size} numbers",
-                footerText = "${latestNumbers.distinct().size} latest numbers",
+                title = stringResource(R.string.home_latest_numbers_title),
+                countPillText = pluralStringResource(
+                    R.plurals.home_latest_numbers_count,
+                    latestNumbers.size,
+                    latestNumbers.size,
+                ),
+                footerText = pluralStringResource(
+                    R.plurals.home_latest_numbers_footer,
+                    latestNumbers.distinct().size,
+                    latestNumbers.distinct().size,
+                ),
             )
         }
 }
@@ -403,12 +416,14 @@ private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
     val cs = MaterialTheme.colorScheme
     val glassSurface = Color.White.copy(alpha = 0.94f)
     val borderColor = cs.outlineVariant.copy(alpha = 0.45f)
-    val calledValue = if (summary.hasActiveLiveRoom) summary.calledCount.toString() else "—"
+    val emDash = stringResource(R.string.common_em_dash)
+    val calledValue = if (summary.hasActiveLiveRoom) summary.calledCount.toString() else emDash
     val calledLabel = if (summary.hasActiveLiveRoom) {
-        if (summary.calledCount == 1) "number called" else "numbers called"
+        pluralStringResource(R.plurals.home_numbers_called, summary.calledCount)
     } else {
-        "no live session"
+        stringResource(R.string.home_no_live_session)
     }
+    val activeTicketsLabel = pluralStringResource(R.plurals.home_active_tickets, summary.activeCount)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
@@ -428,7 +443,7 @@ private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
                 HomeActiveTicketsStatItem(
                     icon = Icons.Filled.ConfirmationNumber,
                     valueText = summary.activeCount.toString(),
-                    labelText = if (summary.activeCount == 1) "active ticket" else "active tickets",
+                    labelText = activeTicketsLabel,
                     iconContainerColor = Primary.copy(alpha = 0.09f),
                     iconTint = Primary.copy(alpha = 0.88f),
                     valueColor = cs.onSurface,
@@ -460,7 +475,7 @@ private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
         if (summary.activeCount == 0) {
             Spacer(modifier = Modifier.height(Dimens.spacing8))
             Text(
-                text = "Scan a ticket to start tracking progress.",
+                text = stringResource(R.string.home_scan_to_track_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant,
             )
@@ -528,7 +543,7 @@ private fun HomeActiveTicketsStatItem(
 private data class HomeTicketPreview(
     val sessionId: String,
     val isInLiveRoom: Boolean,
-    val calledCountLabel: String?,
+    val liveCalledCount: Int?,
     val calledProgress: Float,
     val showCalledProgress: Boolean,
     val neutralGrid: Boolean,
@@ -587,11 +602,7 @@ private fun buildHomeActiveTicketsSummary(
         HomeTicketPreview(
             sessionId = session.id,
             isInLiveRoom = isInLiveRoom,
-            calledCountLabel = if (isInLiveRoom && activeCalledCount > 0) {
-                "$activeCalledCount called"
-            } else {
-                null
-            },
+            liveCalledCount = if (isInLiveRoom && activeCalledCount > 0) activeCalledCount else null,
             calledProgress = activeCalledCount / 75f,
             showCalledProgress = isInLiveRoom,
             neutralGrid = !isInLiveRoom,
@@ -606,14 +617,15 @@ private fun buildHomeActiveTicketsSummary(
     )
 }
 
+@Composable
 private fun timeAwareGreeting(name: String): String {
     val hour = ZonedDateTime.now(berlinZone).hour
     val salutation = when (hour) {
-        in 5..11 -> "Good morning"
-        in 12..17 -> "Good afternoon"
-        else -> "Good evening"
+        in 5..11 -> stringResource(R.string.home_greeting_morning)
+        in 12..17 -> stringResource(R.string.home_greeting_afternoon)
+        else -> stringResource(R.string.home_greeting_evening)
     }
-    return "$salutation, $name"
+    return stringResource(R.string.home_greeting_format, salutation, name)
 }
 
 private fun sessionDisplayLabel(session: HistorySession): String {

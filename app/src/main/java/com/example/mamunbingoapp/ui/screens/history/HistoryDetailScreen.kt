@@ -69,8 +69,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.OutlinedButton
@@ -262,7 +264,7 @@ fun HistoryDetailScreen(
                     .align(Alignment.TopCenter)
             )
             Column(Modifier.fillMaxSize()) {
-                AppTopBar(title = "History Detail", showBack = true, onBackClick = onBack)
+                AppTopBar(title = stringResource(R.string.history_detail_title), showBack = true, onBackClick = onBack)
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -274,20 +276,21 @@ fun HistoryDetailScreen(
             ) {
                 if (isLoading) {
                     Text(
-                        text = "Loading…",
+                        text = stringResource(R.string.common_loading),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                     )
                 } else {
                     Text(
-                        text = "Ticket not available",
+                        text = stringResource(R.string.history_detail_ticket_unavailable),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing8))
                     Text(
-                        text = errorMessage?.takeIf { it.isNotBlank() } ?: "This ticket was removed from live session.",
+                        text = errorMessage?.takeIf { it.isNotBlank() }
+                            ?: stringResource(R.string.history_detail_ticket_removed_default),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                     )
@@ -303,6 +306,14 @@ fun HistoryDetailScreen(
     val liveRooms by roomsViewModel.rooms.collectAsState()
     val roomAction = resolveHistoryDetailRoomAction(displayAssignedRoomId)
     val showLiveBadge = displaySheetStatus == SheetStatus.ACTIVE
+    val defaultRoomName = stringResource(R.string.live_room_default_name, 1)
+    val qrNoGridMessage = stringResource(R.string.history_detail_qr_no_grid)
+    val qrEncodeFailedMessage = stringResource(R.string.history_detail_qr_encode_failed)
+    val qrImageFailedMessage = stringResource(R.string.history_detail_qr_image_failed)
+    val deletedSnackbarMessage = stringResource(R.string.history_detail_deleted_snackbar)
+    val undoActionLabel = stringResource(R.string.common_undo)
+    val copiedToClipboardMessage = stringResource(R.string.common_copied_to_clipboard)
+    val unnamedSheetLabel = stringResource(R.string.history_unnamed_sheet)
 
     if (showRoomPicker) {
         HistoryDetailRoomPickerSheet(
@@ -317,7 +328,7 @@ fun HistoryDetailScreen(
             onCreateRoom = {
                 showRoomPicker = false
                 if (liveRooms.isEmpty()) {
-                    scope.launch { roomsViewModel.createRoom("Room 1") }
+                    scope.launch { roomsViewModel.createRoom(defaultRoomName) }
                 }
                 onTabSelected(AppTab.Jackpot)
             },
@@ -327,10 +338,10 @@ fun HistoryDetailScreen(
     if (showLeaveLiveDialog) {
         AppConfirmDialog(
             visible = true,
-            title = "Remove sheet from Live?",
-            message = "This will remove this sheet from the current live session. You can still find it in History.",
-            confirmText = "Remove",
-            cancelText = "Cancel",
+            title = stringResource(R.string.history_detail_leave_live_title),
+            message = stringResource(R.string.history_detail_leave_live_message),
+            confirmText = stringResource(R.string.common_remove),
+            cancelText = stringResource(R.string.settings_cancel),
             showCancelButton = true,
             onConfirm = {
                 RoomRepository.unassignTicket(ticketId)
@@ -343,7 +354,8 @@ fun HistoryDetailScreen(
     }
     RoomConflictDialog(
         visible = showRoomConflictDialog,
-        existingRoomName = conflictExistingRoomName ?: "another room",
+        existingRoomName = conflictExistingRoomName
+            ?: stringResource(R.string.history_detail_another_room_fallback),
         hasTargetRoom = showRoomConflictDialog,
         onCancel = onDismissConflictDialog,
         onOpenExistingRoom = {
@@ -367,8 +379,8 @@ fun HistoryDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Bingo Sheet?") },
-            text = { Text("This will delete this sheet from history. This cannot be undone.") },
+            title = { Text(stringResource(R.string.history_detail_delete_title)) },
+            text = { Text(stringResource(R.string.history_detail_delete_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -378,8 +390,8 @@ fun HistoryDetailScreen(
                             cachedSession = sessionForDisplay
                             deletedAwaitingSnackbar = true
                             val result = snackbarHostState.showSnackbar(
-                                message = "Bingo sheet deleted",
-                                actionLabel = "Undo",
+                                message = deletedSnackbarMessage,
+                                actionLabel = undoActionLabel,
                                 withDismissAction = true,
                                 duration = SnackbarDuration.Short
                             )
@@ -392,12 +404,12 @@ fun HistoryDetailScreen(
                         }
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             }
         )
@@ -424,7 +436,7 @@ fun HistoryDetailScreen(
                 val ticketMeta by TicketRepository.observeTicket(ticketId)
                     .collectAsStateWithLifecycle(initialValue = null)
                 AppTopBar(
-                    title = "History Detail",
+                    title = stringResource(R.string.history_detail_title),
                     showBack = true,
                     onBackClick = onBack,
                     actions = {
@@ -436,7 +448,7 @@ fun HistoryDetailScreen(
                                     val cellsList = displayCells
                                     if (cellsList == null) {
                                         qrBitmap = null
-                                        qrErrorMessage = "No saved grid to encode for this sheet."
+                                        qrErrorMessage = qrNoGridMessage
                                         showQrDialog = true
                                         return@launch
                                     }
@@ -456,7 +468,7 @@ fun HistoryDetailScreen(
                                     if (encoded.isFailure) {
                                         qrBitmap = null
                                         qrErrorMessage = encoded.exceptionOrNull()?.message
-                                            ?: "Could not encode ticket for QR"
+                                            ?: qrEncodeFailedMessage
                                         showQrDialog = true
                                         return@launch
                                     }
@@ -471,7 +483,7 @@ fun HistoryDetailScreen(
                                         },
                                         onFailure = { e ->
                                             qrBitmap = null
-                                            qrErrorMessage = e.message ?: "Could not generate QR image"
+                                            qrErrorMessage = e.message ?: qrImageFailedMessage
                                             showQrDialog = true
                                         }
                                     )
@@ -499,7 +511,7 @@ fun HistoryDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
                         ) {
                             HistoryDetailHeroSection(
-                                sheetName = sessionForDisplay.effectiveSheetName().ifEmpty { "Unnamed sheet" },
+                                sheetName = sessionForDisplay.effectiveSheetName().ifEmpty { unnamedSheetLabel },
                                 ticketId = ticketId,
                                 sheetStatus = displaySheetStatus,
                                 roomAction = roomAction,
@@ -507,14 +519,16 @@ fun HistoryDetailScreen(
                                 onRoomActionClick = {
                                     scope.launch {
                                         if (liveRooms.isEmpty()) {
-                                            roomsViewModel.createRoom("Room 1")
+                                            roomsViewModel.createRoom(defaultRoomName)
                                         }
                                         showRoomPicker = true
                                     }
                                 },
                                 onCopyTicketId = {
                                     clipboard.setText(AnnotatedString(ticketId))
-                                    scope.launch { snackbarHostState.showSnackbar("Copied to clipboard") }
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(copiedToClipboardMessage)
+                                    }
                                 },
                             )
                             HistoryDetailStatsRow(
@@ -643,7 +657,7 @@ private fun HistoryDetailHeroSection(
             IconButton(onClick = onCopyTicketId, modifier = Modifier.size(HistoryDetailHeroActionHeight)) {
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy ticket id",
+                    contentDescription = stringResource(R.string.history_detail_copy_ticket_cd),
                     modifier = Modifier.size(Dimens.iconCompact),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                 )
@@ -667,8 +681,10 @@ private fun HistoryDetailRoomActionButton(
     modifier: Modifier = Modifier,
 ) {
     val (label, icon) = when (action) {
-        HistoryDetailRoomAction.JoinRoom -> "Join Room" to Icons.Filled.PlayArrow
-        HistoryDetailRoomAction.ChangeRoom -> "Change Room" to Icons.Filled.SwapHoriz
+        HistoryDetailRoomAction.JoinRoom ->
+            stringResource(R.string.history_detail_join_room) to Icons.Filled.PlayArrow
+        HistoryDetailRoomAction.ChangeRoom ->
+            stringResource(R.string.history_detail_change_room) to Icons.Filled.SwapHoriz
     }
     val shape = RoundedCornerShape(Dimens.radiusPill)
     Row(
@@ -742,7 +758,7 @@ private fun HistoryDetailLiveBadge(modifier: Modifier = Modifier) {
             )
         }
         Text(
-            text = "LIVE",
+            text = stringResource(R.string.common_live_badge),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -754,8 +770,8 @@ private fun HistoryDetailLiveBadge(modifier: Modifier = Modifier) {
 private fun HistoryDetailStatusChip(status: SheetStatus) {
     if (status == SheetStatus.IDLE || status == SheetStatus.ACTIVE) return
     val label = when (status) {
-        SheetStatus.COMPLETED -> "Finished"
-        SheetStatus.IN_PROGRESS -> "Active"
+        SheetStatus.COMPLETED -> stringResource(R.string.history_detail_status_finished)
+        SheetStatus.IN_PROGRESS -> stringResource(R.string.history_detail_status_active)
         else -> return
     }
     val bg = MaterialTheme.colorScheme.surface
@@ -793,21 +809,21 @@ private fun HistoryDetailStatsRow(
         verticalAlignment = Alignment.Top,
     ) {
         HistoryDetailStatCard(
-            label = "Draw Date",
+            label = stringResource(R.string.history_detail_stat_draw_date),
             value = drawDate,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
         )
         HistoryDetailStatCard(
-            label = "Sheets",
+            label = stringResource(R.string.history_detail_stat_sheets),
             value = sheetsCount.toString(),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
         )
         HistoryDetailStatCard(
-            label = "Called",
+            label = stringResource(R.string.history_detail_stat_called),
             value = calledCount.toString(),
             modifier = Modifier
                 .weight(1f)
@@ -853,7 +869,10 @@ private fun HistoryDetailNumbersCalledCard(
     isCallLimitReached: Boolean,
 ) {
     HistoryDetailSectionCard {
-        HistoryDetailSectionTitle(title = "Numbers Called", trailing = "Live Feed")
+        HistoryDetailSectionTitle(
+            title = stringResource(R.string.history_detail_numbers_called),
+            trailing = stringResource(R.string.history_detail_live_feed),
+        )
         Spacer(modifier = Modifier.height(Dimens.spacing8))
         CalledHistoryPanel(
             modifier = Modifier.fillMaxWidth(),
@@ -883,7 +902,10 @@ private fun HistoryDetailMetaFooter(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Created ${formatHistoryDetailTimestamp(createdAtMillis)}",
+            text = stringResource(
+                R.string.history_detail_created_at,
+                formatHistoryDetailTimestamp(createdAtMillis),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
             maxLines = 1,
@@ -892,7 +914,10 @@ private fun HistoryDetailMetaFooter(
         )
         Spacer(modifier = Modifier.width(Dimens.spacing8))
         Text(
-            text = "Updated ${formatHistoryDetailTimestamp(updatedAtMillis)}",
+            text = stringResource(
+                R.string.history_detail_updated_at,
+                formatHistoryDetailTimestamp(updatedAtMillis),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
             maxLines = 1,
@@ -917,7 +942,7 @@ private fun HistoryDetailHeaderActions(
         IconButton(onClick = onShowQrClick) {
             Icon(
                 imageVector = Icons.Filled.QrCode2,
-                contentDescription = "Show QR",
+                contentDescription = stringResource(R.string.history_detail_show_qr_cd),
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         }
@@ -925,7 +950,7 @@ private fun HistoryDetailHeaderActions(
             IconButton(onClick = onLeaveLiveClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
-                    contentDescription = "Leave live",
+                    contentDescription = stringResource(R.string.history_detail_leave_live_cd),
                     tint = MaterialTheme.colorScheme.error,
                 )
             }
@@ -933,7 +958,7 @@ private fun HistoryDetailHeaderActions(
         IconButton(onClick = onDeleteClick) {
             Icon(
                 imageVector = Icons.Default.Delete,
-                contentDescription = "Delete",
+                contentDescription = stringResource(R.string.history_detail_delete_cd),
                 tint = MaterialTheme.colorScheme.error,
             )
         }
@@ -951,7 +976,11 @@ private fun HistoryDetailRoomPickerSheet(
     onCreateRoom: () -> Unit,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
-    val actionLabel = if (changingRoom) "Move" else "Add"
+    val actionLabel = if (changingRoom) {
+        stringResource(R.string.history_detail_move)
+    } else {
+        stringResource(R.string.common_add)
+    }
     AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -963,13 +992,17 @@ private fun HistoryDetailRoomPickerSheet(
                 .padding(horizontal = Dimens.spacing24, vertical = Dimens.spacing8),
         ) {
             Text(
-                text = if (changingRoom) "Change live room" else "Choose live room",
+                text = if (changingRoom) {
+                    stringResource(R.string.history_detail_change_room_title)
+                } else {
+                    stringResource(R.string.history_choose_live_room)
+                },
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = Dimens.spacing16),
             )
             if (rooms.isEmpty()) {
                 Text(
-                    text = "No active live rooms",
+                    text = stringResource(R.string.history_no_active_rooms),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Dimens.spacing12),
@@ -980,7 +1013,7 @@ private fun HistoryDetailRoomPickerSheet(
                         onCreateRoom()
                     },
                 ) {
-                    Text("Create live room")
+                    Text(stringResource(R.string.history_create_live_room))
                 }
             } else {
                 rooms.forEachIndexed { index, room ->
@@ -1009,7 +1042,11 @@ private fun HistoryDetailRoomPickerSheet(
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            text = if (isCurrent) "Current" else actionLabel,
+                            text = if (isCurrent) {
+                                stringResource(R.string.common_current)
+                            } else {
+                                actionLabel
+                            },
                             style = MaterialTheme.typography.labelLarge,
                             color = if (isCurrent) {
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
@@ -1025,7 +1062,7 @@ private fun HistoryDetailRoomPickerSheet(
                 onClick = onDismiss,
                 modifier = Modifier.align(Alignment.End),
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.settings_cancel))
             }
             Spacer(modifier = Modifier.height(Dimens.spacing8))
         }

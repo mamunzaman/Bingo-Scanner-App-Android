@@ -127,12 +127,13 @@ fun LiveRoomsScreen(
     }
 
     if (showCreateDialog) {
+        val defaultRoomName = stringResource(R.string.live_room_default_name, rooms.size + 1)
         CreateRoomDialog(
             roomName = newRoomName,
             onRoomNameChange = { newRoomName = it },
             onDismiss = { showCreateDialog = false },
             onCreate = {
-                val name = newRoomName.trim().ifBlank { "Room ${rooms.size + 1}" }
+                val name = newRoomName.trim().ifBlank { defaultRoomName }
                 viewModel.createRoom(name)
             },
             createEnabled = newRoomName.trim().isNotEmpty() && !isCreating,
@@ -218,9 +219,9 @@ private fun CreateRoomDialog(
 ) {
     AppConfirmDialog(
         visible = true,
-        title = "Create Room",
-        confirmText = "Create",
-        cancelText = "Cancel",
+        title = stringResource(R.string.live_nav_create_room_title),
+        confirmText = stringResource(R.string.common_create),
+        cancelText = stringResource(R.string.settings_cancel),
         showCancelButton = true,
         confirmEnabled = createEnabled,
         onConfirm = onCreate,
@@ -230,7 +231,7 @@ private fun CreateRoomDialog(
             AppTextField(
                 value = roomName,
                 onValueChange = onRoomNameChange,
-                placeholder = "Room name",
+                placeholder = stringResource(R.string.live_nav_room_name_placeholder),
                 singleLine = true
             )
             if (isLoading) {
@@ -343,7 +344,17 @@ private fun QuickActionTile(
     }
 }
 
-private val RECENT_ROOMS_SORT_OPTIONS = listOf("Newest", "Oldest", "Name A–Z", "Name Z–A")
+private enum class LiveRoomSortOption {
+    NEWEST, OLDEST, NAME_AZ, NAME_ZA
+}
+
+@Composable
+private fun liveRoomSortLabel(option: LiveRoomSortOption): String = when (option) {
+    LiveRoomSortOption.NEWEST -> stringResource(R.string.live_nav_sort_newest)
+    LiveRoomSortOption.OLDEST -> stringResource(R.string.live_nav_sort_oldest)
+    LiveRoomSortOption.NAME_AZ -> stringResource(R.string.live_nav_sort_name_az)
+    LiveRoomSortOption.NAME_ZA -> stringResource(R.string.live_nav_sort_name_za)
+}
 
 @Composable
 private fun RecentRoomsSection(
@@ -352,14 +363,15 @@ private fun RecentRoomsSection(
     onCreateRoomClick: () -> Unit = {}
 ) {
     var sortExpanded by remember { mutableStateOf(false) }
-    var selectedSort by remember { mutableStateOf("Newest") }
-    val sortLabel = "Sort by $selectedSort"
+    var selectedSort by remember { mutableStateOf(LiveRoomSortOption.NEWEST) }
+    val sortLabel = stringResource(R.string.live_nav_sort_by, liveRoomSortLabel(selectedSort))
+    val sortOptions = LiveRoomSortOption.entries
     val sortedRooms = remember(roomsWithStats, selectedSort) {
         when (selectedSort) {
-            "Oldest" -> roomsWithStats.sortedBy { it.room.createdAt }
-            "Name A–Z" -> roomsWithStats.sortedBy { it.room.name.lowercase() }
-            "Name Z–A" -> roomsWithStats.sortedByDescending { it.room.name.lowercase() }
-            else -> roomsWithStats.sortedByDescending { it.room.createdAt }
+            LiveRoomSortOption.OLDEST -> roomsWithStats.sortedBy { it.room.createdAt }
+            LiveRoomSortOption.NAME_AZ -> roomsWithStats.sortedBy { it.room.name.lowercase() }
+            LiveRoomSortOption.NAME_ZA -> roomsWithStats.sortedByDescending { it.room.name.lowercase() }
+            LiveRoomSortOption.NEWEST -> roomsWithStats.sortedByDescending { it.room.createdAt }
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)) {
@@ -409,9 +421,9 @@ private fun RecentRoomsSection(
                             .wrapContentWidth(Alignment.End)
                             .widthIn(min = 140.dp)
                     ) {
-                        RECENT_ROOMS_SORT_OPTIONS.forEach { option ->
+                        sortOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option) },
+                                text = { Text(liveRoomSortLabel(option)) },
                                 onClick = {
                                     sortExpanded = false
                                     selectedSort = option
@@ -442,16 +454,16 @@ private fun RecentRoomsSection(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = "No rooms yet",
+                    text = stringResource(R.string.live_nav_empty_rooms_title),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Create a room to get started.",
+                    text = stringResource(R.string.live_nav_empty_rooms_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                 )
-                AppPrimaryButton(text = "Create room", onClick = onCreateRoomClick)
+                AppPrimaryButton(text = stringResource(R.string.live_nav_create_room_button), onClick = onCreateRoomClick)
             }
         }
         AnimatedVisibility(

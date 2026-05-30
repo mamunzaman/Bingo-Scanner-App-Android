@@ -54,6 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
@@ -127,22 +129,23 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
+    val copiedMessage = stringResource(R.string.common_copied_to_clipboard)
     AppConfirmDialog(
         visible = showLogoutDialog,
-        title = "Are you sure?",
-        message = "Do you want to continue?",
-        confirmText = "Confirm",
-        cancelText = "Cancel",
+        title = stringResource(R.string.settings_logout_title),
+        message = stringResource(R.string.settings_logout_message),
+        confirmText = stringResource(R.string.settings_confirm),
+        cancelText = stringResource(R.string.settings_cancel),
         onConfirm = { showLogoutDialog = false; onLogout() },
         onCancel = { showLogoutDialog = false },
         onDismiss = { showLogoutDialog = false }
     )
     AppConfirmDialog(
         visible = showDeleteAvatarDialog,
-        title = "Remove profile photo?",
-        message = "Your profile photo will be removed from your account.",
-        confirmText = "Remove",
-        cancelText = "Cancel",
+        title = stringResource(R.string.profile_remove_photo_title),
+        message = stringResource(R.string.profile_remove_photo_message),
+        confirmText = stringResource(R.string.common_remove),
+        cancelText = stringResource(R.string.settings_cancel),
         onConfirm = {
             showDeleteAvatarDialog = false
             onAvatarDelete()
@@ -164,12 +167,12 @@ fun ProfileScreen(
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
             topBar = {
                 AppTopBar(
-                    title = "Profile",
+                    title = stringResource(R.string.profile_title),
                     actions = {
                         IconButton(onClick = onSettings) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
+                                contentDescription = stringResource(R.string.settings_title),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -207,7 +210,11 @@ fun ProfileScreen(
                     onDeleteAvatar = { showDeleteAvatarDialog = true },
                 )
                 Text(
-                    text = if (hasAvatar) "Tap remove to delete photo" else "Tap photo to add",
+                    text = if (hasAvatar) {
+                        stringResource(R.string.profile_tap_remove_photo)
+                    } else {
+                        stringResource(R.string.profile_tap_add_photo)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Dimens.spacing8),
@@ -240,7 +247,7 @@ fun ProfileScreen(
                 )
                 authUserId?.takeIf { it.isNotBlank() }?.let { userId ->
                     Text(
-                        text = "ID: $userId",
+                        text = stringResource(R.string.profile_id_format, userId),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp),
@@ -261,14 +268,14 @@ fun ProfileScreen(
                     )
                     Spacer(modifier = Modifier.size(4.dp))
                     Text(
-                        text = "Eco-Warrior Level 5",
+                        text = stringResource(R.string.profile_eco_warrior_level, 5),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 Text(
-                    text = "Impact Member since June 2023",
+                    text = stringResource(R.string.profile_impact_member_since, "June 2023"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -288,7 +295,7 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "TOTAL WINS",
+                        text = stringResource(R.string.profile_total_wins_label),
                         style = AppTextStyles.sectionLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -310,7 +317,7 @@ fun ProfileScreen(
                         )
                     }
                     Text(
-                        text = "+2 this week",
+                        text = stringResource(R.string.profile_wins_this_week, 2),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
@@ -327,7 +334,7 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "TREES PLANTED",
+                        text = stringResource(R.string.profile_trees_planted_label),
                         style = AppTextStyles.sectionLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -349,7 +356,7 @@ fun ProfileScreen(
                         )
                     }
                     Text(
-                        text = "+5 this month",
+                        text = stringResource(R.string.profile_trees_this_month, 5),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
@@ -362,12 +369,12 @@ fun ProfileScreen(
                 onCopyClick = {
                     clipboardManager.setText(AnnotatedString("bingo.eco/live/j28k-92"))
                     scope.launch {
-                        snackbarHostState.showSnackbar("Copied to clipboard")
+                        snackbarHostState.showSnackbar(copiedMessage)
                     }
                 }
             )
             Text(
-                text = "SETTINGS & ACCOUNT",
+                text = stringResource(R.string.profile_settings_section),
                 style = AppTextStyles.sectionLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -377,33 +384,33 @@ fun ProfileScreen(
             Column(modifier = Modifier.fillMaxWidth()) {
                 ProfileMenuItem(
                     icon = Icons.Default.Person,
-                    title = "My Account",
+                    title = stringResource(R.string.profile_my_account),
                     onClick = onMyAccount
                 )
                 AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
                 ProfileMenuItem(
                     icon = Icons.Default.Payments,
-                    title = "Payment Methods",
+                    title = stringResource(R.string.profile_payment_methods),
                     onClick = {},
                     comingSoon = true,
                 )
                 AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
                 ProfileMenuItem(
                     icon = Icons.Default.History,
-                    title = "History",
+                    title = stringResource(R.string.history_title),
                     onClick = onHistory
                 )
                 AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
                 ProfileMenuItem(
                     icon = Icons.AutoMirrored.Filled.Help,
-                    title = "Support",
+                    title = stringResource(R.string.profile_support),
                     onClick = {},
                     comingSoon = true,
                 )
                 AppInsetDivider(startInset = profileMenuDividerStart, color = profileMenuDividerColor)
                 ProfileMenuItem(
                     icon = Icons.Default.Lock,
-                    title = "Change Password",
+                    title = stringResource(R.string.settings_change_password),
                     onClick = onChangePassword
                 )
             }
@@ -426,7 +433,7 @@ fun ProfileScreen(
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    text = "Logout",
+                    text = stringResource(R.string.settings_log_out),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = Secondary
@@ -454,7 +461,7 @@ private fun InviteParticipantsCard(
             .padding(24.dp)
     ) {
         Text(
-            text = "INVITE PARTICIPANTS",
+            text = stringResource(R.string.profile_invite_section),
             style = AppTextStyles.sectionLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -503,14 +510,14 @@ private fun InviteParticipantsCard(
                     IconButton(onClick = onCopyClick) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy",
+                            contentDescription = stringResource(R.string.common_copy_cd),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Share this code or QR with your players to join the session.",
+                    text = stringResource(R.string.profile_invite_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3

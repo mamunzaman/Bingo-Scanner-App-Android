@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — switch app language (Settings) and verify EN/DE strings on auth + Settings screens.
+**Goal:** Device QA — Phase 2 localized screens (EN/DE).
 
-**Verify:** Deutsch → Login/Register/Forgot/Change Password/Settings show German. English → same screens in English. Language dropdown still works. Other screens unchanged (still English).
+**Verify:** Settings → Deutsch → Home, Profile, History list/detail, Live Rooms, Live Play, Jackpot show German. Switch back to English. Filter/sort chips and dialogs localized on History. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** String resources for auth + Settings (EN/DE).
+**Previous:** Phase 2 core screen localization (7 screens).

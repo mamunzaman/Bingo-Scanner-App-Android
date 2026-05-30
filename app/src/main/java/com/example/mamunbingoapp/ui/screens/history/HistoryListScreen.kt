@@ -44,6 +44,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.mamunbingoapp.data.LiveRoom
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
@@ -117,31 +120,90 @@ fun HistoryListScreen(
     val allSelectedInRoom = remember(selectedSessionIds, selectedSessionsNotInRoom) {
         selectedSessionIds.isNotEmpty() && selectedSessionsNotInRoom.isEmpty()
     }
-    val combinedFilterOptions = buildList {
-        add(HistoryFilter.ALL.displayName)
-        add(HistorySourceFilter.OCR_IMPORTS.displayName)
-        add(HistorySourceFilter.MANUAL.displayName)
-        addAll(
-            HistoryFilter.entries
-                .filter { it != HistoryFilter.ALL }
-                .map { it.displayName }
-        )
-    }
+    val filterAllLabel = stringResource(R.string.history_filter_all)
+    val filterSavedLabel = stringResource(R.string.history_filter_saved)
+    val filterCompletedLabel = stringResource(R.string.history_filter_completed)
+    val filterArchivedLabel = stringResource(R.string.history_filter_archived)
+    val sourceOcrLabel = stringResource(R.string.history_source_ocr)
+    val sourceManualLabel = stringResource(R.string.history_source_manual)
+    val sortNewestLabel = stringResource(R.string.history_sort_newest)
+    val sortOldestLabel = stringResource(R.string.history_sort_oldest)
+    val sortNameAzLabel = stringResource(R.string.history_sort_name_az)
+    val sortDateLabel = stringResource(R.string.history_sort_date)
+    val searchPlaceholder = stringResource(R.string.history_search_placeholder)
+    val removedSnackbarMessage = stringResource(R.string.history_snackbar_removed_from_room)
+    val deletedSnackbarMessage = stringResource(R.string.history_snackbar_deleted)
+    val bulkInRoomInfoText = stringResource(R.string.history_bulk_already_in_room)
+    val unnamedSheetLabel = stringResource(R.string.history_unnamed_sheet)
+    val dateSavedLabel = stringResource(R.string.history_date_saved)
+    val dateScannedLabel = stringResource(R.string.history_date_scanned)
+    val combinedFilterOptions = listOf(
+        filterAllLabel,
+        sourceOcrLabel,
+        sourceManualLabel,
+        filterSavedLabel,
+        filterCompletedLabel,
+        filterArchivedLabel,
+    )
     val selectedCombinedFilter = if (selectedSourceFilter == HistorySourceFilter.ALL) {
-        selectedFilter.displayName
+        when (selectedFilter) {
+            HistoryFilter.ALL -> filterAllLabel
+            HistoryFilter.SAVED -> filterSavedLabel
+            HistoryFilter.COMPLETED -> filterCompletedLabel
+            HistoryFilter.ARCHIVED -> filterArchivedLabel
+        }
     } else {
-        selectedSourceFilter.displayName
-    }
-    val onCombinedFilterSelect: (String) -> Unit = { label ->
-        val sourceOption = HistorySourceFilter.entries.firstOrNull { it.displayName == label }
-        if (sourceOption != null && sourceOption != HistorySourceFilter.ALL) {
-            viewModel.setSourceFilter(sourceOption)
-            viewModel.setFilter(HistoryFilter.ALL)
-        } else {
-            viewModel.setSourceFilter(HistorySourceFilter.ALL)
-            viewModel.setFilter(HistoryFilter.entries.first { it.displayName == label })
+        when (selectedSourceFilter) {
+            HistorySourceFilter.OCR_IMPORTS -> sourceOcrLabel
+            HistorySourceFilter.MANUAL -> sourceManualLabel
+            else -> filterAllLabel
         }
     }
+    val onCombinedFilterSelect: (String) -> Unit = { label ->
+        when (label) {
+            sourceOcrLabel -> {
+                viewModel.setSourceFilter(HistorySourceFilter.OCR_IMPORTS)
+                viewModel.setFilter(HistoryFilter.ALL)
+            }
+            sourceManualLabel -> {
+                viewModel.setSourceFilter(HistorySourceFilter.MANUAL)
+                viewModel.setFilter(HistoryFilter.ALL)
+            }
+            filterSavedLabel -> {
+                viewModel.setSourceFilter(HistorySourceFilter.ALL)
+                viewModel.setFilter(HistoryFilter.SAVED)
+            }
+            filterCompletedLabel -> {
+                viewModel.setSourceFilter(HistorySourceFilter.ALL)
+                viewModel.setFilter(HistoryFilter.COMPLETED)
+            }
+            filterArchivedLabel -> {
+                viewModel.setSourceFilter(HistorySourceFilter.ALL)
+                viewModel.setFilter(HistoryFilter.ARCHIVED)
+            }
+            else -> {
+                viewModel.setSourceFilter(HistorySourceFilter.ALL)
+                viewModel.setFilter(HistoryFilter.ALL)
+            }
+        }
+    }
+    val sortOptions = listOf(sortNewestLabel, sortOldestLabel, sortNameAzLabel, sortDateLabel)
+    val sortLabelByOption = mapOf(
+        HistorySortOption.NEWEST to sortNewestLabel,
+        HistorySortOption.OLDEST to sortOldestLabel,
+        HistorySortOption.NAME_AZ to sortNameAzLabel,
+        HistorySortOption.DATE to sortDateLabel,
+    )
+    val selectedSortLabel = sortLabelByOption[selectedSort] ?: sortNewestLabel
+    val onSortSelect: (String) -> Unit = { label ->
+        HistorySortOption.entries.first { sortLabelByOption[it] == label }.let { viewModel.setSort(it) }
+    }
+    val filterCounts = mapOf(
+        filterAllLabel to counts.all,
+        filterSavedLabel to counts.saved,
+        filterCompletedLabel to counts.completed,
+        filterArchivedLabel to counts.archived,
+    )
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -167,9 +229,7 @@ fun HistoryListScreen(
                     onAddToRoomClick = {
                         if (selectedSessionsNotInRoom.isNotEmpty()) showRoomPicker = true
                     },
-                    inRoomInfoText = if (allSelectedInRoom) {
-                        "Selected sheets are already in a room. Remove first to add to another room."
-                    } else null,
+                    inRoomInfoText = if (allSelectedInRoom) bulkInRoomInfoText else null,
                     showRemoveFromRoom = filteredSessions.any { it.roomId != null },
                     removeFromRoomEnabled = selectedSessionIdsInRoom.isNotEmpty(),
                     removeCount = selectedSessionIdsInRoom.size,
@@ -187,14 +247,18 @@ fun HistoryListScreen(
             modifier = Modifier.padding(paddingValues),
             topBar = {
                 AppTopBar(
-                    title = "History",
+                    title = stringResource(R.string.history_title),
                     titleContent = if (selectionMode) {
                         {
                             Text(
                                 text = if (selectedSessionIds.isEmpty()) {
-                                    "Select items"
+                                    stringResource(R.string.history_select_items)
                                 } else {
-                                    "${selectedSessionIds.size} selected"
+                                    pluralStringResource(
+                                        R.plurals.history_selected_count,
+                                        selectedSessionIds.size,
+                                        selectedSessionIds.size,
+                                    )
                                 },
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.semantics { heading() }
@@ -227,13 +291,13 @@ fun HistoryListScreen(
                                         enabled = filteredSessions.isNotEmpty() &&
                                             selectedSessionIds.size < filteredSessions.size
                                     ) {
-                                        Text("Select all")
+                                        Text(stringResource(R.string.history_select_all))
                                     }
                                     TextButton(
                                         onClick = { selectedSessionIds = emptySet() },
                                         enabled = selectedSessionIds.isNotEmpty()
                                     ) {
-                                        Text("Clear")
+                                        Text(stringResource(R.string.history_clear_selection))
                                     }
                                 }
                             }
@@ -244,7 +308,7 @@ fun HistoryListScreen(
                                             selectionMode = true
                                             selectedSessionIds = emptySet()
                                         }) {
-                                            Text("Select")
+                                            Text(stringResource(R.string.history_select))
                                         }
                                     }
                                     IconButton(
@@ -258,7 +322,7 @@ fun HistoryListScreen(
                                             containerColor = MaterialTheme.colorScheme.primary,
                                             iconTint = MaterialTheme.colorScheme.onPrimary,
                                             shape = RoundedCornerShape(50),
-                                            contentDescription = "Add from photo",
+                                            contentDescription = stringResource(R.string.history_add_from_photo_cd),
                                         )
                                     }
                                 }
@@ -278,7 +342,7 @@ fun HistoryListScreen(
                         selectedSessionIds = emptySet()
                         showBulkLeaveConfirm = false
                         scope.launch {
-                            snackbarHostState.showSnackbar("Removed from room")
+                            snackbarHostState.showSnackbar(removedSnackbarMessage)
                         }
                     }
                 )
@@ -292,7 +356,7 @@ fun HistoryListScreen(
                         selectedSessionIds = emptySet()
                         showBulkDeleteConfirm = false
                         scope.launch {
-                            snackbarHostState.showSnackbar("Deleted from history")
+                            snackbarHostState.showSnackbar(deletedSnackbarMessage)
                         }
                     }
                 )
@@ -325,22 +389,15 @@ fun HistoryListScreen(
                                 variant = SearchHeaderVariant.SearchFilterSort,
                                 query = query,
                                 onQueryChange = viewModel::setQuery,
-                                placeholder = "Search sessions",
+                                placeholder = searchPlaceholder,
                                 filterOptions = combinedFilterOptions,
                                 selectedFilter = selectedCombinedFilter,
                                 onFilterSelect = onCombinedFilterSelect,
-                                sortOptions = HistorySortOption.entries.map { it.displayName },
-                                selectedSort = selectedSort.displayName,
-                                onSortSelect = { label ->
-                                    viewModel.setSort(HistorySortOption.entries.first { it.displayName == label })
-                                },
+                                sortOptions = sortOptions,
+                                selectedSort = selectedSortLabel,
+                                onSortSelect = onSortSelect,
                                 showFilterCounts = true,
-                                filterCounts = mapOf(
-                                    "All" to counts.all,
-                                    "Saved" to counts.saved,
-                                    "Completed" to counts.completed,
-                                    "Archived" to counts.archived
-                                ),
+                                filterCounts = filterCounts,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -357,8 +414,8 @@ fun HistoryListScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 EmptyHistoryState(
-                                    title = "No sessions yet",
-                                    subtitle = "Your played sessions will appear here.",
+                                    title = stringResource(R.string.history_empty_title),
+                                    subtitle = stringResource(R.string.history_empty_subtitle),
                                     icon = Icons.Default.History,
                                     actions = {
                                         EmptyHistoryActionCards(
@@ -408,8 +465,8 @@ fun HistoryListScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     EmptyHistoryState(
-                                        title = "No sessions yet",
-                                        subtitle = "Your played sessions will appear here.",
+                                        title = stringResource(R.string.history_empty_title),
+                                        subtitle = stringResource(R.string.history_empty_subtitle),
                                         icon = Icons.Default.History,
                                         actions = {
                                             EmptyHistoryActionCards(
@@ -430,8 +487,8 @@ fun HistoryListScreen(
                                         .padding(top = Dimens.spacing8)
                                 ) {
                                     EmptyHistoryState(
-                                        title = "No results",
-                                        subtitle = "Try a different search or filter.",
+                                        title = stringResource(R.string.history_no_results_title),
+                                        subtitle = stringResource(R.string.history_no_results_subtitle),
                                         icon = Icons.Default.History
                                     )
                                 }
@@ -446,14 +503,14 @@ fun HistoryListScreen(
                         )
                         val playedAt = item.session.effectivePlayedAtMillis()
                         val dateLabelPrefix =
-                            if (item.session.ocrSource.isNullOrBlank()) "Saved" else "Scanned"
+                            if (item.session.ocrSource.isNullOrBlank()) dateSavedLabel else dateScannedLabel
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = screenHPad)
                         ) {
                             HistorySheetCard(
-                                title = item.session.effectiveSheetName().ifEmpty { "Unnamed sheet" },
+                                title = item.session.effectiveSheetName().ifEmpty { unnamedSheetLabel },
                                 playedAtMillis = playedAt,
                                 dateLabelPrefix = dateLabelPrefix,
                                 serialNumber = item.session.serialNumber,
@@ -497,22 +554,15 @@ fun HistoryListScreen(
                                         variant = SearchHeaderVariant.SearchFilterSort,
                                         query = query,
                                         onQueryChange = viewModel::setQuery,
-                                        placeholder = "Search sessions",
+                                        placeholder = searchPlaceholder,
                                         filterOptions = combinedFilterOptions,
                                         selectedFilter = selectedCombinedFilter,
                                         onFilterSelect = onCombinedFilterSelect,
-                                        sortOptions = HistorySortOption.entries.map { it.displayName },
-                                        selectedSort = selectedSort.displayName,
-                                        onSortSelect = { label ->
-                                            viewModel.setSort(HistorySortOption.entries.first { it.displayName == label })
-                                        },
+                                        sortOptions = sortOptions,
+                                        selectedSort = selectedSortLabel,
+                                        onSortSelect = onSortSelect,
                                         showFilterCounts = true,
-                                        filterCounts = mapOf(
-                                            "All" to counts.all,
-                                            "Saved" to counts.saved,
-                                            "Completed" to counts.completed,
-                                            "Archived" to counts.archived
-                                        ),
+                                        filterCounts = filterCounts,
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     Box(
@@ -559,13 +609,13 @@ private fun AddToRoomPickerSheet(
                 .padding(horizontal = Dimens.spacing24, vertical = Dimens.spacing8)
         ) {
             Text(
-                text = "Choose live room",
+                text = stringResource(R.string.history_choose_live_room),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = Dimens.spacing16)
             )
             if (rooms.isEmpty()) {
                 Text(
-                    text = "No active live rooms",
+                    text = stringResource(R.string.history_no_active_rooms),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Dimens.spacing12)
@@ -576,7 +626,7 @@ private fun AddToRoomPickerSheet(
                         onCreateRoom()
                     }
                 ) {
-                    Text("Create live room")
+                    Text(stringResource(R.string.history_create_live_room))
                 }
             } else {
                 rooms.forEachIndexed { index, room ->
@@ -599,7 +649,7 @@ private fun AddToRoomPickerSheet(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = "Add",
+                            text = stringResource(R.string.common_add),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -611,7 +661,7 @@ private fun AddToRoomPickerSheet(
                 onClick = onDismiss,
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.settings_cancel))
             }
             Spacer(modifier = Modifier.height(Dimens.spacing8))
         }

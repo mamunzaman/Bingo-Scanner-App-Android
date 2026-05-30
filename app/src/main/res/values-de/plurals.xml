@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="home_active_tickets">
+        <item quantity="one">aktives Ticket</item>
+        <item quantity="other">aktive Tickets</item>
+    </plurals>
+    <plurals name="home_numbers_called">
+        <item quantity="one">Zahl gerufen</item>
+        <item quantity="other">Zahlen gerufen</item>
+    </plurals>
+    <plurals name="home_latest_numbers_count">
+        <item quantity="one">%1$d Zahl</item>
+        <item quantity="other">%1$d Zahlen</item>
+    </plurals>
+    <plurals name="home_latest_numbers_footer">
+        <item quantity="one">%1$d neueste Zahl</item>
+        <item quantity="other">%1$d neueste Zahlen</item>
+    </plurals>
+    <plurals name="history_selected_count">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <plurals name="live_play_ago_seconds">
+        <item quantity="one">vor %1$d Sek.</item>
+        <item quantity="other">vor %1$d Sek.</item>
+    </plurals>
+    <plurals name="live_play_ago_minutes">
+        <item quantity="one">vor %1$d Min.</item>
+        <item quantity="other">vor %1$d Min.</item>
+    </plurals>
+    <plurals name="live_play_ago_hours">
+        <item quantity="one">vor %1$d Std.</item>
+        <item quantity="other">vor %1$d Std.</item>
+    </plurals>
+</resources>

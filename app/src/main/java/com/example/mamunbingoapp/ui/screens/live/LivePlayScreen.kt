@@ -147,6 +147,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import kotlin.random.Random
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
@@ -205,18 +208,20 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@Composable
 private fun formatPlayDate(millis: Long): String {
-    if (millis <= 0L) return "Today"
+    if (millis <= 0L) return stringResource(R.string.common_today)
     return SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
 
 private suspend fun applyRoomCompletionEffects(
     snackbarHostState: SnackbarHostState,
     haptics: HapticFeedback,
+    roundCompleteMessage: String,
     onShowConfetti: () -> Unit
 ) {
     snackbarHostState.showSnackbar(
-        message = "Round complete • $MAX_LIVE_CALLS/$MAX_LIVE_CALLS",
+        message = roundCompleteMessage,
         duration = SnackbarDuration.Short
     )
     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -290,6 +295,14 @@ fun LivePlayScreen(
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
     val activity = context as? Activity
+    val roundCompleteSnackbarMessage = stringResource(
+        R.string.live_play_snackbar_round_complete,
+        MAX_LIVE_CALLS,
+        MAX_LIVE_CALLS
+    )
+    val newRoundSnackbarMessage = stringResource(R.string.live_play_snackbar_new_round)
+    val removedFromRoomSnackbarMessage = stringResource(R.string.history_snackbar_removed_from_room)
+    val deletedFromHistorySnackbarMessage = stringResource(R.string.history_snackbar_deleted)
     val keepScreenOnDuringGame by SettingsRepository.keepScreenOnDuringGameFlow
         .collectAsStateWithLifecycle(initialValue = true)
     DisposableEffect(keepScreenOnDuringGame) {
@@ -316,7 +329,11 @@ fun LivePlayScreen(
         val prev = lastStatus
         lastStatus = roomStatus
         if (prev == RoomStatus.RUNNING && roomStatus == RoomStatus.IDLE) {
-            applyRoomCompletionEffects(snackbarHostState, haptics) { showConfetti = true }
+            applyRoomCompletionEffects(
+                snackbarHostState,
+                haptics,
+                roundCompleteSnackbarMessage
+            ) { showConfetti = true }
         }
     }
 
@@ -327,7 +344,7 @@ fun LivePlayScreen(
     if (showInfoSheet) {
         RoomInfoBottomSheet(
             onDismiss = { showInfoSheet = false },
-            roomName = room?.name ?: "—",
+            roomName = room?.name ?: stringResource(R.string.common_em_dash),
             roomId = roomId,
             createdAt = room?.createdAt,
             ticketsCount = displaySheets.size,
@@ -361,10 +378,10 @@ fun LivePlayScreen(
     if (showLeaveRoomDialog) {
         AppConfirmDialog(
             visible = true,
-            title = "Leave room?",
-            message = "You can return anytime. Sheets will stay in the room.",
-            confirmText = "Leave",
-            cancelText = "Cancel",
+            title = stringResource(R.string.live_play_leave_room_title),
+            message = stringResource(R.string.live_play_leave_room_message),
+            confirmText = stringResource(R.string.common_leave),
+            cancelText = stringResource(R.string.settings_cancel),
             showCancelButton = true,
             onConfirm = {
                 showLeaveRoomDialog = false
@@ -377,10 +394,10 @@ fun LivePlayScreen(
     if (showDeleteRoomConfirm) {
         AppConfirmDialog(
             visible = true,
-            title = "Delete room?",
-            message = "This will delete the room and its called numbers. Tickets will NOT be deleted.",
-            confirmText = "Delete",
-            cancelText = "Cancel",
+            title = stringResource(R.string.live_play_delete_room_title),
+            message = stringResource(R.string.live_play_delete_room_message),
+            confirmText = stringResource(R.string.common_delete),
+            cancelText = stringResource(R.string.settings_cancel),
             showCancelButton = true,
             onConfirm = {
                 showDeleteRoomConfirm = false
@@ -405,7 +422,7 @@ fun LivePlayScreen(
             selectedTicketIds = emptySet()
             showLiveListBulkLeaveConfirm = false
             scope.launch {
-                snackbarHostState.showSnackbar("Removed from room")
+                snackbarHostState.showSnackbar(removedFromRoomSnackbarMessage)
             }
         }
     )
@@ -419,32 +436,34 @@ fun LivePlayScreen(
             selectedTicketIds = emptySet()
             showLiveListBulkDeleteConfirm = false
             scope.launch {
-                snackbarHostState.showSnackbar("Deleted from history")
+                snackbarHostState.showSnackbar(deletedFromHistorySnackbarMessage)
             }
         }
     )
     if (showCallCompleteDialog) {
         AlertDialog(
             onDismissRequest = onCallCompleteDismiss,
-            title = { Text("Call complete") },
-            text = { Text("$MAX_LIVE_CALLS numbers have been called. Calling has ended.") },
+            title = { Text(stringResource(R.string.live_play_call_complete_title)) },
+            text = { Text(stringResource(R.string.live_play_call_complete_message, MAX_LIVE_CALLS)) },
             confirmButton = {
-                TextButton(onClick = onCallCompleteDismiss) { Text("OK") }
+                TextButton(onClick = onCallCompleteDismiss) {
+                    Text(stringResource(R.string.import_ticket_scan_tips_dialog_ok))
+                }
             }
         )
     }
     if (showResetConfirm) {
         AppConfirmDialog(
             visible = true,
-            title = "Reset round?",
-            message = "This clears called numbers. Tickets remain assigned.",
-            confirmText = "Reset",
-            cancelText = "Cancel",
+            title = stringResource(R.string.live_play_reset_round_title),
+            message = stringResource(R.string.live_play_reset_round_message),
+            confirmText = stringResource(R.string.settings_reset_confirm),
+            cancelText = stringResource(R.string.settings_cancel),
             showCancelButton = true,
             onConfirm = {
                 onResetConfirm()
                 scope.launch {
-                    snackbarHostState.showSnackbar("New round started", duration = SnackbarDuration.Short)
+                    snackbarHostState.showSnackbar(newRoundSnackbarMessage, duration = SnackbarDuration.Short)
                 }
             },
             onCancel = onResetDismiss,
@@ -459,7 +478,7 @@ fun LivePlayScreen(
             onResetAnyway = {
                 onResetConfirm()
                 scope.launch {
-                    snackbarHostState.showSnackbar("New round started", duration = SnackbarDuration.Short)
+                    snackbarHostState.showSnackbar(newRoundSnackbarMessage, duration = SnackbarDuration.Short)
                 }
             },
             onDismiss = onResetDismiss,
@@ -481,7 +500,7 @@ fun LivePlayScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             LiveRoomTopBar(
-                title = room?.name ?: "Live Play",
+                title = room?.name ?: stringResource(R.string.live_play_title_fallback),
                 onBack = {
                     if (listSelectionMode) {
                         listSelectionMode = false
@@ -784,6 +803,11 @@ private fun LivePlayBottomArea(
     showNumberKeypad: Boolean,
     onToggleNumberKeypad: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val snackbarFinishOrResetMessage = stringResource(R.string.live_play_snackbar_finish_or_reset)
+    val snackbarRoomArchivedMessage = stringResource(R.string.live_play_snackbar_room_archived)
+    val snackbarInvalidNumberMessage = stringResource(R.string.live_play_snackbar_invalid_number)
+    val snackbarNumberRangeMessage = stringResource(R.string.live_play_snackbar_number_range)
     val actionGuard = remember { mutableStateOf(false) }
     val sizeWhenGuardSet = remember { mutableStateOf<Int?>(null) }
     fun releaseGuard() {
@@ -805,30 +829,30 @@ private fun LivePlayBottomArea(
         val raw = inputText.trim()
         val n = raw.toIntOrNull()
         if (calledNumbers.size >= MAX_LIVE_CALLS) {
-            scope.launch { snackbarHostState.showSnackbar("Round complete — Finish or Reset", duration = SnackbarDuration.Short) }
+            scope.launch { snackbarHostState.showSnackbar(snackbarFinishOrResetMessage, duration = SnackbarDuration.Short) }
             releaseGuard()
             return
         }
         when (effectiveStatus) {
             RoomStatus.FINISHED -> {
-                scope.launch { snackbarHostState.showSnackbar("Room archived — Reset to start again", duration = SnackbarDuration.Short) }
+                scope.launch { snackbarHostState.showSnackbar(snackbarRoomArchivedMessage, duration = SnackbarDuration.Short) }
                 releaseGuard()
                 return
             }
             RoomStatus.IDLE -> {
-                scope.launch { snackbarHostState.showSnackbar("Round complete — Finish or Reset", duration = SnackbarDuration.Short) }
+                scope.launch { snackbarHostState.showSnackbar(snackbarFinishOrResetMessage, duration = SnackbarDuration.Short) }
                 releaseGuard()
                 return
             }
             RoomStatus.RUNNING -> {
                 if (raw.isNotEmpty()) {
                     if (n == null) {
-                        scope.launch { snackbarHostState.showSnackbar("Invalid Bingo number", duration = SnackbarDuration.Short) }
+                        scope.launch { snackbarHostState.showSnackbar(snackbarInvalidNumberMessage, duration = SnackbarDuration.Short) }
                         releaseGuard()
                         return
                     }
                     if (n !in 1..75) {
-                        scope.launch { snackbarHostState.showSnackbar("Enter a number between 1 and 75", duration = SnackbarDuration.Short) }
+                        scope.launch { snackbarHostState.showSnackbar(snackbarNumberRangeMessage, duration = SnackbarDuration.Short) }
                         releaseGuard()
                         return
                     }
@@ -837,9 +861,14 @@ private fun LivePlayBottomArea(
                             onInputChange("")
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
+                            val alreadyCalledMessage = context.getString(
+                                R.string.live_play_snackbar_already_called,
+                                bingoLetter(n),
+                                n
+                            )
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    "${bingoLetter(n)}-$n already called",
+                                    alreadyCalledMessage,
                                     duration = SnackbarDuration.Short
                                 )
                             }
@@ -947,19 +976,19 @@ private fun LiveEmptyState(
             )
         }
         Text(
-            text = "No Bingo Sheets Yet",
+            text = stringResource(R.string.live_play_empty_sheets_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Add a ticket to start playing in this room.",
+            text = stringResource(R.string.live_play_empty_sheets_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(Dimens.spacing8))
         AppPrimaryButton(
-            text = "Add Ticket",
+            text = stringResource(R.string.live_play_add_ticket),
             onClick = onAddTicket,
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -979,25 +1008,38 @@ private fun LiveEmptyState(
             shape = RoundedCornerShape(Dimens.radiusCard)
         ) {
             Text(
-                text = "Manual Entry",
+                text = stringResource(R.string.live_nav_manual_entry),
                 style = MaterialTheme.typography.labelLarge
             )
         }
         Text(
-            text = "You can add multiple sheets and play live.",
+            text = stringResource(R.string.live_play_empty_sheets_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
         )
     }
 }
 
+@Composable
 private fun formatLastCalledAgo(lastCalledAtMillis: Long?, nowMillis: Long): String {
-    if (lastCalledAtMillis == null) return "00"
+    if (lastCalledAtMillis == null) return stringResource(R.string.live_play_no_call_placeholder)
     val elapsedSec = (nowMillis - lastCalledAtMillis) / 1000
     return when {
-        elapsedSec < 60 -> "${elapsedSec} sec ago"
-        elapsedSec < 3600 -> "${elapsedSec / 60} min ago"
-        else -> "${elapsedSec / 3600} h ago"
+        elapsedSec < 60 -> pluralStringResource(
+            R.plurals.live_play_ago_seconds,
+            elapsedSec.toInt(),
+            elapsedSec.toInt()
+        )
+        elapsedSec < 3600 -> pluralStringResource(
+            R.plurals.live_play_ago_minutes,
+            (elapsedSec / 60).toInt(),
+            (elapsedSec / 60).toInt()
+        )
+        else -> pluralStringResource(
+            R.plurals.live_play_ago_hours,
+            (elapsedSec / 3600).toInt(),
+            (elapsedSec / 3600).toInt()
+        )
     }
 }
 
@@ -1050,7 +1092,7 @@ private fun CalledBadge(
         border = androidx.compose.foundation.BorderStroke(1.dp, colorScheme.onPrimary.copy(alpha = 0.22f))
     ) {
         Text(
-            text = "$calledCount / $maxCount",
+            text = stringResource(R.string.live_play_called_count, calledCount, maxCount),
             style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = FontWeight.Medium
             ),
@@ -1097,14 +1139,14 @@ private fun HostControlBar(
             if (isFinished) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "ROUND COMPLETE",
+                        text = stringResource(R.string.live_play_round_complete_label),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                     Text(
-                        text = "Room archived",
+                        text = stringResource(R.string.live_play_room_archived),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -1114,7 +1156,7 @@ private fun HostControlBar(
             } else {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "ROUND COMPLETE",
+                        text = stringResource(R.string.live_play_round_complete_label),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -1156,7 +1198,10 @@ private fun HostControlBar(
                     shape = RoundedCornerShape(Dimens.radiusSmall),
                     elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp)
                 ) {
-                    Text("Finish", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold))
+                    Text(
+                        stringResource(R.string.live_play_finish),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
+                    )
                 }
                 Button(
                     onClick = onResetClick,
@@ -1174,7 +1219,10 @@ private fun HostControlBar(
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(Dimens.iconCompact), tint = colorScheme.primary)
                     Spacer(Modifier.width(Dimens.spacing8))
-                    Text("Reset", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                    Text(
+                        stringResource(R.string.settings_reset_confirm),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
         }
@@ -1335,7 +1383,7 @@ private fun LiveCallerCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
             ) {
-                LivePill(label = "LIVE", dot = true, dotAlpha = dotAlpha)
+                LivePill(label = stringResource(R.string.common_live_badge), dot = true, dotAlpha = dotAlpha)
                 Spacer(Modifier.weight(1f))
                 Box(
                     modifier = Modifier
@@ -1391,7 +1439,7 @@ private fun LiveCallerCard(
                         )
                     }
                     Text(
-                        text = lastCalled?.toString() ?: "00",
+                        text = lastCalled?.toString() ?: stringResource(R.string.live_play_no_call_placeholder),
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontFamily = LiveFonts.DMMono,
                             fontWeight = FontWeight.Bold,
@@ -1404,7 +1452,7 @@ private fun LiveCallerCard(
                         )
                     )
                     Text(
-                        text = "Last called: $lastCalledAgoText",
+                        text = stringResource(R.string.live_play_last_called, lastCalledAgoText),
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontFamily = LiveFonts.DMMono,
                             fontWeight = FontWeight.Normal
@@ -1455,7 +1503,7 @@ private fun CallANumberCard(
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
         ) {
             Text(
-                text = "CALL A NUMBER",
+                text = stringResource(R.string.live_play_call_a_number),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -1478,7 +1526,7 @@ private fun CallANumberCard(
                         .background(colorScheme.primaryContainer.copy(alpha = 0.5f))
                         .border(1.5.dp, colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(Dimens.radiusSmall))
                 ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan ticket", tint = colorScheme.primary, modifier = Modifier.size(Dimens.iconDefault))
+                    Icon(Icons.Default.QrCodeScanner, contentDescription = stringResource(R.string.live_play_scan_ticket_cd), tint = colorScheme.primary, modifier = Modifier.size(Dimens.iconDefault))
                 }
                 Row(
                     modifier = Modifier
@@ -1521,7 +1569,7 @@ private fun CallANumberCard(
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     if (inputText.isEmpty()) {
                                         Text(
-                                            "1 – 75",
+                                            stringResource(R.string.live_play_number_range_hint),
                                             color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
@@ -1555,7 +1603,13 @@ private fun CallANumberCard(
                         ),
                         elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp)
                     ) {
-                        Text("ENTER", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            stringResource(R.string.live_play_enter),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
                 IconButton(
@@ -1568,7 +1622,7 @@ private fun CallANumberCard(
                         .background(colorScheme.primaryContainer.copy(alpha = 0.5f))
                         .border(1.5.dp, colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(Dimens.radiusSmall))
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo last call", tint = colorScheme.primary, modifier = Modifier.size(Dimens.iconDefault))
+                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(R.string.live_play_undo_cd), tint = colorScheme.primary, modifier = Modifier.size(Dimens.iconDefault))
                 }
             }
         }
@@ -1701,7 +1755,7 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
                         softWrap = false
                     )
                     Text(
-                        text = "Marked: ${sheet.markedCount}/25",
+                        text = stringResource(R.string.live_play_marked_count, sheet.markedCount),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = if (isWin) WarningText else MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -1743,8 +1797,16 @@ private fun ListSheetRow(
     onSelectionToggle: () -> Unit = {}
 ) {
     val miniGrid = if (cells.size == 25) cells.map { it.isMarked } else List(25) { false }
-    val safeSerial = serialNumber?.takeIf { it.isNotBlank() } ?: "--"
-    val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: "--"
+    val placeholderDash = stringResource(R.string.common_placeholder_dash)
+    val safeSerial = serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val serialLabel = stringResource(R.string.live_play_label_serial)
+    val losLabel = stringResource(R.string.live_play_label_los)
+    val markedLabel = stringResource(R.string.live_play_label_marked)
+    val selectedA11yLabel = stringResource(
+        if (selected) R.string.live_play_a11y_selected else R.string.live_play_a11y_not_selected
+    )
+    val markedCount = marked.substringBefore('/').toIntOrNull() ?: 0
     val rowShape = RoundedCornerShape(Dimens.radiusSmall)
     val borderWidth = if (selectionMode && selected) 2.dp else Dimens.cardBorderDefault
     val borderColor = if (selectionMode && selected) {
@@ -1765,15 +1827,16 @@ private fun ListSheetRow(
         interactionSource = remember { MutableInteractionSource() },
         onClick = rowGo
     )
+    val rowContentDescription = if (selectionMode) {
+        stringResource(R.string.live_play_a11y_sheet_select, title, selectedA11yLabel)
+    } else {
+        stringResource(R.string.live_play_a11y_sheet_open, title, markedCount)
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
-                contentDescription = if (selectionMode) {
-                    "$title, ${if (selected) "selected" else "not selected"}. Double tap to toggle."
-                } else {
-                    "$title, Marked $marked. Double tap to open."
-                }
+                contentDescription = rowContentDescription
             }
             .clip(rowShape)
             .border(width = borderWidth, color = borderColor, shape = rowShape)
@@ -1815,7 +1878,7 @@ private fun ListSheetRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Scanned: $scannedDate",
+                        text = stringResource(R.string.live_play_scanned_date, scannedDate),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                         maxLines = 1,
@@ -1840,19 +1903,19 @@ private fun ListSheetRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             ListSheetInfoCell(
-                label = "SERIAL",
+                label = serialLabel,
                 value = safeSerial,
                 modifier = Modifier.weight(1f)
             )
             ListSheetVerticalDivider()
             ListSheetInfoCell(
-                label = "LOS",
+                label = losLabel,
                 value = safeLos,
                 modifier = Modifier.weight(1f)
             )
             ListSheetVerticalDivider()
             ListSheetInfoCell(
-                label = "MARKED",
+                label = markedLabel,
                 value = marked,
                 modifier = Modifier.weight(1f),
                 valueColor = MaterialTheme.colorScheme.primary,
@@ -1914,9 +1977,14 @@ private fun ResumeAutoCallBanner(roomId: String, onResume: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Resume Auto-Call?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+        Text(
+            stringResource(R.string.live_play_resume_auto_call_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
         Button(onClick = onResume, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
-            Text("Resume")
+            Text(stringResource(R.string.live_play_resume))
         }
     }
 }
@@ -1937,8 +2005,15 @@ private fun SheetDetailBottomSheet(
     val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
     val winResult = BingoWinChecker.check(markedSet)
     val scannedDate = formatPlayDate(sheet.playedAtMillis)
-    val metaSerial = sheet.serialNumber?.takeIf { it.isNotBlank() } ?: "--"
-    val metaLos = sheet.losNumber?.takeIf { it.isNotBlank() } ?: "--"
+    val placeholderDash = stringResource(R.string.common_placeholder_dash)
+    val metaSerial = sheet.serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val metaLos = sheet.losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val serialLabel = stringResource(R.string.live_play_label_serial)
+    val losLabel = stringResource(R.string.live_play_label_los)
+    val scannedLabel = stringResource(R.string.live_play_label_scanned)
+    val qrNotReadyMessage = stringResource(R.string.live_play_qr_not_ready)
+    val qrEncodeFailedMessage = stringResource(R.string.live_play_qr_encode_failed)
+    val qrImageFailedMessage = stringResource(R.string.live_play_qr_image_failed)
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var showTicketQr by remember { mutableStateOf(false) }
@@ -2036,7 +2111,7 @@ private fun SheetDetailBottomSheet(
                                         ticketQrBitmap = null
                                         ticketQrError = null
                                         if (gridCells.isEmpty() || gridCells.size < 25) {
-                                            ticketQrError = "This sheet is not ready to share as a QR code yet."
+                                            ticketQrError = qrNotReadyMessage
                                             ticketQrLoading = false
                                             return@launch
                                         }
@@ -2058,7 +2133,7 @@ private fun SheetDetailBottomSheet(
                                         if (encoded.isFailure) {
                                             ticketQrBitmap = null
                                             ticketQrError = encoded.exceptionOrNull()?.message
-                                                ?: "Could not encode this sheet for QR."
+                                                ?: qrEncodeFailedMessage
                                             ticketQrLoading = false
                                             return@launch
                                         }
@@ -2074,7 +2149,7 @@ private fun SheetDetailBottomSheet(
                                             onFailure = { e ->
                                                 ticketQrBitmap = null
                                                 ticketQrError = e.message
-                                                    ?: "Could not build the QR image."
+                                                    ?: qrImageFailedMessage
                                             }
                                         )
                                     }
@@ -2084,12 +2159,12 @@ private fun SheetDetailBottomSheet(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.QrCode2,
-                                    contentDescription = "Show ticket QR",
+                                    contentDescription = stringResource(R.string.live_play_show_qr_cd),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                             Text(
-                                text = "Marked ${sheet.markedCount}/25",
+                                text = stringResource(R.string.live_play_marked_count_compact, sheet.markedCount),
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
@@ -2105,19 +2180,19 @@ private fun SheetDetailBottomSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             SheetPreviewInfoCell(
-                                label = "SERIAL",
+                                label = serialLabel,
                                 value = metaSerial,
                                 modifier = Modifier.weight(1f)
                             )
                             ListSheetVerticalDivider()
                             SheetPreviewInfoCell(
-                                label = "LOS",
+                                label = losLabel,
                                 value = metaLos,
                                 modifier = Modifier.weight(1f)
                             )
                             ListSheetVerticalDivider()
                             SheetPreviewInfoCell(
-                                label = "SCANNED",
+                                label = scannedLabel,
                                 value = scannedDate,
                                 modifier = Modifier.weight(1f)
                             )
@@ -2157,7 +2232,7 @@ private fun SheetDetailBottomSheet(
                     )
                 ) {
                     Text(
-                        "View full detail",
+                        stringResource(R.string.live_play_view_full_detail),
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
@@ -2270,25 +2345,25 @@ private fun RoomSettingsBottomSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                "Room settings",
+                stringResource(R.string.live_play_room_settings_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Auto-call numbers")
+                Text(stringResource(R.string.live_play_auto_call_toggle))
                 Switch(
                     checked = settings?.isRunning == true,
                     onCheckedChange = { if (!isCallLimitReached) RoomTimerManager.setAutoCallRunning(roomId, it) },
                     enabled = !isCallLimitReached
                 )
             }
-            AppSectionTitle(text = "Interval (seconds)", uppercase = false, usePrimaryColor = false)
+            AppSectionTitle(text = stringResource(R.string.live_play_interval_seconds), uppercase = false, usePrimaryColor = false)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 8, 10).forEach { sec ->
                     OutlinedButton(onClick = { RoomTimerManager.setInterval(roomId, sec) }) {
-                        Text("${sec}s")
+                        Text(stringResource(R.string.live_play_interval_seconds_value, sec))
                     }
                 }
             }
@@ -2298,7 +2373,7 @@ private fun RoomSettingsBottomSheet(
                 thickness = 1.dp,
             )
             AppSectionTitle(
-                text = "Danger zone",
+                text = stringResource(R.string.live_play_danger_zone),
                 uppercase = false,
                 usePrimaryColor = false,
                 color = MaterialTheme.colorScheme.error,
@@ -2310,7 +2385,10 @@ private fun RoomSettingsBottomSheet(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 shape = RoundedCornerShape(Dimens.radiusCard)
             ) {
-                Text("Delete Room", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
+                Text(
+                    stringResource(R.string.live_play_delete_room_button),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
         }
     }
@@ -2411,14 +2489,14 @@ private fun LiveResetCalledNumbersDialog(
             ) {
                 Column(modifier = Modifier.padding(Dimens.spacing24)) {
                     Text(
-                        text = "Called numbers will be lost",
+                        text = stringResource(R.string.live_play_reset_protection_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing8))
                     Text(
-                        text = "This room already has called numbers. These may be your original live game record.",
+                        text = stringResource(R.string.live_play_reset_protection_message),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2435,7 +2513,7 @@ private fun LiveResetCalledNumbersDialog(
                         border = BorderStroke(Dimens.cardBorderDefault, MaterialTheme.colorScheme.primary),
                     ) {
                         Text(
-                            text = "Cancel",
+                            text = stringResource(R.string.settings_cancel),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                         )
@@ -2453,7 +2531,7 @@ private fun LiveResetCalledNumbersDialog(
                         ),
                     ) {
                         Text(
-                            text = "Start New Room",
+                            text = stringResource(R.string.live_play_start_new_room),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                         )
@@ -2471,7 +2549,7 @@ private fun LiveResetCalledNumbersDialog(
                         ),
                     ) {
                         Text(
-                            text = "Reset Anyway",
+                            text = stringResource(R.string.live_play_reset_anyway),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                         )

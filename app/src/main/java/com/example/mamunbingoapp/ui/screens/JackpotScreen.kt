@@ -76,7 +76,7 @@ fun JackpotScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No Bingo Sheets Yet",
+                        text = stringResource(R.string.live_play_empty_sheets_title),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -117,6 +117,7 @@ private fun StartResumeCard(
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(Dimens.radiusCard)
+    val todayLabel = stringResource(R.string.common_today)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -138,7 +139,7 @@ private fun StartResumeCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.live_nav_start_resume_subtitle, "Today", sheetCount, calledCount),
+                text = stringResource(R.string.live_nav_start_resume_subtitle, todayLabel, sheetCount, calledCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
