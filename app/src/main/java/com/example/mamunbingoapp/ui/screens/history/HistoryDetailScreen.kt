@@ -87,6 +87,7 @@ import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.LiveRoom
+import com.example.mamunbingoapp.data.TicketPlayLog
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.theme.Dimens
@@ -99,6 +100,7 @@ import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.ui.components.BingoDetailGridCard
 import com.example.mamunbingoapp.ui.components.CompactAlmostBingoRow
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
+import com.example.mamunbingoapp.ui.components.TicketPlayLogSection
 import com.example.mamunbingoapp.domain.model.QrTicketPayload
 import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
@@ -195,6 +197,7 @@ fun HistoryDetailScreen(
     session: HistorySession?,
     calledNumbers: List<Int> = emptyList(),
     cells: List<BingoCellUi>? = null,
+    playLogs: List<TicketPlayLog> = emptyList(),
     assignedRoomId: String? = null,
     sheetStatus: SheetStatus = SheetStatus.IDLE,
     isLoading: Boolean = false,
@@ -587,6 +590,14 @@ fun HistoryDetailScreen(
                                     historyDetailPlainGrid = true,
                                 )
                             }
+                        }
+                    }
+                    if (playLogs.isNotEmpty()) {
+                        item {
+                            TicketPlayLogSection(
+                                playLogs = playLogs,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     }
                     item {

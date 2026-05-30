@@ -36,4 +36,12 @@
         <item quantity="one">%1$s · need %2$d more number</item>
         <item quantity="other">%1$s · need %2$d more numbers</item>
     </plurals>
+    <plurals name="ticket_play_log_called_count">
+        <item quantity="one">%1$d number called</item>
+        <item quantity="other">%1$d numbers called</item>
+    </plurals>
+    <plurals name="ticket_play_log_result_bingo">
+        <item quantity="one">Bingo (%1$d line)</item>
+        <item quantity="other">Bingo (%1$d lines)</item>
+    </plurals>
 </resources>

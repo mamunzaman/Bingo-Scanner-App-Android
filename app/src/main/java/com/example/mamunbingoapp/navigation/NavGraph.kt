@@ -1223,6 +1223,7 @@ fun NavGraph(
                 session = detailState.session,
                 calledNumbers = detailState.calledNumbers,
                 cells = detailState.cells,
+                playLogs = detailState.playLogs,
                 assignedRoomId = detailState.assignedRoomId,
                 sheetStatus = detailState.sheetStatus,
                 isLoading = detailState.isLoading,
@@ -1406,6 +1407,7 @@ fun NavGraph(
                 playedAtMillis = ticketData?.playedAtMillis ?: System.currentTimeMillis(),
                 cells = ticketData?.cells ?: fallbackCells,
                 calledNumbers = ticketData?.calledNumbers ?: emptyList(),
+                playLogs = ticketData?.playLogs ?: emptyList(),
                 serialNumber = ticketData?.serialNumber,
                 losNumber = ticketData?.losNumber
             )

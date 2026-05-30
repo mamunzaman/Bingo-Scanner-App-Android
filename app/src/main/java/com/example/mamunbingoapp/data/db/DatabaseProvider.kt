@@ -41,6 +41,28 @@ object DatabaseProvider {
         }
     }
 
+    private val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS ticket_play_logs (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    ticketId TEXT NOT NULL,
+                    roomId TEXT NOT NULL,
+                    roomName TEXT NOT NULL,
+                    addedAt INTEGER NOT NULL,
+                    archivedAt INTEGER NOT NULL,
+                    drawDate TEXT,
+                    calledNumbersSnapshot TEXT NOT NULL,
+                    markedCount INTEGER NOT NULL DEFAULT 0,
+                    bingoLineCount INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_ticket_play_logs_ticketId ON ticket_play_logs(ticketId)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_ticket_play_logs_roomId ON ticket_play_logs(roomId)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_ticket_play_logs_archivedAt ON ticket_play_logs(archivedAt)")
+        }
+    }
+
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("""
@@ -72,7 +94,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "mamun_bingo_db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }

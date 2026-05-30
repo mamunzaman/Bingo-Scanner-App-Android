@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Tag **v0.10** after device QA on DE locale + error-message paths.
+**Goal:** Device QA — Live room reset/archive flow on `feature/live-room-reset-archive`.
 
-**Verify:** Settings → Deutsch — active ticket chips, My Tickets filters (Alle/Heute/Woche), called-numbers sheet title, home remote errors, QR failure dialogs (no raw exception text). `./gradlew :app:assembleDebug` OK.
+**Verify:** Add 2 tickets → call numbers → reset room → room empty, tickets preserved, History/Ticket detail shows play log + archived called numbers. Re-add ticket → fresh game. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** v0.10 pre-tag i18n/runtime cleanup — ActiveTicketCard, TicketFilter, CalledNumbersDetailSheet, HomeViewModel + QR safe errors.
+**Previous:** Live room reset archives play logs, unassigns tickets, clears called numbers; `ticket_play_logs` DB v8.

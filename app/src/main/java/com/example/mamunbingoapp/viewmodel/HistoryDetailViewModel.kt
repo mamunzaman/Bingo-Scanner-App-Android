@@ -10,6 +10,8 @@ import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.RoomRepository
+import com.example.mamunbingoapp.data.TicketPlayLog
+import com.example.mamunbingoapp.data.TicketPlayLogRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.core.MAX_CALLED_NUMBERS
 import com.example.mamunbingoapp.core.RoomStatusResolver
@@ -39,7 +41,8 @@ data class HistoryDetailAddToLivePlayHandoff(
 
 private data class SessionWithAssignedRoom(
     val session: HistorySession?,
-    val assignedRoomId: String?
+    val assignedRoomId: String?,
+    val playLogs: List<TicketPlayLog> = emptyList(),
 )
 
 data class HistoryDetailUiState(
@@ -52,6 +55,7 @@ data class HistoryDetailUiState(
     val sheetStatus: SheetStatus = SheetStatus.IDLE,
     val calledNumbers: List<Int> = emptyList(),
     val cells: List<BingoCellUi>? = null,
+    val playLogs: List<TicketPlayLog> = emptyList(),
     val errorMessage: String? = null,
     val showRoomConflictDialog: Boolean = false,
     val conflictExistingRoomId: String? = null,
@@ -76,14 +80,22 @@ class HistoryDetailViewModel(
         HistoryRepository.observeSession(sessionId)
             .flatMapLatest { session ->
                 val tid = session?.ticketId
-                if (tid.isNullOrBlank()) flowOf(SessionWithAssignedRoom(session, null))
-                else RoomRepository.assignedRoomIdFlow(tid).map { rid ->
-                    SessionWithAssignedRoom(session, rid)
+                if (tid.isNullOrBlank()) {
+                    flowOf(SessionWithAssignedRoom(session, null))
+                } else {
+                    combine(
+                        RoomRepository.assignedRoomIdFlow(tid),
+                        TicketPlayLogRepository.observeForTicket(tid),
+                    ) { rid, playLogs ->
+                        SessionWithAssignedRoom(session, rid, playLogs)
+                    }
                 }
             }
             .flatMapLatest { holder ->
                 val session = holder.session
                 val assignedRoomId = holder.assignedRoomId
+                val playLogs = holder.playLogs
+                val archivedCalledNumbers = playLogs.maxByOrNull { it.archivedAt }?.calledNumbers.orEmpty()
                 when {
                     session == null -> flowOf(
                         HistoryDetailUiState(
@@ -95,11 +107,18 @@ class HistoryDetailViewModel(
                             sheetStatus = SheetStatus.IDLE,
                             calledNumbers = emptyList(),
                             cells = null,
+                            playLogs = emptyList(),
                             errorMessage = app.getString(R.string.history_detail_session_not_found)
                         )
                     )
                     assignedRoomId == null -> TicketRepository.ticketCellsFlow(session.ticketId).map { cells ->
-                        val calledCount = session.calledNumbersFull.size
+                        val calledNumbers = archivedCalledNumbers.ifEmpty { session.calledNumbersFull }
+                        val calledCount = calledNumbers.size
+                        val calledSet = calledNumbers.toSet()
+                        val merged = cells.map { c ->
+                            val num = c.number?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
+                            c.copy(isMarked = (num != null && num in calledSet) || c.isMarked)
+                        }
                         val sheetStatus = when {
                             calledCount == 0 -> SheetStatus.IDLE
                             calledCount >= MAX_CALLED_NUMBERS -> SheetStatus.COMPLETED
@@ -112,8 +131,9 @@ class HistoryDetailViewModel(
                             assignedRoomId = null,
                             roomStatus = null,
                             sheetStatus = sheetStatus,
-                            calledNumbers = session.calledNumbersFull,
-                            cells = cells.takeIf { it.size == MAX_CALLED_NUMBERS },
+                            calledNumbers = calledNumbers,
+                            cells = merged.takeIf { it.size == MAX_CALLED_NUMBERS },
+                            playLogs = playLogs,
                             errorMessage = null
                         )
                     }
@@ -124,8 +144,8 @@ class HistoryDetailViewModel(
                         val roomStatus = RoomStatusResolver.resolve(called.size)
                         val calledSet = called.toSet()
                         val merged = baseCells.map { c ->
-                            val num = c.number?.toIntOrNull()
-                            c.copy(isMarked = num != null && num in calledSet)
+                            val num = c.number?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
+                            c.copy(isMarked = (num != null && num in calledSet) || c.isMarked)
                         }
                         val sheetStatus = when (roomStatus) {
                             RoomStatus.RUNNING -> SheetStatus.ACTIVE
@@ -141,6 +161,7 @@ class HistoryDetailViewModel(
                             sheetStatus = sheetStatus,
                             calledNumbers = called,
                             cells = merged.takeIf { it.size == MAX_CALLED_NUMBERS },
+                            playLogs = playLogs,
                             errorMessage = null
                         )
                     }

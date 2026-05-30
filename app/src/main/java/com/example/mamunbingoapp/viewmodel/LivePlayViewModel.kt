@@ -252,8 +252,7 @@ class LivePlayViewModel(
     fun onResetConfirm() {
         val rid = currentRoomId.value ?: return
         viewModelScope.launch {
-            RoomRepository.resetCalledNumbers(rid)
-            RoomRepository.setRoomArchived(rid, false)
+            RoomRepository.archiveAndResetRoom(rid)
             _showResetConfirm.value = false
             _showResetProtectionDialog.value = false
         }

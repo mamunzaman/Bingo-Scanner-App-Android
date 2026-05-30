@@ -23,6 +23,7 @@ data class TicketDetailData(
     val calledNumbers: List<Int>,
     val losNumber: String? = null,
     val serialNumber: String? = null,
+    val playLogs: List<TicketPlayLog> = emptyList(),
 )
 
 object HistoryRepository {
