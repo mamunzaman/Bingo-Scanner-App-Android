@@ -104,6 +104,8 @@
     <string name="home_results">Ergebnisse</string>
     <string name="home_help">Hilfe</string>
     <string name="home_active_tickets">Aktive Tickets</string>
+    <string name="home_active_ticket_archived_result">Archiviertes Ergebnis</string>
+    <string name="home_active_ticket_test_date_result">Testdatum-Ergebnis</string>
     <string name="home_active_ticket_status_live_room">Live-Raum</string>
     <string name="home_active_ticket_status_saved">Gespeichertes Ticket</string>
     <string name="home_error_load_prizes">Preise konnten nicht geladen werden.</string>
@@ -227,6 +229,15 @@
     <string name="history_detail_live_feed">Live-Feed</string>
     <string name="history_detail_created_at">Erstellt %1$s</string>
     <string name="history_detail_updated_at">Aktualisiert %1$s</string>
+    <string name="history_detail_change_test_date">Testdatum ändern</string>
+    <string name="history_detail_test_date_label">Temporäres Testdatum (Debug)</string>
+    <string name="history_detail_test_date_active">Testdatum: %1$s</string>
+    <string name="history_detail_test_date_draw">Ziehung: %1$s</string>
+    <string name="history_detail_test_date_no_draw">Keine Ziehung für die gewählte Woche. Gespeichertes Ergebnis wird angezeigt.</string>
+    <string name="history_detail_test_date_load_error">Ziehung für das gewählte Datum konnte nicht geladen werden. Gespeichertes Ergebnis wird angezeigt.</string>
+    <string name="history_detail_test_date_loading">Ziehung für Testdatum wird geladen…</string>
+    <string name="history_detail_test_date_clear">Testdatum löschen</string>
+    <string name="history_detail_test_date_ok">OK</string>
     <string name="history_detail_copy_ticket_cd">Ticket-ID kopieren</string>
     <string name="history_detail_show_qr_cd">QR anzeigen</string>
     <string name="history_detail_leave_live_cd">Live verlassen</string>

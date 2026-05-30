@@ -58,6 +58,8 @@
     <string name="home_results">Results</string>
     <string name="home_help">Help</string>
     <string name="home_active_tickets">Active Tickets</string>
+    <string name="home_active_ticket_archived_result">Archived result</string>
+    <string name="home_active_ticket_test_date_result">Test date result</string>
     <string name="home_active_ticket_status_live_room">Live room</string>
     <string name="home_active_ticket_status_saved">Saved ticket</string>
     <string name="home_error_load_prizes">Could not load prizes.</string>
@@ -334,6 +336,15 @@
     <string name="history_detail_live_feed">Live Feed</string>
     <string name="history_detail_created_at">Created %1$s</string>
     <string name="history_detail_updated_at">Updated %1$s</string>
+    <string name="history_detail_change_test_date">Change test date</string>
+    <string name="history_detail_test_date_label">Temporary test date (debug)</string>
+    <string name="history_detail_test_date_active">Test date: %1$s</string>
+    <string name="history_detail_test_date_draw">Draw: %1$s</string>
+    <string name="history_detail_test_date_no_draw">No draw found for the selected week. Showing saved result.</string>
+    <string name="history_detail_test_date_load_error">Could not load draw for the selected date. Showing saved result.</string>
+    <string name="history_detail_test_date_loading">Loading draw for test date…</string>
+    <string name="history_detail_test_date_clear">Clear test date</string>
+    <string name="history_detail_test_date_ok">OK</string>
     <string name="history_detail_copy_ticket_cd">Copy ticket id</string>
     <string name="history_detail_show_qr_cd">Show QR</string>
     <string name="history_detail_leave_live_cd">Leave live</string>

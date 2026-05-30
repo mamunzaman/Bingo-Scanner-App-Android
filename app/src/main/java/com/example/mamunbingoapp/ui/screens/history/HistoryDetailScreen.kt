@@ -198,6 +198,12 @@ fun HistoryDetailScreen(
     calledNumbers: List<Int> = emptyList(),
     cells: List<BingoCellUi>? = null,
     playLogs: List<TicketPlayLog> = emptyList(),
+    testDateMillis: Long? = null,
+    testDrawDateLabel: String? = null,
+    testDateInfoMessage: String? = null,
+    isTestDateLoading: Boolean = false,
+    onChangeTestDate: (Long) -> Unit = {},
+    onClearTestDate: () -> Unit = {},
     assignedRoomId: String? = null,
     sheetStatus: SheetStatus = SheetStatus.IDLE,
     isLoading: Boolean = false,
@@ -226,6 +232,7 @@ fun HistoryDetailScreen(
     val scope = rememberCoroutineScope()
     var showLeaveLiveDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTestDatePicker by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
     var showRoomPicker by remember { mutableStateOf(false) }
     var qrErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -417,6 +424,33 @@ fun HistoryDetailScreen(
             }
         )
     }
+    if (showTestDatePicker) {
+        val initialMillis = testDateMillis ?: sessionForDisplay.effectivePlayedAtMillis()
+        val datePickerState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = initialMillis,
+            initialDisplayedMonthMillis = initialMillis,
+        )
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showTestDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let(onChangeTestDate)
+                        showTestDatePicker = false
+                    }
+                ) {
+                    Text(stringResource(R.string.history_detail_test_date_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTestDatePicker = false }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        ) {
+            androidx.compose.material3.DatePicker(state = datePickerState)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -534,10 +568,22 @@ fun HistoryDetailScreen(
                                 },
                             )
                             HistoryDetailStatsRow(
-                                drawDate = formatHistoryDetailDate(sessionForDisplay.effectivePlayedAtMillis()),
+                                drawDate = formatHistoryDetailDate(
+                                    testDateMillis ?: sessionForDisplay.effectivePlayedAtMillis()
+                                ),
                                 sheetsCount = sessionForDisplay.sheetsCount,
                                 calledCount = displayCalledNumbers.size,
                             )
+                            if (displayAssignedRoomId.isNullOrBlank()) {
+                                HistoryDetailTestDateDebugSection(
+                                    testDateMillis = testDateMillis,
+                                    testDrawDateLabel = testDrawDateLabel,
+                                    testDateInfoMessage = testDateInfoMessage,
+                                    isTestDateLoading = isTestDateLoading,
+                                    onChangeTestDateClick = { showTestDatePicker = true },
+                                    onClearTestDateClick = onClearTestDate,
+                                )
+                            }
                         }
                     }
                     item {
@@ -802,6 +848,72 @@ private fun HistoryDetailStatusChip(status: SheetStatus) {
             fontWeight = FontWeight.SemiBold,
             color = textColor,
         )
+    }
+}
+
+@Composable
+private fun HistoryDetailTestDateDebugSection(
+    testDateMillis: Long?,
+    testDrawDateLabel: String?,
+    testDateInfoMessage: String?,
+    isTestDateLoading: Boolean,
+    onChangeTestDateClick: () -> Unit,
+    onClearTestDateClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+    ) {
+        Text(
+            text = stringResource(R.string.history_detail_test_date_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+        )
+        if (testDateMillis != null) {
+            Text(
+                text = stringResource(
+                    R.string.history_detail_test_date_active,
+                    formatHistoryDetailDate(testDateMillis),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            testDrawDateLabel?.takeIf { it.isNotBlank() }?.let { drawDate ->
+                Text(
+                    text = stringResource(R.string.history_detail_test_date_draw, drawDate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        if (isTestDateLoading) {
+            Text(
+                text = stringResource(R.string.history_detail_test_date_loading),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+            )
+        }
+        testDateInfoMessage?.takeIf { it.isNotBlank() }?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onChangeTestDateClick) {
+                Text(stringResource(R.string.history_detail_change_test_date))
+            }
+            if (testDateMillis != null) {
+                TextButton(onClick = onClearTestDateClick) {
+                    Text(stringResource(R.string.history_detail_test_date_clear))
+                }
+            }
+        }
     }
 }
 

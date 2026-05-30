@@ -46,7 +46,6 @@ import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 
 private val CARD_WIDTH = 200.dp
 private val CARD_HEIGHT = 296.dp
-private val META_BLOCK_HEIGHT = 36.dp
 private val PROGRESS_SLOT_HEIGHT = 16.dp
 private val PROGRESS_BAR_HEIGHT = 5.dp
 private val STATUS_CHIP_MIN_WIDTH = 72.dp
@@ -76,6 +75,7 @@ data class ActiveTicketCardModel(
     val calledProgress: Float,
     val showCalledProgress: Boolean,
     val neutralGrid: Boolean,
+    val resultSourceLabel: String? = null,
     val cellStates: List<ActiveTicketCellState>,
 )
 
@@ -121,7 +121,7 @@ fun ActiveTicketCard(
             .padding(
                 start = Dimens.spacing12,
                 end = Dimens.spacing12,
-                top = Dimens.spacing16,
+                top = Dimens.spacing12,
                 bottom = Dimens.spacing12,
             ),
     ) {
@@ -129,7 +129,6 @@ fun ActiveTicketCard(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(Dimens.spacing4))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -151,24 +150,40 @@ fun ActiveTicketCard(
                     modifier = Modifier.align(Alignment.TopEnd),
                 )
             }
+            Spacer(modifier = Modifier.height(Dimens.spacing4))
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(META_BLOCK_HEIGHT),
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
             ) {
-                Text(
-                    text = model.calledCountLabel.orEmpty(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (model.isInLiveRoom) cs.primary else cs.onSurfaceVariant,
-                    minLines = 1,
-                )
+                model.calledCountLabel?.takeIf { it.isNotBlank() }?.let { countLabel ->
+                    Text(
+                        text = countLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (model.isInLiveRoom) cs.primary else cs.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Text(
                     text = stringResource(R.string.active_ticket_draw, model.drawDate),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = activeTicketMetaSecondaryStyle(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                model.resultSourceLabel?.takeIf { it.isNotBlank() }?.let { label ->
+                    Text(
+                        text = label,
+                        style = activeTicketMetaSecondaryStyle(),
+                        fontWeight = FontWeight.Medium,
+                        color = cs.onSurfaceVariant.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
             ActiveTicketSheetPreview(
                 cellStates = model.cellStates,
                 neutralGrid = model.neutralGrid,
@@ -197,6 +212,13 @@ fun ActiveTicketCard(
         }
     }
 }
+
+@Composable
+private fun activeTicketMetaSecondaryStyle() =
+    MaterialTheme.typography.labelSmall.copy(
+        fontSize = 10.sp,
+        lineHeight = 12.sp,
+    )
 
 @Composable
 private fun ActiveTicketStatusChip(

@@ -96,6 +96,20 @@ object HistoryRepository {
     fun observeSession(sessionId: String): kotlinx.coroutines.flow.Flow<HistorySession?> =
         sessionsFlow.map { list -> list.find { it.id == sessionId } }
 
+    fun observeHistoryTestDate(sessionId: String): Flow<Long?> =
+        HistoryTestDateRepository.observeTestDate(sessionId)
+
+    fun observeAllHistoryTestDates(): Flow<Map<String, Long>> =
+        HistoryTestDateRepository.observeAllTestDates()
+
+    suspend fun updateHistorySessionTestDate(sessionId: String, dateMillis: Long) {
+        HistoryTestDateRepository.setTestDate(sessionId, dateMillis)
+    }
+
+    suspend fun clearHistorySessionTestDate(sessionId: String) {
+        HistoryTestDateRepository.clearTestDate(sessionId)
+    }
+
     suspend fun getSessionIdForTicket(ticketId: String): String? = withContext(Dispatchers.Default) {
         TicketRepository.getSessionById(ticketId)?.id
             ?: getById(ticketId)?.id
