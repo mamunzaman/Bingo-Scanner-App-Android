@@ -20,7 +20,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mail
@@ -89,7 +88,6 @@ fun AccountFormScreen(
     onStreetAddressChange: (String) -> Unit = {},
     onApartmentOrHouseNoChange: (String) -> Unit = {},
     onBioChange: (String) -> Unit = {},
-    onLanguageChange: (String) -> Unit = {},
     onSaveProfileDetails: () -> Unit = {},
 ) {
     val pickAvatarLauncher = rememberLauncherForActivityResult(
@@ -336,14 +334,6 @@ fun AccountFormScreen(
                                 onValueChange = onBioChange,
                                 placeholder = "Short bio",
                                 leadingIcon = Icons.Filled.Description,
-                            )
-                            Spacer(modifier = Modifier.height(Dimens.spacing16))
-                            AccountFormField(
-                                label = "Language",
-                                value = profileForm.language,
-                                onValueChange = onLanguageChange,
-                                placeholder = "e.g. English",
-                                leadingIcon = Icons.Filled.Language,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing12))
                             AppAuthMessage(

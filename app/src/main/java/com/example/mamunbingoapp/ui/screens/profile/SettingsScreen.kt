@@ -31,6 +31,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StayCurrentPortrait
 import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -72,6 +76,8 @@ import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTopBar
+import com.example.mamunbingoapp.data.localization.AppLanguage
+import com.example.mamunbingoapp.viewmodel.AppLanguageViewModel
 import com.example.mamunbingoapp.viewmodel.SettingsViewModel
 import com.example.mamunbingoapp.viewmodel.ThemeMode
 import com.example.mamunbingoapp.viewmodel.ThemeViewModel
@@ -89,7 +95,8 @@ fun SettingsScreen(
     onPrivacyPolicy: () -> Unit,
     onLogout: () -> Unit,
     onTabSelected: (AppTab) -> Unit = {},
-    viewModel: SettingsViewModel = viewModel()
+    viewModel: SettingsViewModel = viewModel(),
+    appLanguageViewModel: AppLanguageViewModel = viewModel(),
 ) {
     var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
     var showResetDialog by rememberSaveable { mutableStateOf(false) }
@@ -122,6 +129,7 @@ fun SettingsScreen(
         onDismiss = { showResetDialog = false }
     )
     val themeMode by themeViewModel.themeMode.collectAsState(ThemeMode.SYSTEM)
+    val appLanguage by appLanguageViewModel.appLanguage.collectAsState()
     val showDemoData by viewModel.showDemoData.collectAsState()
     val keepScreenOnDuringGame by viewModel.keepScreenOnDuringGame.collectAsState()
     val pushNotifications by viewModel.pushNotifications.collectAsState()
@@ -198,6 +206,15 @@ fun SettingsScreen(
                     title = "Dark",
                     selected = themeMode == ThemeMode.DARK,
                     onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) },
+                    groupedInCard = true,
+                )
+                AppInsetDivider(
+                    startInset = settingsInsetDividerStart,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
+                )
+                SettingsLanguageRow(
+                    selectedLanguage = appLanguage,
+                    onLanguageSelected = appLanguageViewModel::setAppLanguage,
                     groupedInCard = true,
                 )
             }
@@ -524,6 +541,93 @@ private fun SettingsThemeRow(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
+        }
+    }
+}
+
+@Composable
+private fun SettingsLanguageRow(
+    selectedLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    groupedInCard: Boolean = false,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val horizontal = if (groupedInCard) Dimens.spacing16 else Dimens.screenHorizontalPadding
+    val textStart = if (groupedInCard) Dimens.spacing12 else Dimens.screenHorizontalPadding
+    val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (groupedInCard) Modifier.heightIn(min = 72.dp) else Modifier)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                ) { expanded = true }
+                .padding(
+                    horizontal = horizontal,
+                    vertical = if (groupedInCard) Dimens.spacing8 else Dimens.spacing16,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (groupedInCard) {
+                AppIconTile(
+                    icon = Icons.Default.Language,
+                    size = settingsIconTileSize,
+                    iconSize = 22.dp,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.50f),
+                )
+            } else {
+                AppIconContainer(icon = Icons.Default.Language, size = 40.dp, iconSize = 24.dp)
+            }
+            Text(
+                text = "Language",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = textStart),
+            )
+            Text(
+                text = selectedLanguage.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = mutedColor,
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = mutedColor,
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AppLanguage.supported.forEach { language ->
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(language.displayName)
+                            if (language.code == selectedLanguage.code) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .padding(start = Dimens.spacing8)
+                                        .size(18.dp),
+                                )
+                            }
+                        }
+                    },
+                    onClick = {
+                        expanded = false
+                        if (language.code != selectedLanguage.code) {
+                            onLanguageSelected(language)
+                        }
+                    },
+                )
+            }
         }
     }
 }

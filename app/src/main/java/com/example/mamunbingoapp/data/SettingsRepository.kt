@@ -5,10 +5,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.mamunbingoapp.data.localization.AppLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.Locale
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings_prefs")
 private val SHOW_DEMO_DATA = booleanPreferencesKey("show_demo_data")
@@ -18,6 +21,8 @@ private val PUSH_NOTIFICATIONS = booleanPreferencesKey("push_notifications")
 private val DAILY_REMINDERS = booleanPreferencesKey("daily_reminders")
 private val FACE_ID_TOUCH_ID = booleanPreferencesKey("face_id_touch_id")
 private val DATA_SHARING = booleanPreferencesKey("data_sharing")
+private val APP_LANGUAGE = stringPreferencesKey("app_language")
+private val APP_LANGUAGE_USER_SET = booleanPreferencesKey("app_language_user_set")
 
 object SettingsRepository {
     private var _context: Context? = null
@@ -48,6 +53,24 @@ object SettingsRepository {
 
     val dataSharingFlow: Flow<Boolean>
         get() = store().data.map { it[DATA_SHARING] ?: false }
+
+    val appLanguageFlow: Flow<AppLanguage>
+        get() = store().data.map { prefs ->
+            AppLanguage.fromCode(prefs[APP_LANGUAGE])
+        }
+
+    suspend fun ensureDefaultAppLanguage(deviceLocale: Locale = Locale.getDefault()) {
+        val prefs = store().data.first()
+        if (prefs[APP_LANGUAGE_USER_SET] == true || prefs[APP_LANGUAGE] != null) return
+        store().edit { it[APP_LANGUAGE] = AppLanguage.fromDeviceLocale(deviceLocale).code }
+    }
+
+    suspend fun setAppLanguage(language: AppLanguage, userSelected: Boolean = true) {
+        store().edit {
+            it[APP_LANGUAGE] = language.code
+            if (userSelected) it[APP_LANGUAGE_USER_SET] = true
+        }
+    }
 
     suspend fun getOnboardingCompleted(): Boolean =
         store().data.first()[ONBOARDING_COMPLETED] ?: false

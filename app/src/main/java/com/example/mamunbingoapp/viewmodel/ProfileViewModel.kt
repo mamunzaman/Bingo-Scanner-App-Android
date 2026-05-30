@@ -205,10 +205,6 @@ class ProfileViewModel : ViewModel() {
         _profileForm.value = _profileForm.value.copy(bio = value)
     }
 
-    fun updateLanguage(value: String) {
-        _profileForm.value = _profileForm.value.copy(language = value)
-    }
-
     fun uploadAvatar(
         context: Context,
         imageUri: Uri,

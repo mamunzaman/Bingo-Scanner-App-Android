@@ -1,9 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — Login visual layout + scroll-to-submit on real device.
+**Goal:** Device QA — app language dropdown + locale persistence.
 
-**Verify:** Login keyboard closed — compact wave behind button/footer, no blank area below footer. Password focused — drag up → Login button reachable. Other form screens unchanged.
+**Verify:** Fresh install on German device → Settings → APPEARANCE shows **Deutsch**. English/other locale → **English**. Change language in Settings → restart → choice persists. My Account has no language text field. `./gradlew :app:assembleDebug` OK.
 
-**Done (status):** LoginScreen restored from git `6f91d05` layout (single Box + wave + fillMaxSize column + weight spacer). Minimal add: `scrollableContent = true`, `heightIn(min)` preserves weight layout in scroll, trailing `AppImeFormScrollBottomSpacer` outside Box.
-
-**Previous:** Split Login fields/wave sections — reverted.
+**Previous:** Login IME layout + scroll-to-submit on real device.

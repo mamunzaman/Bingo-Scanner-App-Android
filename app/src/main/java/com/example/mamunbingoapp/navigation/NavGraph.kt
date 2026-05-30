@@ -1335,7 +1335,6 @@ fun NavGraph(
                 onStreetAddressChange = profileViewModel::updateStreetAddress,
                 onApartmentOrHouseNoChange = profileViewModel::updateApartmentOrHouseNo,
                 onBioChange = profileViewModel::updateBio,
-                onLanguageChange = profileViewModel::updateLanguage,
                 onSaveProfileDetails = profileViewModel::saveProfileDetails,
             )
         }

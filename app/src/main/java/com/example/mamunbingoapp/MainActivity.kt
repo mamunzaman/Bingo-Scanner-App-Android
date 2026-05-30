@@ -24,16 +24,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.data.auth.AuthRepository
 import com.example.mamunbingoapp.navigation.NavGraph
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.viewmodel.AppLanguageViewModel
 import com.example.mamunbingoapp.viewmodel.ThemeMode
 import com.example.mamunbingoapp.viewmodel.ThemeViewModel
 import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
@@ -83,7 +87,14 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) { DemoSeeder.seedIfNeeded() }
         setContent {
             val themeViewModel: ThemeViewModel = viewModel()
+            val appLanguageViewModel: AppLanguageViewModel = viewModel()
             val themeMode by themeViewModel.themeMode.collectAsState(ThemeMode.SYSTEM)
+            val appLanguage by appLanguageViewModel.appLanguage.collectAsState()
+            LaunchedEffect(appLanguage.code) {
+                AppCompatDelegate.setApplicationLocales(
+                    LocaleListCompat.forLanguageTags(appLanguage.code),
+                )
+            }
             val darkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
