@@ -580,8 +580,9 @@ fun NavGraph(
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
                     navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                 },
-                onJackpotScanSheet = {
-                    navController.navigate(buildBingoLiveCameraImportRoute(BingoScanType.PLAY_PAPER))
+                onJackpotScanSheet = { scanType ->
+                    stagePendingHistoryPhotoImportScanType(navController, scanType)
+                    navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                 },
                 onNavigateToManualEntry = { navController.navigate("manualEntry") },
                 onNavigateToManualEntryWithScannedNumbers = { numbers ->

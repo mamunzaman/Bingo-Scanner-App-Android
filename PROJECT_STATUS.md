@@ -1,6 +1,12 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Profile avatar delete persist:** `clearRemoteAvatarUrl` Postgrest `set(avatar_url, null)`; VM cache evict + local clear; no refresh rehydrate hack. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Home scan type picker restored:** Scan Ticket, jackpot card scan, FAB show `ScanTypeSelectionSheet` then `onLaunchCamera(selectedType)`; NavGraph unchanged (already stages `BingoScanType`). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Jackpot Scan Sheet type picker:** Quick Action shows `ScanTypeSelectionSheet` before camera. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Home direct scan:** Quick Action / jackpot card / FAB open camera immediately (`PLAY_PAPER`); removed Home `ScanTypeSelectionSheet`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Profile avatar delete persist:** `clearRemoteAvatarUrl` Postgrest `set(avatar_url, null)`; VM cache evict + local clear; no refresh rehydrate hack. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Profile card polish:** Wins-only highlight; level badge/trees removed; Account Overview 20dp padding + inset dividers. `./gradlew :app:assembleDebug` OK.
 
@@ -392,7 +398,8 @@
 
 ## Completed features
 
-- **Profile compact header:** Summary card (avatar, name, Wins highlight); Account Overview with premium row spacing.
+- **Jackpot Scan Sheet type picker:** Quick Action Scan Sheet shows scan-type sheet, then camera with selected type (Home/Scan tab unchanged).
+- **Home scan type picker:** Scan Ticket, jackpot card scan, and FAB show scan-type sheet before camera (selected `BingoScanType`, not forced `PLAY_PAPER`).
 - **Bottom nav Jackpot diamond:** Reference 72dp bar + 50dp floating diamond; softer side pills; diamond remains primary active focal point.
 - **Import Ticket idle + failed scan UI:** Shared photo action row; AppSectionSurface cards; scroll-safe layouts.
 - **History Detail ticket dividers:** Unified white bingo container; LOS left / SERIE right on surface; subtle horizontal dividers below meta and above footer; grid-width aligned.

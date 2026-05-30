@@ -27,6 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,12 +48,14 @@ import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.AppTab
+import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 
 @Composable
 fun JackpotScreen(
     onTabSelected: (AppTab) -> Unit,
     onStartResumeLive: () -> Unit,
-    onScanSheet: () -> Unit,
+    onLaunchCamera: (BingoScanType) -> Unit = {},
     onManualEntry: () -> Unit,
     onHistory: () -> Unit,
     onGoLivePlay: () -> Unit,
@@ -59,6 +64,7 @@ fun JackpotScreen(
 ) {
     val sheetCount by viewModel.sheetCount.collectAsState()
     val calledCount by viewModel.calledCount.collectAsState()
+    var showScanTypeSheet by remember { mutableStateOf(false) }
 
     AppHeaderPageLayout(
         topBar = {
@@ -96,7 +102,7 @@ fun JackpotScreen(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     LiveNavActionGrid(
-                        onScanSheet = onScanSheet,
+                        onScanSheet = { showScanTypeSheet = true },
                         onManualEntry = onManualEntry,
                         onHistory = onHistory,
                         onGoLivePlay = onGoLivePlay
@@ -108,6 +114,15 @@ fun JackpotScreen(
             }
         }
     )
+    if (showScanTypeSheet) {
+        ScanTypeSelectionSheet(
+            onDismiss = { showScanTypeSheet = false },
+            onScanTypeSelected = { type ->
+                showScanTypeSheet = false
+                onLaunchCamera(type)
+            },
+        )
+    }
 }
 
 @Composable

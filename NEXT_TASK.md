@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — profile photo delete persists after refresh.
+**Goal:** Device QA — Home scan shows type sheet before camera.
 
-**Verify:** Delete photo → pull-to-refresh → initials/no image; re-upload still works; delete failure shows error. `./gradlew :app:assembleDebug` OK.
+**Verify:** Home Scan Ticket, jackpot card scan, FAB → type sheet → camera with selected type; Jackpot/Scan tab unchanged. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Fix remote `avatar_url` null via Postgrest `set()`; VM clears cache + local state on success.
+**Previous:** Home restored `ScanTypeSelectionSheet`; `onLaunchCamera(selectedType)` via existing NavGraph staging.

@@ -85,13 +85,14 @@ import com.example.mamunbingoapp.ui.components.BingoSessionCard_V3
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.RoomStatusResolver
-import com.example.mamunbingoapp.ui.model.RoomStatus
+import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 
 @Composable
 fun LiveRoomsScreen(
     onEnterRoom: (String) -> Unit,
     onCreateRoom: (String) -> Unit,
-    onScanSheet: () -> Unit,
+    onLaunchCamera: (BingoScanType) -> Unit,
     onManualEntry: () -> Unit,
     onHistory: () -> Unit,
     onGoLivePlay: () -> Unit,
@@ -105,6 +106,7 @@ fun LiveRoomsScreen(
     val lastCreatedRoomId by viewModel.lastCreatedRoomId.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showScanTypeSheet by remember { mutableStateOf(false) }
     var newRoomName by remember { mutableStateOf("") }
     var pendingRoomIdToOpen by remember { mutableStateOf<String?>(null) }
 
@@ -190,7 +192,7 @@ fun LiveRoomsScreen(
                 onClick = { showCreateDialog = true }
             )
             QuickActionsSection(
-                onScanSheet = onScanSheet,
+                onScanSheet = { showScanTypeSheet = true },
                 onHistory = onHistory,
                 onManualEntry = onManualEntry
             )
@@ -205,6 +207,15 @@ fun LiveRoomsScreen(
         }
         }
     )
+    if (showScanTypeSheet) {
+        ScanTypeSelectionSheet(
+            onDismiss = { showScanTypeSheet = false },
+            onScanTypeSelected = { type ->
+                showScanTypeSheet = false
+                onLaunchCamera(type)
+            },
+        )
+    }
     }
 }
 

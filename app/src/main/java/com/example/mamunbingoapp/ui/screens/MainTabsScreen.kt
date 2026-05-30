@@ -23,8 +23,8 @@ fun MainTabsScreen(
     onNavigateToLiveRooms: () -> Unit,
     /** Scan tab / camera: opens in-app CameraX with [BingoScanType] for OCR routing. */
     onNavigateToBingoLiveCamera: (BingoScanType) -> Unit,
-    /** Jackpot “Scan Sheet”: opens camera without scan-type sheet (default target). */
-    onJackpotScanSheet: () -> Unit,
+    /** Jackpot “Scan Sheet”: after type selection, opens camera with chosen [BingoScanType]. */
+    onJackpotScanSheet: (BingoScanType) -> Unit,
     onNavigateToManualEntry: () -> Unit,
     onNavigateToManualEntryWithScannedNumbers: (List<Int>) -> Unit = {},
     onNavigateToHistory: () -> Unit,
@@ -70,7 +70,7 @@ fun MainTabsScreen(
                         "tickets" -> onNavigateToHistory()
                         "results" -> onTabSelected(AppTab.Jackpot)
                         "help" -> onNavigateToSupport()
-                        else -> onJackpotScanSheet()
+                        else -> onJackpotScanSheet(BingoScanType.PLAY_PAPER)
                     }
                 },
                 onTicketClick = onNavigateToHistoryDetail,
@@ -92,7 +92,7 @@ fun MainTabsScreen(
             AppTab.Jackpot -> com.example.mamunbingoapp.ui.screens.live.LiveRoomsScreen(
                 onEnterRoom = onNavigateToLiveRoom,
                 onCreateRoom = onNavigateToLiveRoom,
-                onScanSheet = onJackpotScanSheet,
+                onLaunchCamera = onJackpotScanSheet,
                 onManualEntry = onNavigateToManualEntry,
                 onHistory = onNavigateToHistory,
                 onGoLivePlay = onNavigateToLiveRooms,
