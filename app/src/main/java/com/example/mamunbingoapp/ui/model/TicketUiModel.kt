@@ -6,6 +6,8 @@ data class TicketUiModel(
     val title: String,
     val createdAt: Long,
     val status: String? = null,
+    val serialNumber: String? = null,
+    val losNumber: String? = null,
     val isInRoom: Boolean = false,
-    val assignedRoomId: String? = null
+    val assignedRoomId: String? = null,
 )

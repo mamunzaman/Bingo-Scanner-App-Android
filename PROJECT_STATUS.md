@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Home Active Ticket result source:** Home cards use same called-number priority as History Detail via shared `TicketCalledNumbersResolver` (live room → test date draw → archived play log → plain); optional EN/DE result-source label on card. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **My Tickets SERIAL/LOS fix:** Picker model maps real `serialNumber`/`losNumber` from `HistorySession`; My Tickets no longer fakes values from ticket id suffix; room lookup uses `session.ticketId`. Live Play already reads from `TicketEntity`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Home Active Ticket result source:** Home cards use same called-number priority as History Detail via shared `TicketCalledNumbersResolver`. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Live room reset/archive:** `archiveAndResetRoom` saves `ticket_play_logs` (room, added/archived times, called snapshot, marked/bingo stats), unassigns tickets, clears room calls; play log UI on History/Ticket detail; DB v8 migration. `./gradlew :app:assembleDebug` OK.
 
@@ -342,7 +344,8 @@
 
 ## Completed features
 
-- **Home Active Ticket result source:** Shared `TicketCalledNumbersResolver`; Home cards resolve live room / test-date week draw / archived play log / plain; optional “Archived result” / “Test date result” label (EN/DE).
+- **My Tickets SERIAL/LOS:** `TicketUiModel` carries real metadata; My Tickets bottom sheet shows saved serial/los (fallback `common_placeholder_dash`), not id-derived fake values.
+- **Home Active Ticket result source:** Shared `TicketCalledNumbersResolver`; Home cards resolve live room / test-date week draw / archived play log / plain; optional EN/DE result-source label.
 - **Live room reset/archive:** `ticket_play_logs` table (DB v8); reset archives per-ticket play history, unassigns sheets, clears room calls; History/Ticket detail play log section + archived called numbers when not in room.
 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket chips; ticket filters All/Today/Week; called-numbers sheet title; home jackpot load errors; QR paths never show raw `Throwable.message`.
 - **Phase 3 i18n (complete):** Import/scan/OCR, manual entry, ticket detail, live sheets, shared dialogs/bottom sheets, home jackpot cards, profile VM messages, account form validation — `stringResource` / `getString` + DE in `strings_phase3.xml`.

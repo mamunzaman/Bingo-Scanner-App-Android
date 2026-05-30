@@ -62,14 +62,17 @@ object HistoryRepository {
         withContext(Dispatchers.Default) {
             val ticketToRoom = RoomRepository.ticketToRoomFlow().first()
             _sessionsFlow.value.map { session ->
-                val assignedRoomId = ticketToRoom[session.id]
+                val ticketId = session.ticketId
+                val assignedRoomId = ticketToRoom[ticketId]
                 com.example.mamunbingoapp.ui.model.TicketUiModel(
-                    id = session.id,
+                    id = ticketId,
                     sessionId = session.id,
                     title = session.effectiveSheetName().ifBlank { "Unnamed" },
                     createdAt = session.effectivePlayedAtMillis(),
+                    serialNumber = session.serialNumber,
+                    losNumber = session.losNumber,
                     isInRoom = roomId != null && assignedRoomId == roomId,
-                    assignedRoomId = assignedRoomId
+                    assignedRoomId = assignedRoomId,
                 )
             }
         }
@@ -77,14 +80,17 @@ object HistoryRepository {
     fun ticketsForPickerFlow(roomId: String?): Flow<List<com.example.mamunbingoapp.ui.model.TicketUiModel>> =
         combine(_sessionsFlow, RoomRepository.ticketToRoomFlow()) { sessions, ticketToRoom ->
             sessions.map { session ->
-                val assignedRoomId = ticketToRoom[session.id]
+                val ticketId = session.ticketId
+                val assignedRoomId = ticketToRoom[ticketId]
                 com.example.mamunbingoapp.ui.model.TicketUiModel(
-                    id = session.id,
+                    id = ticketId,
                     sessionId = session.id,
                     title = session.effectiveSheetName().ifBlank { "Unnamed" },
                     createdAt = session.effectivePlayedAtMillis(),
+                    serialNumber = session.serialNumber,
+                    losNumber = session.losNumber,
                     isInRoom = roomId != null && assignedRoomId == roomId,
-                    assignedRoomId = assignedRoomId
+                    assignedRoomId = assignedRoomId,
                 )
             }
         }

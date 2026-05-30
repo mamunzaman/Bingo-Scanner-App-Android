@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — Home Active Ticket cards match History Detail result source (test date + archived + live room).
+**Goal:** Device QA — My Tickets + Live Play SERIAL/LOS match Ticket Detail after picker mapping fix.
 
-**Verify:** Old ticket → set test date in History Detail (last week) → Home card shows same marks + “Test date result”. Reset live room → Home shows archived marks + “Archived result”. Re-add to room → live numbers again. `./gradlew :app:assembleDebug` OK.
+**Verify:** Saved ticket with known SERIAL/LOS → My Tickets sheet matches → add to room → Live Play list matches → relaunch app. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Shared `TicketCalledNumbersResolver`; `HomeViewModel.activeTicketsUi`; optional result-source label on `ActiveTicketCard`.
+**Previous:** Home Active Ticket result source aligned with History Detail via `TicketCalledNumbersResolver`.
