@@ -44,13 +44,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.remote.BingoDrawDto
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.DarkPrimary
@@ -143,7 +143,7 @@ fun CurrentJackpotCard(
                     .padding(end = Dimens.spacing8),
             ) {
                 GreenCardText(
-                    text = "CURRENT JACKPOT",
+                    text = stringResource(R.string.jackpot_card_current_label),
                     style = MaterialTheme.typography.labelSmall.copy(
                         letterSpacing = 0.8.sp,
                         shadow = softTextShadow,
@@ -160,7 +160,7 @@ fun CurrentJackpotCard(
                     )
                 } else {
                     GreenCardText(
-                        text = jackpotText ?: "—",
+                        text = jackpotText ?: stringResource(R.string.common_em_dash),
                         modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontSize = 24.sp,
@@ -243,7 +243,7 @@ fun CurrentJackpotCard(
                     ),
             ) {
                 GreenCardText(
-                    text = "NEXT DRAW",
+                    text = stringResource(R.string.jackpot_card_next_draw_label),
                     style = MaterialTheme.typography.labelSmall.copy(
                         letterSpacing = 0.8.sp,
                         shadow = softTextShadow,
@@ -266,7 +266,7 @@ fun CurrentJackpotCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 GreenCardText(
-                    text = "Sunday draw • 17:00",
+                    text = stringResource(R.string.jackpot_card_draw_schedule),
                     style = MaterialTheme.typography.labelSmall.copy(shadow = softTextShadow),
                     fontWeight = FontWeight.Normal,
                     color = cardBodySubtle,
@@ -275,7 +275,7 @@ fun CurrentJackpotCard(
                 )
                 Spacer(modifier = Modifier.height(Dimens.spacing8))
                 GreenCardText(
-                    text = "LATEST NUMBERS",
+                    text = stringResource(R.string.jackpot_card_latest_numbers_label),
                     style = MaterialTheme.typography.labelSmall.copy(shadow = softTextShadow),
                     fontWeight = FontWeight.SemiBold,
                     color = cardLabelMuted,
@@ -284,7 +284,7 @@ fun CurrentJackpotCard(
                 when {
                     isRemoteLoading && numbers.isEmpty() -> {
                         GreenCardText(
-                            text = "Loading…",
+                            text = stringResource(R.string.common_loading),
                             style = MaterialTheme.typography.labelSmall.copy(shadow = softTextShadow),
                             fontWeight = FontWeight.Normal,
                             color = cardBodySubtle,

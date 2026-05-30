@@ -39,6 +39,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
@@ -76,6 +78,14 @@ fun HistorySheetCard(
     val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: "--"
     val markedNumerator = markedCount.coerceIn(0, 25)
     val marked = "$markedNumerator/25"
+    val selectedA11y = stringResource(R.string.live_play_a11y_selected)
+    val notSelectedA11y = stringResource(R.string.live_play_a11y_not_selected)
+    val selectionA11y = stringResource(
+        R.string.live_play_a11y_sheet_select,
+        title,
+        if (selected) selectedA11y else notSelectedA11y
+    )
+    val openA11y = stringResource(R.string.live_play_a11y_sheet_open, title, markedNumerator)
     val miniGrid = when {
         markedCells != null && markedCells.size == 25 -> markedCells
         else -> List(25) { it < markedNumerator }
@@ -111,11 +121,7 @@ fun HistorySheetCard(
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
-                contentDescription = if (selectionMode) {
-                    "$title, ${if (selected) "selected" else "not selected"}. Double tap to toggle."
-                } else {
-                    "$title, Marked $marked. Double tap to open."
-                }
+                contentDescription = if (selectionMode) selectionA11y else openA11y
             }
             .clip(rowShape),
         shape = rowShape,
@@ -172,7 +178,11 @@ fun HistorySheetCard(
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         if (inRoom) {
-                            val pillText = if (!roomName.isNullOrBlank()) "In: $roomName" else "In room"
+                            val pillText = if (!roomName.isNullOrBlank()) {
+                                stringResource(R.string.history_in_room_named, roomName)
+                            } else {
+                                stringResource(R.string.history_in_room_pill)
+                            }
                             Text(
                                 text = pillText,
                                 style = MaterialTheme.typography.labelSmall,
@@ -198,7 +208,7 @@ fun HistorySheetCard(
                     )
                     if (selectionMode && inRoom) {
                         Text(
-                            text = "Already added — remove first to move rooms",
+                            text = stringResource(R.string.history_already_in_room_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                             maxLines = 1,
@@ -217,7 +227,7 @@ fun HistorySheetCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More actions",
+                            contentDescription = stringResource(R.string.history_more_actions_cd),
                             modifier = Modifier.size(Dimens.iconCompact),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                         )
@@ -227,7 +237,7 @@ fun HistorySheetCard(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Join") },
+                            text = { Text(stringResource(R.string.history_join)) },
                             onClick = {
                                 menuExpanded = false
                                 onJoinClick()
@@ -235,7 +245,7 @@ fun HistorySheetCard(
                         )
                         if (onLeaveRoom != null) {
                             DropdownMenuItem(
-                                text = { Text("Leave") },
+                                text = { Text(stringResource(R.string.history_leave)) },
                                 onClick = {
                                     menuExpanded = false
                                     onLeaveRoom()
@@ -243,7 +253,7 @@ fun HistorySheetCard(
                             )
                         }
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(stringResource(R.string.common_delete)) },
                             onClick = {
                                 menuExpanded = false
                                 onDelete()
@@ -268,19 +278,19 @@ fun HistorySheetCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             HistorySheetInfoCell(
-                label = "SERIAL",
+                label = stringResource(R.string.live_play_label_serial),
                 value = safeSerial,
                 modifier = Modifier.weight(1f)
             )
             HistorySheetVerticalDivider()
             HistorySheetInfoCell(
-                label = "LOS",
+                label = stringResource(R.string.live_play_label_los),
                 value = safeLos,
                 modifier = Modifier.weight(1f)
             )
             HistorySheetVerticalDivider()
             HistorySheetInfoCell(
-                label = "MARKED",
+                label = stringResource(R.string.live_play_label_marked),
                 value = marked,
                 modifier = Modifier.weight(1f),
                 valueColor = MaterialTheme.colorScheme.primary,

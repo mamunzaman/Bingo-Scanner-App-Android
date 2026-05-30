@@ -18,6 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
@@ -37,7 +40,7 @@ fun CompactAlmostBingoRow(
     compactVertical: Boolean = false,
 ) {
     val need = total - filled
-    val subtitle = "$lineType · need $need more number${if (need == 1) "" else "s"}"
+    val subtitle = pluralStringResource(R.plurals.live_play_almost_bingo_need, need, lineType, need)
     val alertShape = RoundedCornerShape(Dimens.radiusCard)
     val rowPadV = if (compactVertical) Dimens.spacing4 else Dimens.spacing8
     Column(
@@ -86,7 +89,7 @@ fun CompactAlmostBingoRow(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
-                    text = "Almost Bingo!",
+                    text = stringResource(R.string.live_play_almost_bingo),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = WarningText,

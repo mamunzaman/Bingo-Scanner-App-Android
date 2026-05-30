@@ -58,6 +58,8 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
@@ -100,6 +102,7 @@ fun LivePlayCallKeypad(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
+    val callNumberA11y = stringResource(R.string.live_play_a11y_call_number)
     val keyHeight = LivePlayCallKeypadMetrics.keyHeight
     val keyShape = RoundedCornerShape(10.dp)
     val keyBg = scheme.surfaceContainerHighest.copy(alpha = 0.55f)
@@ -297,7 +300,7 @@ fun LivePlayCallKeypad(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Undo,
-                        contentDescription = "Undo last call",
+                        contentDescription = stringResource(R.string.live_play_undo_cd),
                         tint = scheme.primary
                     )
                 }
@@ -320,7 +323,7 @@ fun LivePlayCallKeypad(
                             interactionSource = callInteraction,
                             indication = null
                         ) { onCallClick() }
-                        .semantics { contentDescription = "Call number" },
+                        .semantics { contentDescription = callNumberA11y },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -406,9 +409,9 @@ private fun LiveKeypadToggleButton(
     val scheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Dimens.radiusSmall)
     val toggleContentDescription = if (keypadOpen) {
-        "Hide number keypad"
+        stringResource(R.string.live_play_a11y_hide_keypad)
     } else {
-        "Show number keypad"
+        stringResource(R.string.live_play_a11y_show_keypad)
     }
     val containerColor by animateColorAsState(
         targetValue = if (keypadOpen) {

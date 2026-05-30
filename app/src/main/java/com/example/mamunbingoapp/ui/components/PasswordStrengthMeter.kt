@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Success
 import com.example.mamunbingoapp.theme.Warning
@@ -31,14 +33,14 @@ fun PasswordStrengthMeter(
 ) {
     if (password.isBlank()) return
     val strength = passwordStrength(password)
-    val (label, progress, color) = when (strength) {
-        PasswordStrength.Weak -> Triple("Weak", 0.34f, MaterialTheme.colorScheme.error)
-        PasswordStrength.Medium -> Triple("Medium", 0.67f, Warning)
-        PasswordStrength.Strong -> Triple("Strong", 1f, Success)
+    val (labelRes, progress, color) = when (strength) {
+        PasswordStrength.Weak -> Triple(R.string.password_strength_weak, 0.34f, MaterialTheme.colorScheme.error)
+        PasswordStrength.Medium -> Triple(R.string.password_strength_medium, 0.67f, Warning)
+        PasswordStrength.Strong -> Triple(R.string.password_strength_strong, 1f, Success)
     }
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Password strength: $label",
+            text = stringResource(R.string.password_strength_label, stringResource(labelRes)),
             style = MaterialTheme.typography.bodySmall,
             color = color,
         )

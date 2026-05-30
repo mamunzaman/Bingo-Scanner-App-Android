@@ -71,6 +71,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.MamunBingoTheme
@@ -178,6 +181,9 @@ private fun TicketsBottomSheetContent(
     var showBulkLeaveConfirm by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val removedSnackbarMessage = stringResource(R.string.history_snackbar_removed_from_room)
+    val deletedSnackbarMessage = stringResource(R.string.history_snackbar_deleted)
+    val addedSnackbarMessage = stringResource(R.string.live_play_snackbar_added_to_room)
     val vm: MyTicketsViewModel = viewModel()
     LaunchedEffect(roomId) { vm.setRoomId(roomId) }
     val query by vm.query.collectAsState()
@@ -185,6 +191,17 @@ private fun TicketsBottomSheetContent(
     val selectedSort by vm.selectedSort.collectAsState()
     val filtered by vm.filteredTickets.collectAsState()
     val filterCounts by vm.filterCounts.collectAsState()
+    val sortNewestLabel = stringResource(R.string.history_sort_newest)
+    val sortOldestLabel = stringResource(R.string.history_sort_oldest)
+    val sortNameAzLabel = stringResource(R.string.history_sort_name_az)
+    val sortDateLabel = stringResource(R.string.history_sort_date)
+    val sortOptions = listOf(sortNewestLabel, sortOldestLabel, sortNameAzLabel, sortDateLabel)
+    val selectedSortLabel = when (selectedSort) {
+        TicketSort.Newest -> sortNewestLabel
+        TicketSort.Oldest -> sortOldestLabel
+        TicketSort.NameAZ -> sortNameAzLabel
+        TicketSort.Date -> sortDateLabel
+    }
     val selectedInThisRoom = remember(selectedTicketIds, filtered, roomId) {
         if (roomId.isBlank()) emptySet()
         else selectedTicketIds.filter { tid ->
@@ -221,7 +238,7 @@ private fun TicketsBottomSheetContent(
                     selectionMode = true
                     selectedTicketIds = emptySet()
                 }) {
-                    Text("Select")
+                    Text(stringResource(R.string.history_select))
                 }
             }
         }
@@ -234,7 +251,7 @@ private fun TicketsBottomSheetContent(
                 selectionMode = false
                 selectedTicketIds = emptySet()
                 showBulkLeaveConfirm = false
-                scope.launch { snackbarHostState.showSnackbar("Removed from room") }
+                scope.launch { snackbarHostState.showSnackbar(removedSnackbarMessage) }
             }
         )
         DeleteFromHistoryBulkConfirmDialog(
@@ -246,7 +263,7 @@ private fun TicketsBottomSheetContent(
                 selectionMode = false
                 selectedTicketIds = emptySet()
                 showBulkDeleteConfirm = false
-                scope.launch { snackbarHostState.showSnackbar("Deleted from history") }
+                scope.launch { snackbarHostState.showSnackbar(deletedSnackbarMessage) }
             }
         )
         Spacer(modifier = Modifier.height(Dimens.spacing16))
@@ -254,16 +271,23 @@ private fun TicketsBottomSheetContent(
             variant = SearchHeaderVariant.SearchFilterSort,
             query = query,
             onQueryChange = vm::setQuery,
-            placeholder = "Search tickets",
+            placeholder = stringResource(R.string.live_play_search_tickets),
             filterOptions = TicketFilter.entries.map { it.displayName },
             selectedFilter = selectedFilter.displayName,
             onFilterSelect = { label -> vm.setFilter(TicketFilter.entries.first { it.displayName == label }) },
             filterCounts = filterCounts,
             showFilterCounts = true,
-            sortOptions = listOf("Newest", "Oldest", "Name (A–Z)", "Date"),
-            selectedSort = selectedSort.displayName,
+            sortOptions = sortOptions,
+            selectedSort = selectedSortLabel,
             onSortSelect = { label ->
-                vm.setSort(TicketSort.entries.firstOrNull { it.displayName == label } ?: TicketSort.Newest)
+                val sort = when (label) {
+                    sortNewestLabel -> TicketSort.Newest
+                    sortOldestLabel -> TicketSort.Oldest
+                    sortNameAzLabel -> TicketSort.NameAZ
+                    sortDateLabel -> TicketSort.Date
+                    else -> TicketSort.Newest
+                }
+                vm.setSort(sort)
             },
             contentPadding = PaddingValues(top = Dimens.spacing12, bottom = Dimens.spacing8),
             modifier = Modifier.fillMaxWidth()
@@ -321,7 +345,7 @@ private fun TicketsBottomSheetContent(
                     onBulkAddToRoom(selectedAddableToRoom)
                     selectionMode = false
                     selectedTicketIds = emptySet()
-                    scope.launch { snackbarHostState.showSnackbar("Added to room") }
+                    scope.launch { snackbarHostState.showSnackbar(addedSnackbarMessage) }
                 },
                 showRemoveFromRoom = roomId.isNotBlank(),
                 removeFromRoomEnabled = selectedInThisRoom.isNotEmpty(),
@@ -347,6 +371,20 @@ private fun TicketsHeader(
     selectedCount: Int = 0,
     onDoneSelection: () -> Unit = {}
 ) {
+    val headerTitle = if (selectionMode) {
+        if (selectedCount == 0) {
+            stringResource(R.string.history_select_items)
+        } else {
+            pluralStringResource(R.plurals.history_selected_count, selectedCount, selectedCount)
+        }
+    } else {
+        stringResource(R.string.home_my_tickets)
+    }
+    val headerSubtitle = when {
+        selectionMode -> stringResource(R.string.live_play_tickets_tap_to_select)
+        roomId.isNotBlank() -> stringResource(R.string.live_play_tickets_add_or_live)
+        else -> stringResource(R.string.live_play_tickets_select_to_live)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -354,11 +392,7 @@ private fun TicketsHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = if (selectionMode) {
-                    if (selectedCount == 0) "Select items" else "$selectedCount selected"
-                } else {
-                    "My Tickets"
-                },
+                text = headerTitle,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -366,11 +400,7 @@ private fun TicketsHeader(
             )
             Spacer(modifier = Modifier.height(Dimens.spacing4))
             Text(
-                text = when {
-                    selectionMode -> "Tap rows to select"
-                    roomId.isNotBlank() -> "Add tickets to this room or go live"
-                    else -> "Select a ticket to go live"
-                },
+                text = headerSubtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
             )
@@ -378,7 +408,7 @@ private fun TicketsHeader(
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (selectionMode) {
                 TextButton(onClick = onDoneSelection) {
-                    Text("Done")
+                    Text(stringResource(R.string.common_done))
                 }
             }
             IconButton(
@@ -387,7 +417,7 @@ private fun TicketsHeader(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.common_close),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -409,22 +439,31 @@ private fun TicketRowCard(
     val isInThisRoom = roomId.isNotBlank() && assignedRoomId == roomId
     val isInOtherRoom = assignedRoomId != null && assignedRoomId != roomId
     val actionLabel = when {
-        isInThisRoom -> "Go Live"
-        isInOtherRoom -> "Already in Room"
-        else -> "Add to Room"
+        isInThisRoom -> stringResource(R.string.live_play_go_live)
+        isInOtherRoom -> stringResource(R.string.live_play_already_in_room)
+        else -> stringResource(R.string.live_play_add_to_room)
     }
     val canAct = !isInOtherRoom
     var otherRoomName by remember(assignedRoomId) { mutableStateOf<String?>(null) }
+    val anotherRoomFallback = stringResource(R.string.history_detail_another_room_fallback)
     LaunchedEffect(assignedRoomId) {
         otherRoomName = if (assignedRoomId != null) RoomRepository.getRoom(assignedRoomId)?.name else null
     }
-    val summary = buildString {
-        append(ticket.title)
-        append(", ")
-        append(formatTicketDate(ticket.createdAt))
-        if (isInOtherRoom) append(", in ${otherRoomName ?: "another room"}")
-        append(". $actionLabel button.")
+    val inRoomSuffix = if (isInOtherRoom) {
+        stringResource(
+            R.string.live_play_a11y_ticket_in_room,
+            otherRoomName ?: anotherRoomFallback
+        )
+    } else {
+        ""
     }
+    val summary = stringResource(
+        R.string.live_play_a11y_ticket_summary,
+        ticket.title,
+        formatTicketDate(ticket.createdAt),
+        inRoomSuffix,
+        actionLabel
+    )
     val serialValue = ticket.id.takeLast(6).uppercase()
     val losValue = ticket.sessionId.takeLast(6).uppercase()
     val markedValue = ticket.status?.takeIf { it.isNotBlank() } ?: "--"
@@ -497,7 +536,10 @@ private fun TicketRowCard(
                     )
                     if (isInOtherRoom) {
                         Text(
-                            text = "Room: ${otherRoomName ?: "another room"}",
+                            text = stringResource(
+                                R.string.live_play_room_prefix,
+                                otherRoomName ?: anotherRoomFallback
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
@@ -527,19 +569,19 @@ private fun TicketRowCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TicketInfoCell(
-                    label = "SERIAL",
+                    label = stringResource(R.string.live_play_label_serial),
                     value = serialValue,
                     modifier = Modifier.weight(1f)
                 )
                 VerticalInfoDivider()
                 TicketInfoCell(
-                    label = "LOS",
+                    label = stringResource(R.string.live_play_label_los),
                     value = losValue,
                     modifier = Modifier.weight(1f)
                 )
                 VerticalInfoDivider()
                 TicketInfoCell(
-                    label = "MARKED",
+                    label = stringResource(R.string.live_play_label_marked),
                     value = markedValue,
                     valueColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
@@ -599,12 +641,12 @@ private fun TicketsEmptyState(
     ) {
         EmptyStateBlock(
             icon = Icons.Default.ConfirmationNumber,
-            title = "No tickets found",
-            subtitle = "Create a ticket to add to this room or go live.",
+            title = stringResource(R.string.live_play_no_tickets_title),
+            subtitle = stringResource(R.string.live_play_no_tickets_subtitle),
             modifier = Modifier.fillMaxWidth()
         )
         AppPrimaryButton(
-            text = "Create New Ticket",
+            text = stringResource(R.string.live_play_create_new_ticket),
             onClick = onCreateTicket,
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {

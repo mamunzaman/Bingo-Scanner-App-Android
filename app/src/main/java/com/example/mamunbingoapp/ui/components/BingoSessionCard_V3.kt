@@ -31,7 +31,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -108,7 +109,7 @@ fun BingoSessionCard_V3(
                                             .background(cs.primary, CircleShape)
                                     )
                                     Text(
-                                        text = "Active",
+                                        text = stringResource(R.string.bingo_session_active),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = cs.primary
@@ -116,7 +117,11 @@ fun BingoSessionCard_V3(
                                 }
                             }
                             Text(
-                                text = if (ticketsInRoom == 1) "🎟 1 ticket in room" else "🎟 $ticketsInRoom tickets in room",
+                                text = if (ticketsInRoom == 1) {
+                                    stringResource(R.string.bingo_session_tickets_one)
+                                } else {
+                                    stringResource(R.string.bingo_session_tickets_other, ticketsInRoom)
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = cs.onSurfaceVariant,
                                 maxLines = 1,
@@ -143,7 +148,7 @@ fun BingoSessionCard_V3(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Join",
+                            text = stringResource(R.string.bingo_session_join),
                             style = MaterialTheme.typography.labelLarge
                         )
                     }
@@ -151,7 +156,11 @@ fun BingoSessionCard_V3(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     val clampedCalled = calledCount.coerceAtMost(totalCalledCount)
                     Text(
-                        text = "How many called: $clampedCalled / $totalCalledCount",
+                        text = stringResource(
+                            R.string.bingo_session_called_count,
+                            clampedCalled,
+                            totalCalledCount,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = cs.onSurfaceVariant,
                         maxLines = 2,

@@ -32,4 +32,8 @@
         <item quantity="one">%1$d h ago</item>
         <item quantity="other">%1$d h ago</item>
     </plurals>
+    <plurals name="live_play_almost_bingo_need">
+        <item quantity="one">%1$s · need %2$d more number</item>
+        <item quantity="other">%1$s · need %2$d more numbers</item>
+    </plurals>
 </resources>

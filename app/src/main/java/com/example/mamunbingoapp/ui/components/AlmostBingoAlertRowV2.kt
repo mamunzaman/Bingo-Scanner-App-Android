@@ -26,6 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
@@ -61,7 +64,12 @@ fun AlmostBingoAlertRowV2(
         .clip(RoundedCornerShape(Dimens.radiusCard))
         .background(WarningContainer)
         .border(Dimens.cardBorderDefault, WarningBorder, RoundedCornerShape(Dimens.radiusCard))
-    val subtitle = "$lineType · need ${total - filled} more number${if (total - filled == 1) "" else "s"}"
+    val subtitle = pluralStringResource(
+        R.plurals.live_play_almost_bingo_need,
+        total - filled,
+        lineType,
+        total - filled
+    )
     when (variant) {
         AlmostBingoAlertVariant.HistoryDetailCompact -> {
             Row(
@@ -83,7 +91,7 @@ fun AlmostBingoAlertRowV2(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "Almost Bingo!",
+                        text = stringResource(R.string.live_play_almost_bingo),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = WarningText
@@ -138,7 +146,7 @@ fun AlmostBingoAlertRowV2(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)
                 ) {
                     Text(
-                        text = "Almost Bingo!",
+                        text = stringResource(R.string.live_play_almost_bingo),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = WarningText

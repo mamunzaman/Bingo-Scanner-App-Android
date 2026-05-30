@@ -38,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -67,6 +69,11 @@ fun LiveRoomTopBar(
 ) {
     var menuExpanded by rememberSaveable { mutableStateOf(false) }
     val iconColor = MaterialTheme.colorScheme.onSurface
+    val selectedTitle = if (listSelectedCount == 0) {
+        stringResource(R.string.history_select_items)
+    } else {
+        stringResource(R.plurals.history_selected_count, listSelectedCount, listSelectedCount)
+    }
     AppTopBar(
         title = title,
         showBack = true,
@@ -74,7 +81,7 @@ fun LiveRoomTopBar(
         titleContent = {
             if (listSelectionMode) {
                 Text(
-                    text = if (listSelectedCount == 0) "Select items" else "$listSelectedCount selected",
+                    text = selectedTitle,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() }
@@ -113,7 +120,7 @@ fun LiveRoomTopBar(
                                 )
                                 androidx.compose.foundation.layout.Spacer(Modifier.width(Dimens.spacing4))
                                 Text(
-                                    "Archived",
+                                    stringResource(R.string.live_play_archived_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -134,13 +141,13 @@ fun LiveRoomTopBar(
                         onClick = onListSelectAll,
                         enabled = showListBulkSelect && listSelectAllEnabled
                     ) {
-                        Text("Select all")
+                        Text(stringResource(R.string.history_select_all))
                     }
                     TextButton(
                         onClick = onListClearSelection,
                         enabled = listSelectedCount > 0
                     ) {
-                        Text("Clear")
+                        Text(stringResource(R.string.history_clear_selection))
                     }
                 }
             } else {
@@ -157,7 +164,7 @@ fun LiveRoomTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add ticket",
+                        contentDescription = stringResource(R.string.live_play_add_ticket),
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
@@ -165,7 +172,7 @@ fun LiveRoomTopBar(
             }
             if (showListBulkSelect) {
                 TextButton(onClick = onEnterListSelection) {
-                    Text("Select")
+                    Text(stringResource(R.string.history_select))
                 }
             }
             Box {
@@ -175,7 +182,7 @@ fun LiveRoomTopBar(
                 ) {
                     Icon(
                         Icons.Outlined.MoreVert,
-                        contentDescription = "More options",
+                        contentDescription = stringResource(R.string.live_play_more_options_cd),
                         modifier = Modifier.size(Dimens.iconDefault),
                         tint = iconColor
                     )
@@ -186,7 +193,7 @@ fun LiveRoomTopBar(
                 ) {
                     if (showSheetViewModeMenu) {
                         DropdownMenuItem(
-                            text = { Text("Cards view") },
+                            text = { Text(stringResource(R.string.live_play_cards_view)) },
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.GridView,
@@ -204,7 +211,7 @@ fun LiveRoomTopBar(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("List view") },
+                            text = { Text(stringResource(R.string.live_play_list_view)) },
                             leadingIcon = {
                                 Icon(
                                     Icons.AutoMirrored.Filled.List,
@@ -224,21 +231,21 @@ fun LiveRoomTopBar(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                     DropdownMenuItem(
-                        text = { Text("Info") },
+                        text = { Text(stringResource(R.string.live_play_info)) },
                         leadingIcon = {
                             Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                         },
                         onClick = { menuExpanded = false; onOpenInfo() }
                     )
                     DropdownMenuItem(
-                        text = { Text("Settings") },
+                        text = { Text(stringResource(R.string.settings_title)) },
                         leadingIcon = {
                             Icon(Icons.Outlined.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                         },
                         onClick = { menuExpanded = false; onOpenSettings() }
                     )
                     DropdownMenuItem(
-                        text = { Text("Reset game") },
+                        text = { Text(stringResource(R.string.live_play_reset_game)) },
                         leadingIcon = {
                             Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                         },
@@ -246,7 +253,7 @@ fun LiveRoomTopBar(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     DropdownMenuItem(
-                        text = { Text("Leave Room", color = MaterialTheme.colorScheme.error) },
+                        text = { Text(stringResource(R.string.live_play_leave_room), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(Icons.AutoMirrored.Outlined.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         },

@@ -56,7 +56,7 @@ fun JackpotHeroCard(
                 .padding(24.dp)
         ) {
             Text(
-                text = "CURRENT JACKPOT",
+                text = stringResource(R.string.jackpot_card_current_label),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )

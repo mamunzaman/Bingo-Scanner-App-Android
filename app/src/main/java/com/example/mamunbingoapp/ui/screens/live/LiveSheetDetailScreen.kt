@@ -47,12 +47,15 @@ import android.widget.Toast
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@Composable
 private fun formatPlayDate(millis: Long): String {
-    if (millis <= 0L) return "Today"
+    if (millis <= 0L) return stringResource(R.string.common_today)
     return SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
 
@@ -60,7 +63,7 @@ private fun formatPlayDate(millis: Long): String {
 fun LiveSheetDetailScreen(
     ticketId: String,
     roomId: String = "",
-    sheetName: String = "Unnamed sheet",
+    sheetName: String = "",
     playedAtMillis: Long = System.currentTimeMillis(),
     cells: List<BingoCellUi>? = null,
     calledNumbers: List<Int> = emptyList(),
@@ -71,14 +74,15 @@ fun LiveSheetDetailScreen(
 ) {
     var showRemoveDialog by remember { mutableStateOf(false) }
     val room by RoomRepository.roomFlow(roomId).collectAsState(initial = null)
-    val roomName = room?.name ?: "this room"
+    val roomName = room?.name ?: stringResource(R.string.live_play_this_room)
+    val displaySheetName = sheetName.ifBlank { stringResource(R.string.history_unnamed_sheet) }
     if (showRemoveDialog) {
         AppConfirmDialog(
             visible = true,
-            title = "Remove sheet?",
-            message = "This will remove this sheet from $roomName.",
-            confirmText = "Remove Sheet",
-            cancelText = "Cancel",
+            title = stringResource(R.string.live_play_remove_sheet_title),
+            message = stringResource(R.string.live_play_remove_sheet_message, roomName),
+            confirmText = stringResource(R.string.live_play_remove_sheet_confirm),
+            cancelText = stringResource(R.string.settings_cancel),
             showCancelButton = true,
             onConfirm = {
                 showRemoveDialog = false
@@ -92,16 +96,16 @@ fun LiveSheetDetailScreen(
     AppHeaderPageLayout(
         topBar = {
             AppTopBar(
-                title = "Sheet Detail",
+                title = stringResource(R.string.live_play_sheet_detail_title),
                 showBack = true,
                 onBackClick = onBack,
                 actions = {
                     TextButton(onClick = onBackToRoom) {
-                        Text("Back to Room")
+                        Text(stringResource(R.string.live_play_back_to_room))
                     }
                     if (onRemoveSheet != null && roomId.isNotBlank()) {
                         TextButton(onClick = { showRemoveDialog = true }) {
-                            Text("Remove Sheet")
+                            Text(stringResource(R.string.live_play_remove_sheet_confirm))
                         }
                     }
                 }
@@ -123,28 +127,38 @@ fun LiveSheetDetailScreen(
             item {
                 val clipboard = LocalClipboardManager.current
                 val context = LocalContext.current
+                val copiedMessage = stringResource(R.string.common_copied_to_clipboard)
                 val infoItems = buildList {
-                    add(TicketInfoItem("Sheet Name", sheetName))
-                    add(TicketInfoItem("Draw Date", formatPlayDate(playedAtMillis)))
+                    add(TicketInfoItem(stringResource(R.string.live_play_sheet_name_label), displaySheetName))
+                    add(TicketInfoItem(stringResource(R.string.history_detail_stat_draw_date), formatPlayDate(playedAtMillis)))
                     add(
                         TicketInfoItem(
-                            "Ticket ID",
+                            stringResource(R.string.live_play_ticket_id_label),
                             ticketId,
                             trailing = {
                                 IconButton(onClick = {
                                     clipboard.setText(AnnotatedString(ticketId))
-                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
                                 }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy ticket id")
+                                    Icon(
+                                        Icons.Default.ContentCopy,
+                                        contentDescription = stringResource(R.string.history_detail_copy_ticket_cd)
+                                    )
                                 }
                             }
                         )
                     )
                     if (roomId.isNotBlank()) {
-                        add(TicketInfoItem("Status", "", trailing = { TicketInfoStatusChip("In Room") }))
+                        add(
+                            TicketInfoItem(
+                                stringResource(R.string.live_play_status_label),
+                                "",
+                                trailing = { TicketInfoStatusChip(stringResource(R.string.live_play_status_in_room)) }
+                            )
+                        )
                     }
                 }
-                TicketInfoCard(title = "TICKET INFORMATION", items = infoItems)
+                TicketInfoCard(title = stringResource(R.string.live_play_ticket_info_title), items = infoItems)
             }
             item {
                 CalledHistoryPanel(
@@ -153,7 +167,7 @@ fun LiveSheetDetailScreen(
                 )
             }
             item {
-                SectionHeader(title = "Bingo Sheet")
+                SectionHeader(title = stringResource(R.string.live_play_bingo_sheet_section))
             }
             item {
                 val gridCells = liveSheetDetailGridCells(cells)

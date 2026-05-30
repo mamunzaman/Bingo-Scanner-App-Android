@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.appPremiumCardBorder
@@ -33,7 +35,7 @@ private val comingSoonInactiveAlpha = 0.55f
 @Composable
 fun ProfileComingSoonBadge(modifier: Modifier = Modifier) {
     Text(
-        text = "Coming Soon",
+        text = stringResource(R.string.profile_coming_soon),
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

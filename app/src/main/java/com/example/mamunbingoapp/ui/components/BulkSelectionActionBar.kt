@@ -18,7 +18,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 
 @Composable
@@ -82,8 +84,11 @@ fun BulkSelectionActionBar(
                     )
                 ) {
                     Text(
-                        text = if (joinLiveCount > 0) "Join live ($joinLiveCount)"
-                        else "Join live"
+                        text = if (joinLiveCount > 0) {
+                            stringResource(R.string.history_bulk_join_live_count, joinLiveCount)
+                        } else {
+                            stringResource(R.string.history_bulk_join_live)
+                        }
                     )
                 }
             }
@@ -104,8 +109,11 @@ fun BulkSelectionActionBar(
                     shape = RoundedCornerShape(Dimens.radiusMedium)
                 ) {
                     Text(
-                        text = if (addCount > 0) "Add eligible ($addCount)"
-                        else "Add eligible"
+                        text = if (addCount > 0) {
+                            stringResource(R.string.history_bulk_add_eligible_count, addCount)
+                        } else {
+                            stringResource(R.string.history_bulk_add_eligible)
+                        }
                     )
                 }
             }
@@ -126,8 +134,11 @@ fun BulkSelectionActionBar(
                         )
                     ) {
                         Text(
-                            text = if (removeCount > 0) "Remove from room ($removeCount)"
-                            else "Remove from room"
+                            text = if (removeCount > 0) {
+                                stringResource(R.string.history_bulk_remove_from_room_count, removeCount)
+                            } else {
+                                stringResource(R.string.history_bulk_remove_from_room)
+                            }
                         )
                     }
                 }
@@ -144,8 +155,11 @@ fun BulkSelectionActionBar(
                     )
                 ) {
                     Text(
-                        text = if (deleteCount > 0) "Delete ($deleteCount)"
-                        else "Delete"
+                        text = if (deleteCount > 0) {
+                            stringResource(R.string.history_bulk_delete_count, deleteCount)
+                        } else {
+                            stringResource(R.string.common_delete)
+                        }
                     )
                 }
             }

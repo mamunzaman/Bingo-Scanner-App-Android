@@ -327,7 +327,7 @@ fun rememberImportTicketGalleryImagePickLauncher(
             try {
                 Toast.makeText(
                     context,
-                    "Include full ticket (grid + left number + bottom number)",
+                    context.getString(R.string.import_ticket_gallery_crop_toast),
                     Toast.LENGTH_LONG,
                 ).show()
                 val cropIntent = prepareImportTicketUcropIntentForLaunch(appCtx, sourceCopyUri, outputUri)
@@ -426,7 +426,7 @@ fun ImportTicketScreen(
     AppHeaderPageLayout(
         topBar = {
             AppTopBar(
-                title = "Import Ticket",
+                title = stringResource(R.string.import_ticket_title),
                 showBack = true,
                 onBackClick = {
                     when {
@@ -471,20 +471,20 @@ fun ImportTicketScreen(
     )
     AppConfirmDialog(
         visible = showDiscardDialog,
-        title = "Discard scan?",
-        message = "Your uploaded image and scan result will be lost.",
-        confirmText = "Discard",
-        cancelText = "Stay",
+        title = stringResource(R.string.import_ticket_discard_scan_title),
+        message = stringResource(R.string.import_ticket_discard_scan_message),
+        confirmText = stringResource(R.string.import_ticket_gallery_discard),
+        cancelText = stringResource(R.string.common_stay),
         onConfirm = { showDiscardDialog = false; onDiscardAndBack() },
         onCancel = { showDiscardDialog = false },
         onDismiss = { showDiscardDialog = false },
     )
     AppConfirmDialog(
         visible = pendingReplaceAction != null,
-        title = "Replace current scan?",
-        message = "Your current uploaded image and scan result will be replaced.",
-        confirmText = "Replace",
-        cancelText = "Cancel",
+        title = stringResource(R.string.import_ticket_replace_scan_title),
+        message = stringResource(R.string.import_ticket_replace_scan_message),
+        confirmText = stringResource(R.string.common_replace),
+        cancelText = stringResource(R.string.settings_cancel),
         onConfirm = {
             when (pendingReplaceAction) {
                 PendingReplace.TakePhoto -> onTakePhoto()
@@ -518,13 +518,14 @@ private fun scanSummaryMetrics(scanResult: ScanResultUiState): ScanSummaryUi = w
     else -> ScanSummaryUi("—", "—", 0f)
 }
 
+@Composable
 private fun ctaHelperLine(scanResult: ScanResultUiState, idleHint: String): Pair<String, Boolean>? = when (scanResult) {
     is ScanResultUiState.Idle -> Pair(idleHint, false)
     is ScanResultUiState.Loading -> null
     is ScanResultUiState.Error -> null
     is ScanResultUiState.Success -> when (finalUiGridRowMajor(scanResult.numbers).count { it != 0 }) {
-        0 -> Pair("No readable numbers were found. Try another photo or enter numbers manually.", false)
-        in 1..(FULL_GRID_COUNT - 1) -> Pair("Only some numbers were detected. Please review before continuing.", true)
+        0 -> Pair(stringResource(R.string.import_ticket_cta_no_numbers), false)
+        in 1..(FULL_GRID_COUNT - 1) -> Pair(stringResource(R.string.import_ticket_cta_partial_numbers), true)
         else -> null
     }
 }
@@ -555,8 +556,8 @@ fun ImportTicketMainContent(
 ) {
     if (scanResult is ScanResultUiState.Error) {
         val err = scanResult
-        val primary = err.message.takeIf { it.isNotBlank() }
-            ?: "Scan failed. Try another photo or enter numbers manually."
+        val scanFailedFallback = stringResource(R.string.import_ticket_scan_failed_fallback)
+        val primary = err.message.takeIf { it.isNotBlank() } ?: scanFailedFallback
         val errHeroUri = if (suppressHeroImage) null else selectedUri
         Column(modifier = modifier.fillMaxSize()) {
             if (errHeroUri != null) {
@@ -749,7 +750,7 @@ fun ImportTicketMainContent(
         }
         if (scanResult is ScanResultUiState.Success && imageSource != null) {
             Text(
-                text = "Source: $imageSource",
+                text = stringResource(R.string.import_ticket_source_format, imageSource),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -1079,7 +1080,7 @@ private fun HeroBannerCard(
                     )
                 }
                 Text(
-                    text = "No photo selected",
+                    text = stringResource(R.string.import_ticket_no_photo_selected),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.96f)
                 )
@@ -1132,12 +1133,12 @@ private fun TakePhotoCard(
             )
         }
         Text(
-            text = "Take Photo",
+            text = stringResource(R.string.import_ticket_take_photo),
             style = if (compact) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
             color = OnPrimary
         )
         Text(
-            text = "Use your camera",
+            text = stringResource(R.string.import_ticket_take_photo_subtitle),
             style = MaterialTheme.typography.labelSmall,
             color = PrimaryContainer
         )
@@ -1183,7 +1184,7 @@ private fun GalleryCard(
             )
         }
         Text(
-            text = "Gallery",
+            text = stringResource(R.string.import_ticket_gallery),
             style = if (compact) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
             color = PrimaryDark
         )

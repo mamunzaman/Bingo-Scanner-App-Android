@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.history.HistoryOcrSource
 import com.example.mamunbingoapp.scanner.BingoNumberAnalyzer
 import com.example.mamunbingoapp.domain.model.BingoScanType
@@ -112,13 +113,11 @@ internal fun validFilledCellCount(numbers: List<Int>): Int =
     finalUiGridRowMajor(numbers).count { it != 0 }
 
 /** Guidance when ML Kit returns fewer than [MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV] filled cells (not for Success). */
-internal fun weakScanFailureMessage(validCount: Int): String {
+private fun Application.weakScanFailureMessage(validCount: Int): String {
     require(validCount < MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV)
     return when {
-        validCount <= 5 ->
-            "Couldn't detect the grid. Move closer and ensure good lighting."
-        else ->
-            "Partial scan detected. Try aligning the grid fully in frame."
+        validCount <= 5 -> getString(R.string.import_ticket_error_no_grid)
+        else -> getString(R.string.import_ticket_error_partial_scan)
     }
 }
 
@@ -159,7 +158,7 @@ enum class ImportScanSource {
 enum class DetectionStatus { Checking, Found, NotFound }
 
 data class ImportOcrProgressUiState(
-    val stageLabel: String = "Starting analysis…",
+    val stageLabel: String = "",
     val detectedGridCells: Int = 0,
     val totalGridCells: Int = 25,
     val losStatus: DetectionStatus = DetectionStatus.Checking,
@@ -188,6 +187,8 @@ sealed class ScanResultUiState {
 
 /** URI and scan state for `historyPhotoImport` and scan-tab import. */
 class ImportTicketViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app get() = getApplication<Application>()
 
     private val _selectedImageUri = MutableStateFlow<Uri?>(null)
     val selectedImageUri: StateFlow<Uri?> = _selectedImageUri.asStateFlow()
@@ -364,7 +365,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
             _scanResult.value = ScanResultUiState.Loading
-            _ocrProgress.value = ImportOcrProgressUiState(stageLabel = "Checking for QR code…")
+            _ocrProgress.value = ImportOcrProgressUiState(stageLabel = app.getString(R.string.ocr_stage_checking_qr))
             val qrPre = withContext(Dispatchers.IO) {
                 tryDecodeBingoQrFromImageUri(context.applicationContext, uri)
             }
@@ -389,7 +390,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 is ImportTicketQrPreOcr.NoBingoQrContinueOcr -> Unit
             }
             _ocrProgress.value = (_ocrProgress.value ?: ImportOcrProgressUiState())
-                .copy(stageLabel = "Detecting ticket grid…")
+                .copy(stageLabel = app.getString(R.string.ocr_stage_detecting_grid))
             if (effectiveScanType == BingoScanType.PLAY_PAPER) {
                 val tooZoomed = withContext(Dispatchers.IO) {
                     isLikelyTooZoomedForOcr(context.applicationContext, uri)
@@ -404,20 +405,20 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                         "PLAY_PAPER scan blocked too-zoomed; user should widen frame",
                     )
                     _scanResult.value = ScanResultUiState.Error(
-                        message = "Move camera slightly back so full ticket is visible",
+                        message = app.getString(R.string.import_ticket_zoom_hint),
                     )
                     return@launch
                 }
             }
             _ocrProgress.value = (_ocrProgress.value ?: ImportOcrProgressUiState())
-                .copy(stageLabel = "Reading bingo numbers…")
+                .copy(stageLabel = app.getString(R.string.ocr_stage_reading_numbers))
             // Advance to "Reading ticket markers…" after 1.8 s if OCR is still running.
             // Cancelled immediately when OCR returns — does not delay the result.
             val markerStageJob = launch {
                 delay(1800)
                 if (_scanResult.value is ScanResultUiState.Loading) {
                     _ocrProgress.value = (_ocrProgress.value ?: ImportOcrProgressUiState())
-                        .copy(stageLabel = "Reading ticket markers…")
+                        .copy(stageLabel = app.getString(R.string.ocr_stage_reading_markers))
                 }
             }
             val result = withContext(Dispatchers.IO) {
@@ -457,14 +458,14 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 onSuccess = { outcome ->
                     val validCount = validFilledCellCount(outcome.numbersRowMajor)
                     _ocrProgress.value = ImportOcrProgressUiState(
-                        stageLabel = "Finalizing result…",
+                        stageLabel = app.getString(R.string.ocr_stage_finalizing),
                         detectedGridCells = validCount,
                         losStatus = if (!outcome.losNumber.isNullOrBlank()) DetectionStatus.Found else DetectionStatus.NotFound,
                         serialStatus = if (!outcome.serialNumber.isNullOrBlank()) DetectionStatus.Found else DetectionStatus.NotFound,
                     )
                     when {
                         validCount < minValidForScan -> {
-                            val message = weakScanFailureMessage(validCount)
+                            val message = app.weakScanFailureMessage(validCount)
                             Log.w(
                                 IMPORT_TICKET_LOG,
                                 "OCR weak result type=${effectiveScanType.name} validCount=$validCount",
@@ -490,7 +491,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 },
                 onFailure = { e ->
                     Log.e(IMPORT_TICKET_LOG, "OCR failed type=${effectiveScanType.name}", e)
-                    _scanResult.value = ScanResultUiState.Error(e.message ?: "OCR failed")
+                    _scanResult.value = ScanResultUiState.Error(e.message ?: app.getString(R.string.import_ticket_error_ocr_failed))
                 },
             )
         }

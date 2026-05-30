@@ -45,12 +45,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.viewmodel.DetectionStatus
 import com.example.mamunbingoapp.viewmodel.ImportOcrProgressUiState
@@ -266,7 +268,7 @@ fun ProcessingDataCard(modifier: Modifier = Modifier) {
                         .background(cs.primary, CircleShape),
                 )
                 Text(
-                    text = "Processing Data...",
+                    text = stringResource(R.string.ocr_processing_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = cs.primary,
@@ -274,7 +276,7 @@ fun ProcessingDataCard(modifier: Modifier = Modifier) {
             }
 
             Text(
-                text = "Our advanced OCR system is identifying your numbers and serial markers. Please keep the camera steady.",
+                text = stringResource(R.string.ocr_processing_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant,
             )
@@ -303,14 +305,14 @@ fun ProcessingDataCard(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatItem(label = "NODES", value = "12 / 25")
+                StatItem(label = stringResource(R.string.ocr_stat_nodes), value = "12 / 25")
                 Box(
                     modifier = Modifier
                         .height(28.dp)
                         .width(1.dp)
                         .background(cs.outlineVariant.copy(alpha = 0.45f)),
                 )
-                StatItem(label = "CONFIDENCE", value = "98.4%")
+                StatItem(label = stringResource(R.string.ocr_stat_confidence), value = "98.4%")
             }
         }
     }
@@ -380,6 +382,26 @@ fun AnalyzingProgressDots(modifier: Modifier = Modifier) {
  * When [progress] has real data from the OCR pipeline, shows live stage label,
  * actual detected cell count and LOS / serial detection status.
  */
+private enum class MarkerPhase { Queued, Waiting, Scanning, Checking }
+
+private fun resolveMarkerPhase(stage: String): MarkerPhase = when {
+    stage.contains("QR", ignoreCase = true) -> MarkerPhase.Queued
+    stage.contains("grid", ignoreCase = true) -> MarkerPhase.Waiting
+    stage.contains("numbers", ignoreCase = true) ||
+        stage.contains("markers", ignoreCase = true) -> MarkerPhase.Scanning
+    else -> MarkerPhase.Checking
+}
+
+@Composable
+private fun markerPhaseLabel(phase: MarkerPhase): String = stringResource(
+    when (phase) {
+        MarkerPhase.Queued -> R.string.ocr_marker_queued
+        MarkerPhase.Waiting -> R.string.ocr_marker_waiting
+        MarkerPhase.Scanning -> R.string.ocr_marker_scanning
+        MarkerPhase.Checking -> R.string.ocr_marker_checking
+    },
+)
+
 @Composable
 fun BingoOcrStatusCard(
     progress: ImportOcrProgressUiState? = null,
@@ -388,19 +410,19 @@ fun BingoOcrStatusCard(
     val cs = MaterialTheme.colorScheme
 
     // Stage label — real when available, else rotates through defaults
-    val defaultTitles = listOf(
-        "Reading bingo numbers…",
-        "Detecting ticket grid…",
-        "Checking serial and LOS…",
+    val defaultTitleIds = listOf(
+        R.string.ocr_stage_reading_numbers,
+        R.string.ocr_stage_detecting_grid,
+        R.string.ocr_stage_checking_markers,
     )
     var titleIndex by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
             delay(2500)
-            titleIndex = (titleIndex + 1) % defaultTitles.size
+            titleIndex = (titleIndex + 1) % defaultTitleIds.size
         }
     }
-    val stageLabel = progress?.stageLabel ?: defaultTitles[titleIndex]
+    val stageLabel = progress?.stageLabel ?: stringResource(defaultTitleIds[titleIndex])
 
     // Progress bar — real ratio when cells detected, else animated placeholder
     val hasRealCells = (progress?.detectedGridCells ?: 0) > 0
@@ -445,40 +467,37 @@ fun BingoOcrStatusCard(
 
     // Stage-aware marker status — advances text/colour with each OCR stage until real values arrive
     val currentStage = progress?.stageLabel ?: ""
-    val markerStatusText = when {
-        currentStage.contains("QR", ignoreCase = true) -> "Queued"
-        currentStage.contains("grid", ignoreCase = true) -> "Waiting"
-        currentStage.contains("numbers", ignoreCase = true) ||
-            currentStage.contains("markers", ignoreCase = true) -> "Scanning"
-        else -> "Checking"
-    }
+    val markerPhase = resolveMarkerPhase(currentStage)
+    val pendingMarkerLabel = markerPhaseLabel(markerPhase)
+    val foundLabel = stringResource(R.string.ocr_marker_found)
+    val notFoundLabel = stringResource(R.string.ocr_marker_not_found)
     val losText = when (progress?.losStatus) {
-        DetectionStatus.Found -> "Found"
-        DetectionStatus.NotFound -> "Not found"
-        else -> markerStatusText
+        DetectionStatus.Found -> foundLabel
+        DetectionStatus.NotFound -> notFoundLabel
+        else -> pendingMarkerLabel
     }
     val serialText = when (progress?.serialStatus) {
-        DetectionStatus.Found -> "Found"
-        DetectionStatus.NotFound -> "Not found"
-        else -> markerStatusText
+        DetectionStatus.Found -> foundLabel
+        DetectionStatus.NotFound -> notFoundLabel
+        else -> pendingMarkerLabel
     }
     val losColor = when {
         progress?.losStatus == DetectionStatus.Found -> cs.primary
         progress?.losStatus == DetectionStatus.NotFound -> cs.onSurfaceVariant
-        markerStatusText == "Scanning" -> cs.primary
-        markerStatusText == "Waiting" -> cs.onSurfaceVariant
-        else -> cs.outline  // Queued / Checking
+        markerPhase == MarkerPhase.Scanning -> cs.primary
+        markerPhase == MarkerPhase.Waiting -> cs.onSurfaceVariant
+        else -> cs.outline
     }
     val serialColor = when {
         progress?.serialStatus == DetectionStatus.Found -> cs.primary
         progress?.serialStatus == DetectionStatus.NotFound -> cs.onSurfaceVariant
-        markerStatusText == "Scanning" -> cs.primary
-        markerStatusText == "Waiting" -> cs.onSurfaceVariant
+        markerPhase == MarkerPhase.Scanning -> cs.primary
+        markerPhase == MarkerPhase.Waiting -> cs.onSurfaceVariant
         else -> cs.outline
     }
     val knownStatuses = listOf(DetectionStatus.Found, DetectionStatus.NotFound)
-    val losShowPulse = markerStatusText == "Scanning" && progress?.losStatus !in knownStatuses
-    val serialShowPulse = markerStatusText == "Scanning" && progress?.serialStatus !in knownStatuses
+    val losShowPulse = markerPhase == MarkerPhase.Scanning && progress?.losStatus !in knownStatuses
+    val serialShowPulse = markerPhase == MarkerPhase.Scanning && progress?.serialStatus !in knownStatuses
 
     Box(
         modifier = modifier
@@ -508,7 +527,7 @@ fun BingoOcrStatusCard(
                 )
             }
             Text(
-                text = "We're scanning the 5×5 bingo grid, ticket series, LOS number and serial markers. Please keep this screen open.",
+                text = stringResource(R.string.ocr_bingo_status_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant,
             )
@@ -539,11 +558,11 @@ fun BingoOcrStatusCard(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                BingoStatItem(label = "GRID CELLS", value = gridCellsText, valueColor = cs.primary)
+                BingoStatItem(label = stringResource(R.string.ocr_stat_grid_cells), value = gridCellsText, valueColor = cs.primary)
                 Box(Modifier.height(28.dp).width(1.dp).background(cs.outlineVariant.copy(alpha = 0.45f)))
-                BingoStatItem(label = "LOS-NR", value = losText, valueColor = losColor, showPulse = losShowPulse)
+                BingoStatItem(label = stringResource(R.string.ocr_stat_los_nr), value = losText, valueColor = losColor, showPulse = losShowPulse)
                 Box(Modifier.height(28.dp).width(1.dp).background(cs.outlineVariant.copy(alpha = 0.45f)))
-                BingoStatItem(label = "SERIE", value = serialText, valueColor = serialColor, showPulse = serialShowPulse)
+                BingoStatItem(label = stringResource(R.string.ocr_stat_serie), value = serialText, valueColor = serialColor, showPulse = serialShowPulse)
             }
         }
     }

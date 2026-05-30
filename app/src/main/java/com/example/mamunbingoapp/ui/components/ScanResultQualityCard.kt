@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Error
 import com.example.mamunbingoapp.theme.OnSurface
@@ -63,13 +65,13 @@ val QualityLevel.labelColor: Color
         QualityLevel.HIGH -> Primary
     }
 
-val QualityLevel.displayLabel: String
-    get() = when (this) {
-        QualityLevel.NONE -> "—"
-        QualityLevel.LOW -> "LOW"
-        QualityLevel.MEDIUM -> "MEDIUM"
-        QualityLevel.HIGH -> "HIGH"
-    }
+@Composable
+private fun qualityLevelLabel(level: QualityLevel): String = when (level) {
+    QualityLevel.NONE -> stringResource(R.string.common_em_dash)
+    QualityLevel.LOW -> stringResource(R.string.scan_quality_low)
+    QualityLevel.MEDIUM -> stringResource(R.string.scan_quality_medium)
+    QualityLevel.HIGH -> stringResource(R.string.scan_quality_high)
+}
 
 @Composable
 fun ScanResultQualityCard(
@@ -80,6 +82,9 @@ fun ScanResultQualityCard(
 ) {
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
     val cs = MaterialTheme.colorScheme
+    val lightingLabel = stringResource(R.string.scan_quality_lighting)
+    val focusLabel = stringResource(R.string.scan_quality_focus)
+    val angleLabel = stringResource(R.string.scan_quality_angle)
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -103,13 +108,13 @@ fun ScanResultQualityCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "SCAN RESULT",
+                    text = stringResource(R.string.import_ticket_scan_result_label),
                     style = AppTextStyles.sectionLabel,
                     color = PrimaryDark,
                 )
                 if (showQualitySection && qualityData.level != QualityLevel.NONE) {
                     Text(
-                        text = qualityData.level.displayLabel,
+                        text = qualityLevelLabel(qualityData.level),
                         style = AppTextStyles.sectionLabel,
                         color = qualityData.level.labelColor,
                     )
@@ -124,8 +129,8 @@ fun ScanResultQualityCard(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
                 ) {
-                    StatRow(label = "Numbers", value = scanResult.numbers)
-                    StatRow(label = "Grid", value = scanResult.grid)
+                    StatRow(label = stringResource(R.string.scan_result_numbers), value = scanResult.numbers)
+                    StatRow(label = stringResource(R.string.scan_result_grid), value = scanResult.grid)
                 }
                 Box(
                     modifier = Modifier
@@ -142,15 +147,15 @@ fun ScanResultQualityCard(
                         QualitySegmentBar(level = qualityData.level)
                         Spacer(Modifier.height(Dimens.spacing4))
                         val neutralIndicators = qualityData.level == QualityLevel.NONE
-                        QualityIndicatorRow(label = "Lighting", ok = if (neutralIndicators) null else qualityData.lightingOk)
-                        QualityIndicatorRow(label = "Focus", ok = if (neutralIndicators) null else qualityData.focusOk)
-                        QualityIndicatorRow(label = "Angle", ok = if (neutralIndicators) null else qualityData.angleOk)
+                        QualityIndicatorRow(label = lightingLabel, ok = if (neutralIndicators) null else qualityData.lightingOk)
+                        QualityIndicatorRow(label = focusLabel, ok = if (neutralIndicators) null else qualityData.focusOk)
+                        QualityIndicatorRow(label = angleLabel, ok = if (neutralIndicators) null else qualityData.angleOk)
                     } else {
                         QualitySegmentBar(level = QualityLevel.NONE)
                         Spacer(Modifier.height(Dimens.spacing4))
-                        QualityIndicatorRow(label = "Lighting", ok = null)
-                        QualityIndicatorRow(label = "Focus", ok = null)
-                        QualityIndicatorRow(label = "Angle", ok = null)
+                        QualityIndicatorRow(label = lightingLabel, ok = null)
+                        QualityIndicatorRow(label = focusLabel, ok = null)
+                        QualityIndicatorRow(label = angleLabel, ok = null)
                     }
                 }
             }
@@ -170,6 +175,7 @@ fun ScanResultQualityCard(
 
 @Composable
 private fun StatRow(label: String, value: String) {
+    val emDash = stringResource(R.string.common_em_dash)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -190,7 +196,7 @@ private fun StatRow(label: String, value: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.labelLarge,
-            color = if (value == "—") Slate400 else OnSurface,
+            color = if (value == emDash) Slate400 else OnSurface,
             fontWeight = FontWeight.Bold,
         )
     }
@@ -242,9 +248,9 @@ private fun QualityIndicatorRow(label: String, ok: Boolean?) {
         )
         Text(
             text = when {
-                neutral -> "$label…"
+                neutral -> stringResource(R.string.scan_quality_checking, label)
                 ok == true -> label
-                else -> "$label !"
+                else -> stringResource(R.string.scan_quality_issue, label)
             },
             style = MaterialTheme.typography.labelSmall,
             color = when {

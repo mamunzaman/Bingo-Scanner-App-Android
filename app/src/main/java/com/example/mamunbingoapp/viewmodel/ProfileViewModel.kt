@@ -1,10 +1,12 @@
 package com.example.mamunbingoapp.viewmodel
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.auth.AuthRepository
 import com.example.mamunbingoapp.data.auth.AuthState
 import com.example.mamunbingoapp.data.profile.ProfileDto
@@ -32,7 +34,9 @@ data class ProfileFormState(
     val language: String = "",
 )
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app get() = getApplication<Application>()
 
     private val _profileLoading = MutableStateFlow(false)
 
@@ -83,22 +87,22 @@ class ProfileViewModel : ViewModel() {
     fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String) {
         _uiMessage.value = null
         when {
-            currentPassword.isBlank() -> showError("Enter your current password.")
+            currentPassword.isBlank() -> showError(app.getString(R.string.profile_error_enter_current_password))
             newPassword.length < MIN_PASSWORD_LENGTH ->
-                showError("Password must be at least $MIN_PASSWORD_LENGTH characters.")
-            confirmPassword.isBlank() -> showError("Confirm your new password.")
-            newPassword != confirmPassword -> showError("Passwords do not match.")
+                showError(app.getString(R.string.change_password_error_min_length))
+            confirmPassword.isBlank() -> showError(app.getString(R.string.change_password_error_confirm))
+            newPassword != confirmPassword -> showError(app.getString(R.string.change_password_error_mismatch))
             else -> viewModelScope.launch {
                 AuthRepository.clearAuthActionError()
                 val success = AuthRepository.changePassword(currentPassword, newPassword)
                 if (success) {
                     _uiMessageType.value = AppAuthMessageType.Success
-                    _uiMessage.value = "Password updated successfully."
+                    _uiMessage.value = app.getString(R.string.profile_success_password_updated)
                     _formResetKey.value += 1
                 } else {
                     showError(
                         AuthRepository.authActionError.value
-                            ?: "Could not update password. Check your current password.",
+                            ?: app.getString(R.string.profile_error_password_update_failed),
                     )
                 }
             }
@@ -112,14 +116,14 @@ class ProfileViewModel : ViewModel() {
     fun saveDisplayName() {
         val name = _displayNameInput.value.trim()
         if (name.isBlank()) {
-            showError("Display name is required.")
+            showError(app.getString(R.string.profile_error_display_name_required))
             return
         }
         viewModelScope.launch {
             _profileLoading.value = true
             val userId = AuthRepository.currentSignedInUserId()
             if (userId.isNullOrBlank()) {
-                showError("Sign in to update your profile.")
+                showError(app.getString(R.string.profile_error_sign_in_required))
                 _profileLoading.value = false
                 return@launch
             }
@@ -127,7 +131,7 @@ class ProfileViewModel : ViewModel() {
                 buildProfileDto(userId).copy(displayName = name),
             )
             if (profileResult.isFailure) {
-                showError(profileResult.exceptionOrNull()?.message ?: "Could not update profile.")
+                showError(profileResult.exceptionOrNull()?.message ?: app.getString(R.string.profile_error_update_profile_failed))
                 _profileLoading.value = false
                 return@launch
             }
@@ -135,10 +139,10 @@ class ProfileViewModel : ViewModel() {
             _profileLoading.value = false
             if (authSuccess) {
                 _uiMessageType.value = AppAuthMessageType.Success
-                _uiMessage.value = "Display name saved."
+                _uiMessage.value = app.getString(R.string.profile_success_display_name_saved)
                 applyProfileDto(profileResult.getOrThrow())
             } else {
-                showError(AuthRepository.authActionError.value ?: "Could not update display name.")
+                showError(AuthRepository.authActionError.value ?: app.getString(R.string.profile_error_update_display_name_failed))
             }
         }
     }
@@ -150,17 +154,17 @@ class ProfileViewModel : ViewModel() {
     fun saveEmail() {
         val email = _emailInput.value.trim()
         if (email.isBlank() || !email.contains("@")) {
-            showError("Enter a valid email address.")
+            showError(app.getString(R.string.profile_error_valid_email))
             return
         }
         viewModelScope.launch {
             val success = AuthRepository.updateEmail(email)
             if (success) {
                 _uiMessageType.value = AppAuthMessageType.Info
-                _uiMessage.value = "Check your new email address to confirm the change."
+                _uiMessage.value = app.getString(R.string.profile_success_check_email_confirm)
                 refreshAuthProfile()
             } else {
-                showError(AuthRepository.authActionError.value ?: "Could not update email.")
+                showError(AuthRepository.authActionError.value ?: app.getString(R.string.profile_error_update_email_failed))
             }
         }
     }
@@ -223,10 +227,10 @@ class ProfileViewModel : ViewModel() {
                 .onSuccess { dto ->
                     applyProfileDto(dto)
                     _uiMessageType.value = AppAuthMessageType.Success
-                    _uiMessage.value = "Profile photo updated."
+                    _uiMessage.value = app.getString(R.string.profile_success_photo_updated)
                 }
                 .onFailure { error ->
-                    showError(error.message ?: "Could not upload profile photo.")
+                    showError(error.message ?: app.getString(R.string.profile_error_photo_upload_failed))
                 }
             _profileLoading.value = false
         }
@@ -263,10 +267,10 @@ class ProfileViewModel : ViewModel() {
                     ProfileRepository.loadOrCreateCurrentProfile()
                         .onSuccess { fresh -> applyProfileDto(fresh.copy(avatarUrl = null)) }
                     _uiMessageType.value = AppAuthMessageType.Success
-                    _uiMessage.value = "Profile photo removed."
+                    _uiMessage.value = app.getString(R.string.profile_success_photo_removed)
                 }
                 .onFailure { error ->
-                    showError(error.message ?: "Could not remove profile photo.")
+                    showError(error.message ?: app.getString(R.string.profile_error_photo_remove_failed))
                     _profileLoading.value = false
                 }
             if (_profileLoading.value) {
@@ -284,7 +288,7 @@ class ProfileViewModel : ViewModel() {
             _profileLoading.value = true
             val userId = AuthRepository.currentSignedInUserId()
             if (userId.isNullOrBlank()) {
-                showError("Sign in to save your profile.")
+                showError(app.getString(R.string.profile_error_sign_in_save_profile))
                 _profileLoading.value = false
                 return@launch
             }
@@ -292,10 +296,10 @@ class ProfileViewModel : ViewModel() {
                 .onSuccess { dto ->
                     applyProfileDto(dto)
                     _uiMessageType.value = AppAuthMessageType.Success
-                    _uiMessage.value = "Profile saved."
+                    _uiMessage.value = app.getString(R.string.profile_success_profile_saved)
                 }
                 .onFailure { error ->
-                    showError(error.message ?: "Could not save profile.")
+                    showError(error.message ?: app.getString(R.string.profile_error_save_profile_failed))
                 }
             _profileLoading.value = false
         }
@@ -336,7 +340,7 @@ class ProfileViewModel : ViewModel() {
                 if (_displayNameInput.value.isBlank()) {
                     _displayNameInput.value = AuthRepository.currentDisplayName().orEmpty()
                 }
-                showError(error.message ?: "Could not load profile.")
+                showError(error.message ?: app.getString(R.string.profile_error_load_profile_failed))
             }
     }
 

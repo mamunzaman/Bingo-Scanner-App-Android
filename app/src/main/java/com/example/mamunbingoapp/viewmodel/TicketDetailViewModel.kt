@@ -1,8 +1,10 @@
 package com.example.mamunbingoapp.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.RoomRepository
@@ -16,8 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class TicketDetailViewModel(
+    application: Application,
     savedStateHandle: SavedStateHandle
-) : ViewModel() {
+) : AndroidViewModel(application) {
     private val ticketId: String = savedStateHandle.get<String>("ticketId") ?: ""
 
     private val _state = MutableStateFlow<TicketDetailData?>(null)
@@ -41,17 +44,22 @@ class TicketDetailViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private fun anotherRoomFallback(): String =
+        getApplication<Application>().getString(R.string.history_detail_another_room_fallback)
+
     fun addToRoom(roomId: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 when (val r = RoomRepository.assignTicketToRoom(roomId, ticketId)) {
                     is AssignTicketResult.Success -> {
-                        _snackbarMessage.emit("Ticket added to room")
+                        _snackbarMessage.emit(
+                            getApplication<Application>().getString(R.string.ticket_detail_snackbar_added)
+                        )
                         _pendingNavigateToRoomId.value = roomId
                     }
                     is AssignTicketResult.AlreadyInRoom -> {
-                        val roomName = RoomRepository.getRoom(r.existingRoomId)?.name ?: "another room"
+                        val roomName = RoomRepository.getRoom(r.existingRoomId)?.name ?: anotherRoomFallback()
                         _roomConflict.value = RoomConflictUi(
                             visible = true,
                             existingRoomId = r.existingRoomId,
@@ -59,7 +67,9 @@ class TicketDetailViewModel(
                             targetRoomId = roomId
                         )
                     }
-                    is AssignTicketResult.Error -> _snackbarMessage.emit("Could not add ticket")
+                    is AssignTicketResult.Error -> _snackbarMessage.emit(
+                        getApplication<Application>().getString(R.string.ticket_detail_snackbar_add_failed)
+                    )
                 }
             } finally {
                 _isLoading.value = false
@@ -87,11 +97,15 @@ class TicketDetailViewModel(
                 when (val moveResult = RoomRepository.moveTicketToRoom(ticketId, from, to)) {
                     is AssignTicketResult.Success -> {
                         _roomConflict.value = RoomConflictUi()
-                        _snackbarMessage.emit("Ticket moved to room")
+                        _snackbarMessage.emit(
+                            getApplication<Application>().getString(R.string.ticket_detail_snackbar_moved)
+                        )
                         _pendingNavigateToRoomId.value = to
                     }
                     is AssignTicketResult.AlreadyInRoom -> { }
-                    is AssignTicketResult.Error -> _snackbarMessage.emit("Could not move ticket")
+                    is AssignTicketResult.Error -> _snackbarMessage.emit(
+                        getApplication<Application>().getString(R.string.ticket_detail_snackbar_move_failed)
+                    )
                 }
             } finally {
                 _isLoading.value = false

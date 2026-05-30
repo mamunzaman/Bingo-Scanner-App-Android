@@ -42,6 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.ProfileAvatar
 import com.example.mamunbingoapp.ui.components.profileAvatarInitials
@@ -99,10 +101,10 @@ fun AccountFormScreen(
     val hasAvatar = !avatarUrl.isNullOrBlank()
     AppConfirmDialog(
         visible = showDeleteAvatarDialog,
-        title = "Remove profile photo?",
-        message = "Your profile photo will be removed from your account.",
-        confirmText = "Remove",
-        cancelText = "Cancel",
+        title = stringResource(R.string.profile_remove_photo_title),
+        message = stringResource(R.string.profile_remove_photo_message),
+        confirmText = stringResource(R.string.common_remove),
+        cancelText = stringResource(R.string.settings_cancel),
         onConfirm = {
             showDeleteAvatarDialog = false
             onAvatarDelete()
@@ -127,7 +129,7 @@ fun AccountFormScreen(
             )
             Column(Modifier.fillMaxSize()) {
                 AppTopBar(
-                    title = "My Account",
+                    title = stringResource(R.string.profile_my_account),
                     showBack = true,
                     onBackClick = onBack,
                 )
@@ -145,13 +147,13 @@ fun AccountFormScreen(
                         .padding(horizontal = Dimens.screenHorizontalPadding),
                 ) {
                     Text(
-                        text = "Your account",
+                        text = stringResource(R.string.profile_account_your_account),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing8))
                     Text(
-                        text = "Login email is managed by sign-in. Personal details sync to your Supabase profile.",
+                        text = stringResource(R.string.profile_account_login_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -175,7 +177,11 @@ fun AccountFormScreen(
                         )
                         Spacer(modifier = Modifier.height(Dimens.spacing8))
                         Text(
-                            text = if (hasAvatar) "Tap remove to delete photo" else "Tap photo to add",
+                            text = if (hasAvatar) {
+                                stringResource(R.string.profile_tap_remove_photo)
+                            } else {
+                                stringResource(R.string.profile_tap_add_photo)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -183,8 +189,8 @@ fun AccountFormScreen(
                     Spacer(modifier = Modifier.height(Dimens.spacing24))
 
                     AccountSectionHeader(
-                        title = "Account login details",
-                        subtitle = "Display name and email for sign-in",
+                        title = stringResource(R.string.profile_account_login_section_title),
+                        subtitle = stringResource(R.string.profile_account_login_section_sub),
                         emphasized = true,
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing8))
@@ -198,15 +204,15 @@ fun AccountFormScreen(
                                 ),
                         ) {
                             AccountFormField(
-                                label = "Display name",
+                                label = stringResource(R.string.profile_account_display_name),
                                 value = displayName,
                                 onValueChange = onDisplayNameChange,
-                                placeholder = "Enter display name",
+                                placeholder = stringResource(R.string.profile_account_display_name_placeholder),
                                 leadingIcon = Icons.Filled.Person,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing12))
                             AppPrimaryButton(
-                                text = "Save display name",
+                                text = stringResource(R.string.profile_account_save_display_name),
                                 onClick = onSaveDisplayName,
                                 loading = profileLoading,
                                 enabled = !profileLoading,
@@ -214,21 +220,21 @@ fun AccountFormScreen(
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountCompactInfoRow(
-                                label = "Signed-in email",
-                                value = signedInEmail ?: "Not signed in",
+                                label = stringResource(R.string.profile_account_signed_in_email),
+                                value = signedInEmail ?: stringResource(R.string.profile_account_not_signed_in),
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "New email",
+                                label = stringResource(R.string.profile_account_new_email),
                                 value = emailInput,
                                 onValueChange = onEmailChange,
-                                placeholder = "Enter new email",
+                                placeholder = stringResource(R.string.profile_account_new_email_placeholder),
                                 leadingIcon = Icons.Filled.Mail,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing12))
                             AppPrimaryButton(
-                                text = "Update email",
+                                text = stringResource(R.string.profile_account_update_email),
                                 onClick = onUpdateEmail,
                                 loading = profileLoading,
                                 enabled = !profileLoading,
@@ -240,8 +246,8 @@ fun AccountFormScreen(
                     Spacer(modifier = Modifier.height(Dimens.spacing24))
 
                     AccountSectionHeader(
-                        title = "Personal profile details",
-                        subtitle = "Saved to your Supabase profile",
+                        title = stringResource(R.string.profile_account_personal_section_title),
+                        subtitle = stringResource(R.string.profile_account_personal_section_sub),
                         emphasized = false,
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing8))
@@ -255,84 +261,84 @@ fun AccountFormScreen(
                                 ),
                         ) {
                             AccountFormField(
-                                label = "Full name",
+                                label = stringResource(R.string.profile_account_full_name),
                                 value = profileForm.fullName,
                                 onValueChange = onFullNameChange,
-                                placeholder = "Your full name",
+                                placeholder = stringResource(R.string.profile_account_full_name_placeholder),
                                 leadingIcon = Icons.Filled.Person,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Secondary email",
+                                label = stringResource(R.string.profile_account_secondary_email),
                                 value = profileForm.secondaryEmail,
                                 onValueChange = onSecondaryEmailChange,
-                                placeholder = "Contact email",
+                                placeholder = stringResource(R.string.profile_account_secondary_email_placeholder),
                                 leadingIcon = Icons.Filled.Mail,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Phone number",
+                                label = stringResource(R.string.profile_account_phone),
                                 value = profileForm.phone,
                                 onValueChange = onPhoneChange,
-                                placeholder = "+1 555 000 0000",
+                                placeholder = stringResource(R.string.profile_account_phone_placeholder),
                                 leadingIcon = Icons.Filled.Phone,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Country",
+                                label = stringResource(R.string.profile_account_country),
                                 value = profileForm.country,
                                 onValueChange = onCountryChange,
-                                placeholder = "Country",
+                                placeholder = stringResource(R.string.profile_account_country_placeholder),
                                 leadingIcon = Icons.Filled.Public,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Region",
+                                label = stringResource(R.string.profile_account_region),
                                 value = profileForm.region,
                                 onValueChange = onRegionChange,
-                                placeholder = "State or region",
+                                placeholder = stringResource(R.string.profile_account_region_placeholder),
                                 leadingIcon = Icons.Filled.LocationOn,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "City",
+                                label = stringResource(R.string.profile_account_city),
                                 value = profileForm.city,
                                 onValueChange = onCityChange,
-                                placeholder = "City",
+                                placeholder = stringResource(R.string.profile_account_city_placeholder),
                                 leadingIcon = Icons.Filled.LocationCity,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Postal code",
+                                label = stringResource(R.string.profile_account_postal_code),
                                 value = profileForm.postalCode,
                                 onValueChange = onPostalCodeChange,
-                                placeholder = "Postal code",
+                                placeholder = stringResource(R.string.profile_account_postal_code_placeholder),
                                 leadingIcon = Icons.Filled.Place,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Street address",
+                                label = stringResource(R.string.profile_account_street),
                                 value = profileForm.streetAddress,
                                 onValueChange = onStreetAddressChange,
-                                placeholder = "Street address",
+                                placeholder = stringResource(R.string.profile_account_street_placeholder),
                                 leadingIcon = Icons.Filled.Place,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Apartment / house no.",
+                                label = stringResource(R.string.profile_account_apartment),
                                 value = profileForm.apartmentOrHouseNo,
                                 onValueChange = onApartmentOrHouseNoChange,
-                                placeholder = "Apt or house number",
+                                placeholder = stringResource(R.string.profile_account_apartment_placeholder),
                                 leadingIcon = Icons.Filled.Home,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing16))
                             AccountFormField(
-                                label = "Bio",
+                                label = stringResource(R.string.profile_account_bio),
                                 value = profileForm.bio,
                                 onValueChange = onBioChange,
-                                placeholder = "Short bio",
+                                placeholder = stringResource(R.string.profile_account_bio_placeholder),
                                 leadingIcon = Icons.Filled.Description,
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing12))
@@ -345,7 +351,7 @@ fun AccountFormScreen(
                                 Spacer(modifier = Modifier.height(Dimens.spacing12))
                             }
                             AppPrimaryButton(
-                                text = "Save profile",
+                                text = stringResource(R.string.profile_account_save_profile),
                                 onClick = onSaveProfileDetails,
                                 loading = profileLoading,
                                 enabled = !profileLoading,

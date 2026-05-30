@@ -19,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -86,13 +88,13 @@ fun EmptyHistoryActionCards(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)
                 ) {
                     Text(
-                        text = "No sessions yet",
+                        text = stringResource(R.string.history_empty_title),
                         style = MaterialTheme.typography.labelLarge,
                         color = PrimaryPressed,
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Your played sessions will appear here.",
+                        text = stringResource(R.string.history_empty_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = Slate600,
                         textAlign = TextAlign.Center
@@ -160,7 +162,7 @@ private fun PlayButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.size(Dimens.spacing8))
         Text(
-            text = "Play",
+            text = stringResource(R.string.empty_history_play),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = OnPrimary
@@ -190,7 +192,7 @@ private fun ScanButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.size(Dimens.spacing8))
         Text(
-            text = "Scan",
+            text = stringResource(R.string.home_scan),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = Primary

@@ -45,6 +45,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
@@ -285,6 +287,8 @@ fun ManualEntryBingoCard(
     modifier: Modifier = Modifier,
     compactGreenHeader: Boolean = false
 ) {
+    val untitledSheetLabel = stringResource(R.string.import_ticket_untitled_sheet)
+    val renameSheetCd = stringResource(R.string.import_ticket_rename_sheet_cd)
     val sheetTitleOutsideTapInteraction = remember { MutableInteractionSource() }
     val shape = RoundedCornerShape(Dimens.radiusCard)
     val dividerLine = OnPrimary.copy(alpha = 0.12f)
@@ -331,7 +335,7 @@ fun ManualEntryBingoCard(
                     }
                     Spacer(modifier = Modifier.height(Dimens.spacing4))
                     Text(
-                        text = sheetName.ifBlank { "Untitled sheet" },
+                        text = sheetName.ifBlank { untitledSheetLabel },
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal
                         ),
@@ -479,7 +483,7 @@ fun ManualEntryBingoCard(
                                         ) {
                                             if (sheetName.isEmpty()) {
                                                 Text(
-                                                    text = "Untitled sheet",
+                                                    text = untitledSheetLabel,
                                                     style = sheetTitleStyle.copy(
                                                         fontWeight = FontWeight.Normal
                                                     ),
@@ -492,7 +496,7 @@ fun ManualEntryBingoCard(
                                 )
                             } else {
                                 Text(
-                                    text = sheetName.ifBlank { "Untitled sheet" },
+                                    text = sheetName.ifBlank { untitledSheetLabel },
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = FontWeight.Normal
                                     ),
@@ -503,7 +507,7 @@ fun ManualEntryBingoCard(
                         }
                         Icon(
                             imageVector = Icons.Outlined.Edit,
-                            contentDescription = "Rename sheet",
+                            contentDescription = renameSheetCd,
                             modifier = Modifier
                                 .size(Dimens.iconAlert)
                                 .clickable { onToggleEditSheet() },

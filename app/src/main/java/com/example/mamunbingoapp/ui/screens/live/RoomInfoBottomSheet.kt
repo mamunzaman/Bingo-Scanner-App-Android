@@ -30,6 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.text.font.FontWeight
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,8 +42,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private fun formatDate(millis: Long?): String {
-    if (millis == null || millis <= 0) return "—"
+private fun formatDate(millis: Long?, emDash: String): String {
+    if (millis == null || millis <= 0) return emDash
     return SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date(millis))
 }
 
@@ -59,7 +61,13 @@ fun RoomInfoBottomSheet(
     onOpenMyTickets: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val shareText = if (roomId.isNotBlank()) "Join my Bingo room: $roomName - $roomId" else roomName.ifBlank { "" }
+    val emDash = stringResource(R.string.common_em_dash)
+    val copiedMessage = stringResource(R.string.common_copied_to_clipboard)
+    val shareText = if (roomId.isNotBlank()) {
+        stringResource(R.string.live_play_share_room_text, roomName, roomId)
+    } else {
+        roomName.ifBlank { "" }
+    }
     AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         windowInsets = WindowInsets(0, 0, 0, 0),
@@ -76,14 +84,14 @@ fun RoomInfoBottomSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Room Info",
+                text = stringResource(R.string.live_play_room_info_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Text(
-                text = roomName.ifBlank { "—" },
+                text = roomName.ifBlank { emDash },
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -94,13 +102,13 @@ fun RoomInfoBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Room ID",
+                    text = stringResource(R.string.live_play_room_id_label),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = roomId.ifBlank { "—" },
+                        text = roomId.ifBlank { emDash },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -109,12 +117,12 @@ fun RoomInfoBottomSheet(
                             onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Room ID", roomId))
-                                android.widget.Toast.makeText(context, "Copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast.makeText(context, copiedMessage, android.widget.Toast.LENGTH_SHORT).show()
                             }
                         ) {
                             Icon(
                                 Icons.Outlined.ContentCopy,
-                                contentDescription = "Copy",
+                                contentDescription = stringResource(R.string.common_copy_cd),
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -127,19 +135,19 @@ fun RoomInfoBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Created",
+                    text = stringResource(R.string.live_play_created_label),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = formatDate(createdAt),
+                    text = formatDate(createdAt, emDash),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
             AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
             AppSectionTitle(
-                text = "Session",
+                text = stringResource(R.string.live_play_session_label),
                 uppercase = false,
                 usePrimaryColor = false,
                 modifier = Modifier.padding(top = 4.dp),
@@ -148,30 +156,34 @@ fun RoomInfoBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Tickets", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.live_play_tickets_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("$ticketsCount", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Called numbers", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.live_play_called_numbers_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("${calledCount.coerceAtMost(MAX_LIVE_CALLS)}/$MAX_LIVE_CALLS", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Last called", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(lastCalled?.toString() ?: "—", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(R.string.live_play_last_called_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(lastCalled?.toString() ?: emDash, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             }
             isLive?.let { live ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(if (live) "Live" else "Not live", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(R.string.live_play_status_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (live) stringResource(R.string.common_live_badge) else stringResource(R.string.live_play_not_live),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
             AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -184,14 +196,14 @@ fun RoomInfoBottomSheet(
                         if (shareText.isNotBlank()) {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Room", shareText))
-                            android.widget.Toast.makeText(context, "Copied to clipboard", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, copiedMessage, android.widget.Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.radiusCard)
                 ) {
                     Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Share Room", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.live_play_share_room_button), modifier = Modifier.padding(start = 8.dp))
                 }
                 OutlinedButton(
                     onClick = onOpenMyTickets,
@@ -199,7 +211,7 @@ fun RoomInfoBottomSheet(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(Dimens.radiusCard)
                 ) {
                     Icon(Icons.Outlined.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("My Tickets", modifier = Modifier.padding(start = 8.dp))
+                    Text(stringResource(R.string.home_my_tickets), modifier = Modifier.padding(start = 8.dp))
                 }
             }
         }

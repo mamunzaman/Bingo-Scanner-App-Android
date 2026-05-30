@@ -60,9 +60,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.theme.Dimens
 import kotlinx.coroutines.delay
@@ -128,7 +130,7 @@ fun ScanScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Scan",
+                        text = stringResource(R.string.scan_screen_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = colors.onPrimary,
                         modifier = Modifier.semantics { heading() }
@@ -140,7 +142,7 @@ fun ScanScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.common_back),
                             tint = colors.onPrimary
                         )
                     }
@@ -178,7 +180,7 @@ fun ScanScreen(
             shadowElevation = 2.dp
         ) {
             Text(
-                text = "OR",
+                text = stringResource(R.string.scan_or_chip),
                 modifier = Modifier.padding(horizontal = Dimens.spacing14, vertical = Dimens.spacing8),
                 style = MaterialTheme.typography.labelLarge,
                 color = colors.onSurface
@@ -236,7 +238,8 @@ private fun ScanDirectTopSection(
         animationSpec = tween(CameraTapBounceLegMs, easing = FastOutSlowInEasing),
         label = "cameraTapBounce"
     )
-    val launchCameraWithHaptic = remember(haptics, scope) {
+    val launchCameraLabel = stringResource(R.string.scan_launch_camera)
+    val launchCameraWithHaptic = remember(haptics, scope, launchCameraLabel) {
         {
             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             scope.launch {
@@ -290,7 +293,7 @@ private fun ScanDirectTopSection(
                             bounded = true
                         ),
                         role = Role.Button,
-                        onClickLabel = "Launch camera",
+                        onClickLabel = launchCameraLabel,
                         onClick = launchCameraWithHaptic
                     ),
                 shape = CircleShape,
@@ -317,7 +320,7 @@ private fun ScanDirectTopSection(
         }
         Spacer(modifier = Modifier.height(Dimens.spacing12))
         Text(
-            text = "Direct Scan",
+            text = stringResource(R.string.scan_direct_scan_title),
             style = MaterialTheme.typography.headlineSmall,
             color = colors.onPrimary,
             textAlign = TextAlign.Center,
@@ -325,7 +328,7 @@ private fun ScanDirectTopSection(
         )
         Spacer(modifier = Modifier.height(Dimens.spacing5))
         Text(
-            text = "Camera reads your ticket instantly",
+            text = stringResource(R.string.scan_direct_scan_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onPrimary.copy(alpha = 0.92f),
             textAlign = TextAlign.Center,
@@ -354,7 +357,7 @@ private fun ScanDirectTopSection(
             )
             Spacer(modifier = Modifier.width(Dimens.spacing8))
             Text(
-                text = "Launch camera",
+                text = launchCameraLabel,
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -379,6 +382,7 @@ private fun ScanEnterNumbersBottomSection(
         ),
         label = "scanPenIconPressScale"
     )
+    val openNumberPadLabel = stringResource(R.string.scan_open_number_pad)
     Column(
         modifier = modifier
             .padding(horizontal = Dimens.screenHorizontalPadding)
@@ -412,7 +416,7 @@ private fun ScanEnterNumbersBottomSection(
                             bounded = true
                         ),
                         role = Role.Button,
-                        onClickLabel = "Open number pad",
+                        onClickLabel = openNumberPadLabel,
                         onClick = onOpenNumberPad
                     ),
                 contentAlignment = Alignment.Center
@@ -435,7 +439,7 @@ private fun ScanEnterNumbersBottomSection(
         }
         Spacer(modifier = Modifier.height(Dimens.spacing12))
         Text(
-            text = "Enter Numbers",
+            text = stringResource(R.string.scan_enter_numbers_title),
             style = MaterialTheme.typography.headlineSmall,
             color = colors.onSurface,
             textAlign = TextAlign.Center,
@@ -443,7 +447,7 @@ private fun ScanEnterNumbersBottomSection(
         )
         Spacer(modifier = Modifier.height(Dimens.spacing8))
         Text(
-            text = "Type all 25 numbers yourself",
+            text = stringResource(R.string.scan_enter_numbers_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -484,7 +488,7 @@ private fun ScanEnterNumbersBottomSection(
             )
             Spacer(modifier = Modifier.width(Dimens.spacing8))
             Text(
-                text = "Open number pad",
+                text = openNumberPadLabel,
                 style = MaterialTheme.typography.labelLarge,
                 color = colors.primary.copy(alpha = 0.88f)
             )

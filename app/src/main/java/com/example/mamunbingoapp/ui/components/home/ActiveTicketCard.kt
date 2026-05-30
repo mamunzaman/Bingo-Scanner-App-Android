@@ -35,6 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.EmptyHistoryCardBg
 import com.example.mamunbingoapp.theme.OnPrimary
@@ -162,7 +164,7 @@ fun ActiveTicketCard(
                     minLines = 1,
                 )
                 Text(
-                    text = "Draw ${model.drawDate}",
+                    text = stringResource(R.string.active_ticket_draw, model.drawDate),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

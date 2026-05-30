@@ -28,6 +28,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
@@ -163,7 +165,7 @@ fun RoundProgressVariant(
                     borderColor = cs.primary.copy(alpha = 0.30f),
                     contentColor = cs.onPrimary,
                     leadingIcon = Icons.Default.Star,
-                    text = "Finish"
+                    text = stringResource(R.string.live_play_finish)
                 )
                 RoundPillButton(
                     onClick = onResetClick,
@@ -202,7 +204,7 @@ fun RoundProgressReversed(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text(
-                    text = "ROUND PROGRESS",
+                    text = stringResource(R.string.live_play_round_progress_title),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -250,7 +252,7 @@ fun RoundProgressReversed(
                     borderColor = cs.onPrimary.copy(alpha = 0.18f),
                     contentColor = cs.primary,
                     leadingIcon = Icons.Default.Star,
-                    text = "Finish"
+                    text = stringResource(R.string.live_play_finish)
                 )
                 RoundPillButton(
                     onClick = onResetClick,

@@ -93,6 +93,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -209,6 +211,20 @@ fun ManualEntryScreen(
     }
     val state = viewModel.state.collectAsState().value
     val rooms = viewModel.rooms.collectAsState().value
+    val anotherRoomFallback = stringResource(R.string.history_detail_another_room_fallback)
+    val partialScanTitle = stringResource(R.string.manual_entry_partial_title)
+    val partialScanMessage = stringResource(R.string.manual_entry_partial_message)
+    val dialogOkText = stringResource(R.string.import_ticket_scan_tips_dialog_ok)
+    val discardTitle = stringResource(R.string.manual_entry_discard_title)
+    val discardMessage = stringResource(R.string.manual_entry_discard_message)
+    val discardConfirmText = stringResource(R.string.manual_entry_discard_confirm)
+    val keepEditingText = stringResource(R.string.manual_entry_keep_editing)
+    val manualEntryTitle = stringResource(R.string.live_nav_manual_entry)
+    val saveAndPlayCd = stringResource(R.string.manual_entry_save_and_play_cd)
+    val saveOnlyCd = stringResource(R.string.manual_entry_save_only_cd)
+    val bingoNameLabel = stringResource(R.string.manual_entry_bingo_name_label)
+    val renameHelper = stringResource(R.string.manual_entry_rename_helper)
+    val cancelText = stringResource(R.string.settings_cancel)
     var losNummerDraft by rememberSaveable(losNumber) { mutableStateOf(losNumber.orEmpty()) }
     var serialNummerDraft by rememberSaveable(serialNumber) { mutableStateOf(serialNumber.orEmpty()) }
     var showDiscardDialog by remember { mutableStateOf(false) }
@@ -275,10 +291,10 @@ fun ManualEntryScreen(
         }
     }
 
-    LaunchedEffect(isPartialScan, hasPrefilledScannedNumbers, hasShownPartialInfoDialog) {
+    LaunchedEffect(isPartialScan, hasPrefilledScannedNumbers, hasShownPartialInfoDialog, partialScanTitle, partialScanMessage) {
         if (isPartialScan && hasPrefilledScannedNumbers && !hasShownPartialInfoDialog) {
             hasShownPartialInfoDialog = true
-            infoDialog = "Some boxes not read" to "Some boxes were not added. Please confirm the blank boxes manually."
+            infoDialog = partialScanTitle to partialScanMessage
         }
     }
     infoDialog?.let { (title, message) ->
@@ -286,7 +302,7 @@ fun ManualEntryScreen(
             visible = true,
             title = title,
             message = message,
-            confirmText = "OK",
+            confirmText = dialogOkText,
             showCancelButton = false,
             onConfirm = { infoDialog = null },
             onCancel = { infoDialog = null },
@@ -297,10 +313,10 @@ fun ManualEntryScreen(
     if (showDiscardDialog) {
         AppConfirmDialog(
             visible = true,
-            title = "Discard manual entry?",
-            message = "Leaving will discard the entered bingo numbers. They will be lost.",
-            confirmText = "Discard",
-            cancelText = "Keep editing",
+            title = discardTitle,
+            message = discardMessage,
+            confirmText = discardConfirmText,
+            cancelText = keepEditingText,
             showCancelButton = true,
             onConfirm = {
                 Log.d(MANUAL_ENTRY_TAG, "discard confirmed")
@@ -322,7 +338,7 @@ fun ManualEntryScreen(
 
     RoomConflictDialog(
         visible = state.roomConflict.visible,
-        existingRoomName = state.roomConflict.existingRoomName ?: "another room",
+        existingRoomName = state.roomConflict.existingRoomName ?: anotherRoomFallback,
         hasTargetRoom = state.roomConflict.targetRoomId != null,
         onCancel = { viewModel.dismissConflict() },
         onOpenExistingRoom = { viewModel.openExistingRoom() },
@@ -557,7 +573,7 @@ fun ManualEntryScreen(
                         "meSaveOnlyPressAlpha"
                     )
         AppTopBar(
-            title = "Manual Entry",
+            title = manualEntryTitle,
                         modifier = Modifier.fillMaxWidth(),
             showBack = true,
                         onBackClick = {
@@ -604,7 +620,7 @@ fun ManualEntryScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Add,
-                                        contentDescription = "Save and add to live play",
+                                        contentDescription = saveAndPlayCd,
                                         modifier = Modifier.size(Dimens.iconDefault),
                                         tint = if (state.isComplete) {
                                             MaterialTheme.colorScheme.primary
@@ -650,7 +666,7 @@ fun ManualEntryScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Save,
-                                        contentDescription = "Save ticket sheet only",
+                                        contentDescription = saveOnlyCd,
                                         modifier = Modifier.size(Dimens.iconDefault),
                                         tint = if (state.isComplete) {
                                             MaterialTheme.colorScheme.onSurfaceVariant.copy(
@@ -721,9 +737,9 @@ fun ManualEntryScreen(
                                         modifier = Modifier.padding(top = cardTopPadding),
                                         compactGreenHeader = visualScaleApprox < 1f,
                                         sheetTitleFocusRequester = sheetTitleFocusRequester,
-                                        sheetNameFieldLabel = if (qrSheetNameRenameMode) "Bingo name" else null,
+                                        sheetNameFieldLabel = if (qrSheetNameRenameMode) bingoNameLabel else null,
                                         sheetNameRenameHelper = if (qrSheetNameRenameMode) {
-                                            "You can rename this Bingo sheet before saving."
+                                            renameHelper
                                         } else {
                                             null
                                         },
@@ -1010,12 +1026,12 @@ fun ManualEntryScreen(
                             showDatePicker = false
                         }
                     ) {
-                        Text("OK")
+                        Text(dialogOkText)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDatePicker = false }) {
-                        Text("Cancel")
+                        Text(cancelText)
                     }
                 }
             ) {
@@ -1193,7 +1209,7 @@ private fun ManualEntryDebugAutoFillTopBarAction(onAutoFill: () -> Unit) {
         )
     ) {
         Text(
-            text = "Auto Fill",
+            text = stringResource(R.string.manual_entry_auto_fill),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
         )
@@ -1342,6 +1358,8 @@ private fun ManualEntryNumericKeypad(
     )
     val clearPress = rememberKeypadSideIconPress("meClearPressScale", "meClearPressAlpha")
     val confirmPress = rememberKeypadSideIconPress("meConfirmPressScale", "meConfirmPressAlpha")
+    val emDash = stringResource(R.string.common_em_dash)
+    val confirmEntryCd = stringResource(R.string.manual_entry_confirm_entry_cd)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -1446,7 +1464,7 @@ private fun ManualEntryNumericKeypad(
                                     label = "meValueEmptyFade"
                                 ) { isEmpty ->
                                     Text(
-                                        text = if (isEmpty) "—" else draft,
+                                        text = if (isEmpty) emDash else draft,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .offset(y = (-1).dp),
@@ -1544,7 +1562,7 @@ private fun ManualEntryNumericKeypad(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onConfirm()
                         }
-                        .semantics { contentDescription = "Confirm entry" },
+                        .semantics { contentDescription = confirmEntryCd },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1610,10 +1628,17 @@ private fun RoomPickerBottomSheet(
         sheetState = sheetState
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("Select Live Room", style = MaterialTheme.typography.titleLarge)
+            Text(
+                stringResource(R.string.manual_entry_select_live_room),
+                style = MaterialTheme.typography.titleLarge
+            )
             Spacer(modifier = Modifier.height(16.dp))
             if (rooms.isEmpty()) {
-                Text("No rooms yet. Create one from Live Rooms.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.manual_entry_no_rooms_yet),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 for (room in rooms) {
                     Row(
@@ -1625,12 +1650,18 @@ private fun RoomPickerBottomSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(room.name, style = MaterialTheme.typography.bodyLarge)
-                        Text("Add", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            stringResource(R.string.common_add),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settings_cancel))
+            }
         }
     }
 }

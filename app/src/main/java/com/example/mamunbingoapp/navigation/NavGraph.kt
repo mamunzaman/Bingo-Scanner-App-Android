@@ -1197,9 +1197,10 @@ fun NavGraph(
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: return@composable
+            val app = LocalContext.current.applicationContext as android.app.Application
             val scope = rememberCoroutineScope()
             val detailVm: com.example.mamunbingoapp.viewmodel.HistoryDetailViewModel = viewModel(
-                factory = com.example.mamunbingoapp.viewmodel.HistoryDetailViewModelFactory(sessionId)
+                factory = com.example.mamunbingoapp.viewmodel.HistoryDetailViewModelFactory(sessionId, app)
             )
             val detailState by detailVm.state.collectAsState()
             LaunchedEffect(detailState.pendingAddToLivePlay) {
@@ -1401,7 +1402,7 @@ fun NavGraph(
                         navController.popBackStack()
                     }
                 },
-                sheetName = ticketData?.sheetName ?: "Unnamed sheet",
+                sheetName = ticketData?.sheetName?.takeIf { it.isNotBlank() },
                 playedAtMillis = ticketData?.playedAtMillis ?: System.currentTimeMillis(),
                 cells = ticketData?.cells ?: fallbackCells,
                 calledNumbers = ticketData?.calledNumbers ?: emptyList(),

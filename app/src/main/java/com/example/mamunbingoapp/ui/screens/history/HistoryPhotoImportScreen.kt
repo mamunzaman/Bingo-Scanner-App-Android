@@ -130,10 +130,10 @@ fun HistoryPhotoImportScreen(
     }
     AppConfirmDialog(
         visible = showDiscardDialog,
-        title = "Discard photo and scan?",
-        message = "Leaving will discard the selected image and any scan or import progress and results.",
-        cancelText = "Continue Editing",
-        confirmText = "Discard",
+        title = stringResource(R.string.import_ticket_discard_photo_title),
+        message = stringResource(R.string.import_ticket_discard_photo_message),
+        cancelText = stringResource(R.string.import_ticket_continue_editing),
+        confirmText = stringResource(R.string.import_ticket_gallery_discard),
         onCancel = { showDiscardDialog = false; pendingLeaveAction = null },
         onConfirm = {
             importVm.clear()
@@ -191,7 +191,7 @@ fun HistoryPhotoImportScreen(
         )
         Column(Modifier.fillMaxSize()) {
             AppTopBar(
-                title = "Import Ticket",
+                title = stringResource(R.string.import_ticket_title),
                 showBack = true,
                 onBackClick = { handleExitRequest(onBackClick) },
                 actions = {

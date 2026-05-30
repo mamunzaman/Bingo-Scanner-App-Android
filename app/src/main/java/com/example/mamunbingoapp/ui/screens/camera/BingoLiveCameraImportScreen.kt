@@ -97,9 +97,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.mamunbingoapp.ui.components.AppPrimaryButton
+import com.example.mamunbingoapp.R
+import com.example.mamunbingoapp.ui.screens.scan.scanTypeTitleRes
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
@@ -470,7 +472,7 @@ private fun BingoCameraQrViewfinder() {
             )
         }
         Text(
-            text = "Keep QR or full Bingo grid inside frame",
+            text = stringResource(R.string.camera_viewfinder_hint),
             style = MaterialTheme.typography.titleSmall.merge(
                 TextStyle(
                     shadow = Shadow(
@@ -503,7 +505,7 @@ fun BingoLiveCameraImportScreen(
     androidx.compose.runtime.LaunchedEffect(scanType) {
         Toast.makeText(
             context,
-            "Scan target: ${scanType.title}",
+            context.getString(R.string.camera_scan_target_toast, context.getString(scanTypeTitleRes(scanType))),
             Toast.LENGTH_SHORT,
         ).show()
     }
@@ -532,18 +534,18 @@ fun BingoLiveCameraImportScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Camera access is required to read a Bingo ticket QR in real time.", textAlign = TextAlign.Center)
+            Text(stringResource(R.string.camera_permission_required), textAlign = TextAlign.Center)
             Spacer(Modifier.height(Dimens.spacing16))
             Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                Text("Grant camera permission")
+                Text(stringResource(R.string.camera_grant_permission))
             }
             Spacer(Modifier.height(Dimens.spacing8))
             Button(
                 onClick = onScanFullTicket,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Use document camera instead") }
+            ) { Text(stringResource(R.string.camera_use_document_camera)) }
             Spacer(Modifier.height(Dimens.spacing4))
-            TextButton(onClick = onBack) { Text("Back") }
+            TextButton(onClick = onBack) { Text(stringResource(R.string.common_back)) }
         }
         return
     }
@@ -737,12 +739,12 @@ fun BingoLiveCameraImportScreen(
                 ),
         )
         TopAppBar(
-            title = { Text("Bingo ticket QR", style = MaterialTheme.typography.titleLarge) },
+            title = { Text(stringResource(R.string.camera_qr_title), style = MaterialTheme.typography.titleLarge) },
             navigationIcon = {
                 IconButton(onClick = onBack, enabled = !capturing) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        "Back",
+                        stringResource(R.string.common_back),
                         tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
@@ -772,7 +774,9 @@ fun BingoLiveCameraImportScreen(
                 ) {
                     Icon(
                         imageVector = if (torchEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
-                        contentDescription = if (torchEnabled) "Flash on" else "Flash off",
+                        contentDescription = stringResource(
+                            if (torchEnabled) R.string.camera_flash_on_cd else R.string.camera_flash_off_cd,
+                        ),
                         tint = if (torchEnabled) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -817,14 +821,14 @@ fun BingoLiveCameraImportScreen(
                             .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing16),
                     ) {
                         Text(
-                            text = "Scan a Bingo QR to import instantly.",
+                            text = stringResource(R.string.camera_qr_scan_hint),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White.copy(alpha = 0.96f),
                         )
                         Spacer(Modifier.height(Dimens.spacing4))
                         Text(
-                            text = "Or tap below to capture the full ticket grid.",
+                            text = stringResource(R.string.camera_capture_full_ticket_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.58f),
                         )
@@ -960,7 +964,11 @@ fun BingoLiveCameraImportScreen(
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
-                                text = if (capturing) "Capturing…" else "Scan ticket",
+                                text = if (capturing) {
+                                    stringResource(R.string.camera_capturing)
+                                } else {
+                                    stringResource(R.string.camera_scan_ticket)
+                                },
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                             )

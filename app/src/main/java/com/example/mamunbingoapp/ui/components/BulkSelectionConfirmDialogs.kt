@@ -7,6 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 
 @Composable
@@ -23,20 +25,20 @@ fun LeaveRoomBulkConfirmDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(
-                "Remove from room?",
+                stringResource(R.string.history_bulk_remove_title),
                 style = MaterialTheme.typography.titleLarge
             )
         },
         text = {
             Text(
-                "Remove $count item(s) from the live room. They stay in History and can be added again later.",
+                stringResource(R.string.history_bulk_remove_message, count),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.settings_cancel))
             }
         },
         confirmButton = {
@@ -46,7 +48,7 @@ fun LeaveRoomBulkConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Remove")
+                Text(stringResource(R.string.common_remove))
             }
         }
     )
@@ -66,20 +68,20 @@ fun DeleteFromHistoryBulkConfirmDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(
-                "Delete from history?",
+                stringResource(R.string.history_bulk_delete_title),
                 style = MaterialTheme.typography.titleLarge
             )
         },
         text = {
             Text(
-                "Permanently delete $count ticket(s) from this device. This cannot be undone.",
+                stringResource(R.string.history_bulk_delete_message, count),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.settings_cancel))
             }
         },
         confirmButton = {
@@ -89,7 +91,7 @@ fun DeleteFromHistoryBulkConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete")
+                Text(stringResource(R.string.common_delete))
             }
         }
     )

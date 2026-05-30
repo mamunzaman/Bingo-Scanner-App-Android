@@ -21,6 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -60,9 +62,9 @@ fun BingoWinBanner(
         }
     }
     val (title, subText) = when {
-        lineCount >= 3 -> "Jackpot!" to "5/5 three times in same bingo"
-        lineCount == 2 -> "2 Bingo Won!" to "Two complete lines"
-        else -> "1 Bingo Win!" to "One complete line (5/5)"
+        lineCount >= 3 -> stringResource(R.string.live_play_win_jackpot) to stringResource(R.string.live_play_win_jackpot_sub)
+        lineCount == 2 -> stringResource(R.string.live_play_win_two_lines) to stringResource(R.string.live_play_win_two_lines_sub)
+        else -> stringResource(R.string.live_play_win_one_line) to stringResource(R.string.live_play_win_one_line_sub)
     }
     Row(
         modifier = modifier

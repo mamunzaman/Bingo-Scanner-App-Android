@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
 
@@ -77,8 +79,9 @@ fun SearchFilterSortHeader(
     modifier: Modifier = Modifier,
 ) {
     var sortExpanded by remember { mutableStateOf(false) }
-    val sortDisplay = selectedSort?.takeIf { it.isNotBlank() } ?: "Newest"
-    val sortLabel = "Sort by $sortDisplay"
+    val sortDisplay = selectedSort?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.history_sort_newest)
+    val sortLabel = stringResource(R.string.search_sort_by, sortDisplay)
 
     val showFilterRow = variant == SearchHeaderVariant.SearchFilterSort &&
         filterOptions.isNotEmpty() &&

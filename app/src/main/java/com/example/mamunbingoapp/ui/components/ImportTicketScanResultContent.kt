@@ -178,8 +178,8 @@ fun ImportTicketFailedScanContent(
             ImportTicketFailedScanPhotoCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Filled.PhotoCamera,
-                title = "Take Photo",
-                subtitle = "Use your camera",
+                title = stringResource(R.string.import_ticket_take_photo),
+                subtitle = stringResource(R.string.import_ticket_take_photo_subtitle),
                 background = PrimaryDark,
                 iconBackground = PrimaryContainer.copy(alpha = 0.45f),
                 iconTint = PrimaryContainer,
@@ -191,7 +191,7 @@ fun ImportTicketFailedScanContent(
             ImportTicketFailedScanPhotoCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Filled.PhotoLibrary,
-                title = "Gallery",
+                title = stringResource(R.string.import_ticket_gallery),
                 subtitle = stringResource(R.string.import_ticket_gallery_subtitle),
                 background = EmptyHistoryCardBg,
                 iconBackground = PrimaryContainer.copy(alpha = 0.55f),
@@ -217,9 +217,10 @@ private fun ImportTicketFailedScanInfoRow(
     val cs = MaterialTheme.colorScheme
     val dark = isSystemInDarkTheme()
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
-    val countText = detectedValidCount?.toString() ?: "—"
-    val losDisp = losNumber?.takeIf { it.isNotBlank() } ?: "—"
-    val serDisp = serialNumber?.takeIf { it.isNotBlank() } ?: "—"
+    val emDash = stringResource(R.string.common_em_dash)
+    val countText = detectedValidCount?.toString() ?: emDash
+    val losDisp = losNumber?.takeIf { it.isNotBlank() } ?: emDash
+    val serDisp = serialNumber?.takeIf { it.isNotBlank() } ?: emDash
     val labelStyle = MaterialTheme.typography.labelSmall.copy(
         letterSpacing = 0.45.sp,
         fontWeight = FontWeight.Medium,

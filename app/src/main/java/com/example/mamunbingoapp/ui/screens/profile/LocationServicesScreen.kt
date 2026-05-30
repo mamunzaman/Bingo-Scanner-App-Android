@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
@@ -47,7 +49,7 @@ fun LocationServicesScreen(onBack: () -> Unit) {
         )
         Column(Modifier.fillMaxSize()) {
             AppTopBar(
-                title = "Location Services",
+                title = stringResource(R.string.settings_location_services),
                 showBack = true,
                 onBackClick = onBack
             )
@@ -61,34 +63,34 @@ fun LocationServicesScreen(onBack: () -> Unit) {
                     .padding(bottom = Dimens.spacing16)
             ) {
                 Text(
-                    text = "Control how this app may use your device location. Details below are informational only.",
+                    text = stringResource(R.string.profile_location_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(Dimens.spacing16))
-                SettingsSubpageSection(title = "OVERVIEW") {
+                SettingsSubpageSection(title = stringResource(R.string.profile_location_overview_section)) {
                     InfoRow(
                         icon = Icons.Default.LocationOn,
-                        title = "Purpose",
-                        body = "Location can help show nearby rooms or region-specific content when those features are available."
+                        title = stringResource(R.string.profile_location_purpose_title),
+                        body = stringResource(R.string.profile_location_purpose_body)
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing16))
                     InfoRow(
                         icon = Icons.Default.MyLocation,
-                        title = "Precision",
-                        body = "We aim to use approximate location first. Exact GPS is only used when a feature clearly needs it."
+                        title = stringResource(R.string.profile_location_precision_title),
+                        body = stringResource(R.string.profile_location_precision_body)
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing16))
                     InfoRow(
                         icon = Icons.Default.Map,
-                        title = "Control",
-                        body = "You can allow or deny location access anytime in Android system settings for this app."
+                        title = stringResource(R.string.profile_location_control_title),
+                        body = stringResource(R.string.profile_location_control_body)
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing16))
                     InfoRow(
                         icon = Icons.Default.Security,
-                        title = "Privacy",
-                        body = "Location is not sold. It is used only to support app features you choose to use."
+                        title = stringResource(R.string.profile_location_privacy_title),
+                        body = stringResource(R.string.profile_location_privacy_body)
                     )
                 }
             }

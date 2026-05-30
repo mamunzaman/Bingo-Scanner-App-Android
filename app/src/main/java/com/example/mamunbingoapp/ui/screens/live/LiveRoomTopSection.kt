@@ -77,6 +77,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -218,7 +220,7 @@ private fun LiveBadge(
                     .background(Color.Red, CircleShape)
             )
             Text(
-                text = "LIVE",
+                text = stringResource(R.string.common_live_badge),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -310,7 +312,7 @@ private fun LastCalledText(
     colorScheme: androidx.compose.material3.ColorScheme
 ) {
     Text(
-        text = "Last called: $agoText",
+        text = stringResource(R.string.live_play_last_called, agoText),
         style = MaterialTheme.typography.bodySmall.copy(
             fontFamily = LiveFonts.DMMono,
             fontWeight = FontWeight.Normal
@@ -334,7 +336,7 @@ private fun AutoCallHint(
             tint = colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
         Text(
-            text = "Tap to auto-call",
+            text = stringResource(R.string.live_play_tap_to_auto_call),
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -785,7 +787,7 @@ private fun LiveCallCardV4(
                 ) {
                     if (!compact) {
                         Text(
-                            text = "Last called: ${values.displayLastCalledText}",
+                            text = stringResource(R.string.live_play_last_called, values.displayLastCalledText),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = LiveFonts.DMMono,
                                 fontWeight = FontWeight.Normal
@@ -805,7 +807,7 @@ private fun LiveCallCardV4(
                                 tint = colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             )
                             Text(
-                                text = "Tap to auto-call",
+                                text = stringResource(R.string.live_play_tap_to_auto_call),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -873,7 +875,7 @@ private fun LiveCallCardV5(
                                 .background(colorScheme.error.copy(alpha = dotAlpha), CircleShape)
                         )
                         Text(
-                            text = "LIVE",
+                            text = stringResource(R.string.common_live_badge),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -968,7 +970,7 @@ private fun LiveCallCardV5(
                 ) {
                     if (!compact) {
                         Text(
-                            text = "Last called: ${values.displayLastCalledText}",
+                            text = stringResource(R.string.live_play_last_called, values.displayLastCalledText),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontFamily = LiveFonts.DMMono,
                                 fontWeight = FontWeight.Normal
@@ -997,7 +999,7 @@ private fun LiveCallCardV5(
                                     tint = colorScheme.onPrimary
                                 )
                                 Text(
-                                    text = "Auto-call",
+                                    text = stringResource(R.string.live_play_auto_call),
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
@@ -1066,7 +1068,7 @@ private fun LiveCallCardV6(
                                 .background(colorScheme.error.copy(alpha = dotAlpha), CircleShape)
                         )
                         Text(
-                            text = "LIVE",
+                            text = stringResource(R.string.common_live_badge),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -1159,7 +1161,7 @@ private fun LiveCallCardV6(
                 }
                 if (!compact) {
                     Text(
-                        text = "Last called: ${values.displayLastCalledText}",
+                        text = stringResource(R.string.live_play_last_called, values.displayLastCalledText),
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontFamily = LiveFonts.DMMono,
                             fontWeight = FontWeight.Normal,
@@ -1223,7 +1225,7 @@ private fun LiveLastCalledPremiumChip(
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
         ) {
             Text(
-                text = "LAST",
+                text = stringResource(R.string.live_play_last_label),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.4.sp,
@@ -1253,7 +1255,7 @@ private fun LiveHistoryToggleButton(
     val colorScheme = MaterialTheme.colorScheme
     val bg = colorScheme.primary.copy(alpha = 0.10f)
     val borderC = colorScheme.primary.copy(alpha = 0.20f)
-    val historyContentDescription = "Open called numbers"
+    val historyContentDescription = stringResource(R.string.live_play_open_called_numbers_cd)
     Surface(
         onClick = onClick,
         modifier = modifier
@@ -1489,7 +1491,7 @@ private fun StatusCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text(
-                    text = "ROUND PROGRESS",
+                    text = stringResource(R.string.live_play_round_progress_title),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -1541,7 +1543,7 @@ private fun StatusCard(
                 ) {
                     Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(Dimens.iconCompact), tint = finishContentColor)
                     Spacer(Modifier.width(Dimens.spacing4))
-                    Text("Finish", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp), color = finishContentColor)
+                    Text(stringResource(R.string.live_play_finish), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp), color = finishContentColor)
                 }
                 FilledTonalButton(
                     onClick = onReset,

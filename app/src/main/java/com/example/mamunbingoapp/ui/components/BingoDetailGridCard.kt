@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 
@@ -40,7 +42,7 @@ fun BingoDetailGridCard(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "No grid saved for this session",
+                text = stringResource(R.string.bingo_detail_no_grid),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
             )

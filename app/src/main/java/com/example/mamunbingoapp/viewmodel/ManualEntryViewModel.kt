@@ -1,7 +1,10 @@
 package com.example.mamunbingoapp.viewmodel
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
@@ -9,7 +12,6 @@ import com.example.mamunbingoapp.ui.components.RoomConflictUi
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -70,8 +72,9 @@ data class ManualEntryUiState(
 )
 
 class ManualEntryViewModel(
+    application: Application,
     private val savedStateHandle: SavedStateHandle
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(ManualEntryUiState())
     val state: StateFlow<ManualEntryUiState> = _state.asStateFlow()
@@ -190,11 +193,18 @@ class ManualEntryViewModel(
         val allowedRange = BINGO_COLUMN_RANGES[colIndex]
         if (value !in allowedRange) {
             val label = BINGO_COLUMN_LABELS[colIndex]
+            val app = getApplication<Application>()
             viewModelScope.launch {
                 _events.emit(
                     ManualEntryUiEvent.ShowInfoDialog(
-                        title = "Invalid Number for Column $label",
-                        message = "$value is not allowed. Column $label only accepts numbers ${allowedRange.first}–${allowedRange.last}."
+                        title = app.getString(R.string.manual_entry_invalid_number_title, label),
+                        message = app.getString(
+                            R.string.manual_entry_invalid_number_message,
+                            value,
+                            label,
+                            allowedRange.first,
+                            allowedRange.last
+                        )
                     )
                 )
             }
@@ -203,11 +213,12 @@ class ManualEntryViewModel(
         val formatted = value.toString().padStart(2, '0')
         val existing = current.cells.mapNotNull { it.number }.toSet()
         if (formatted in existing) {
+            val app = getApplication<Application>()
             viewModelScope.launch {
                 _events.emit(
                     ManualEntryUiEvent.ShowInfoDialog(
-                        title = "Number Already Used",
-                        message = "$formatted has already been added to the grid."
+                        title = app.getString(R.string.manual_entry_number_used_title),
+                        message = app.getString(R.string.manual_entry_number_used_message, formatted)
                     )
                 )
             }
@@ -257,7 +268,22 @@ class ManualEntryViewModel(
 
     private fun defaultSheetName(playedAtMillis: Long): String {
         val df = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        return "Sheet ${df.format(Date(playedAtMillis))}"
+        return getApplication<Application>().getString(
+            R.string.manual_entry_default_sheet_name,
+            df.format(Date(playedAtMillis))
+        )
+    }
+
+    private fun anotherRoomFallback(): String =
+        getApplication<Application>().getString(R.string.history_detail_another_room_fallback)
+
+    private fun localizeAssignError(message: String?): String {
+        val app = getApplication<Application>()
+        return when (message) {
+            "Unknown error" -> app.getString(R.string.manual_entry_error_unknown)
+            null, "" -> app.getString(R.string.manual_entry_error_assign_failed)
+            else -> message
+        }
     }
 
     private fun onSheetNameEditStarted() {
@@ -378,7 +404,7 @@ class ManualEntryViewModel(
                     _events.emit(ManualEntryUiEvent.NavigateToLivePlay(roomId))
                 }
                 is AssignTicketResult.AlreadyInRoom -> {
-                    val roomName = RoomRepository.getRoom(r.existingRoomId)?.name ?: "another room"
+                    val roomName = RoomRepository.getRoom(r.existingRoomId)?.name ?: anotherRoomFallback()
                     _state.update {
                         it.copy(
                             isRoomPickerOpen = false,
@@ -392,7 +418,7 @@ class ManualEntryViewModel(
                     }
                 }
                 is AssignTicketResult.Error -> _events.emit(
-                    ManualEntryUiEvent.ShowSnackbar(r.message)
+                    ManualEntryUiEvent.ShowSnackbar(localizeAssignError(r.message))
                 )
             }
         }
@@ -423,7 +449,7 @@ class ManualEntryViewModel(
                         _events.emit(ManualEntryUiEvent.SaveOnlyCompleted(ticketId, targetRoomId))
                     }
                     is AssignTicketResult.Error -> {
-                        _events.emit(ManualEntryUiEvent.ShowSnackbar(result.message))
+                        _events.emit(ManualEntryUiEvent.ShowSnackbar(localizeAssignError(result.message)))
                     }
                 }
             } else {
@@ -461,7 +487,7 @@ class ManualEntryViewModel(
                 }
                 is AssignTicketResult.AlreadyInRoom -> { }
                 is AssignTicketResult.Error -> _events.emit(
-                    ManualEntryUiEvent.ShowSnackbar(moveResult.message)
+                    ManualEntryUiEvent.ShowSnackbar(localizeAssignError(moveResult.message))
                 )
             }
         }

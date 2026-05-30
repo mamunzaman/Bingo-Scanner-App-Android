@@ -1,7 +1,9 @@
 package com.example.mamunbingoapp.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.LiveRoom
 import com.example.mamunbingoapp.data.RoomRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,7 +17,7 @@ import kotlinx.coroutines.launch
 
 data class RoomWithStats(val room: LiveRoom, val ticketCount: Int, val calledCount: Int)
 
-class LiveRoomsViewModel : ViewModel() {
+class LiveRoomsViewModel(application: Application) : AndroidViewModel(application) {
     val rooms: StateFlow<List<LiveRoom>> = RoomRepository.getRooms()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -36,13 +38,13 @@ class LiveRoomsViewModel : ViewModel() {
             combine(
                 RoomRepository.getRooms(),
                 RoomRepository.roomTicketCountsFlow(),
-                RoomRepository.allRoomsCalledCountsFlow()
+                RoomRepository.allRoomsCalledCountsFlow(),
             ) { roomList, ticketCountsByRoom, calledCountsByRoom ->
                 roomList.map { r ->
                     RoomWithStats(
-                        r,
+                        room = r,
                         ticketCount = ticketCountsByRoom[r.roomId] ?: 0,
-                        calledCount = calledCountsByRoom[r.roomId] ?: 0
+                        calledCount = calledCountsByRoom[r.roomId] ?: 0,
                     )
                 }
             }.collect { _roomsWithStats.value = it }
@@ -54,7 +56,9 @@ class LiveRoomsViewModel : ViewModel() {
             _isCreating.value = true
             try {
                 val id = RoomRepository.createRoom(name)
-                _snackbarMessage.emit("Room created")
+                _snackbarMessage.emit(
+                    getApplication<Application>().getString(R.string.live_rooms_created_snackbar)
+                )
                 _lastCreatedRoomId.value = id
             } finally {
                 _isCreating.value = false

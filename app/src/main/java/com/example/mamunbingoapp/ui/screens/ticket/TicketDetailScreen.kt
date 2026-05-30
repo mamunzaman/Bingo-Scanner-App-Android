@@ -40,6 +40,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -92,7 +94,7 @@ fun TicketDetailScreen(
     onOpenRoom: (roomId: String) -> Unit = {},
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
-    sheetName: String = "Unnamed sheet",
+    sheetName: String? = null,
     playedAtMillis: Long = System.currentTimeMillis(),
     cells: List<BingoCellUi> = emptyList(),
     calledNumbers: List<Int> = emptyList(),
@@ -100,6 +102,11 @@ fun TicketDetailScreen(
     losNumber: String? = null,
     viewModel: TicketDetailViewModel? = null
 ) {
+    val resolvedSheetName = sheetName ?: stringResource(R.string.history_unnamed_sheet)
+    val anotherRoomFallback = stringResource(R.string.history_detail_another_room_fallback)
+    val defaultRoomName = stringResource(R.string.live_room_default_name, 1)
+    val qrEncodeFailedMessage = stringResource(R.string.history_detail_qr_encode_failed)
+    val qrImageFailedMessage = stringResource(R.string.history_detail_qr_image_failed)
     val roomsViewModel: LiveRoomsViewModel = viewModel()
     val rooms by roomsViewModel.rooms.collectAsState()
     val scope = rememberCoroutineScope()
@@ -126,9 +133,9 @@ fun TicketDetailScreen(
 
     AppConfirmDialog(
         visible = showDeleteDialog,
-        title = "Delete Ticket",
-        message = "Are you sure you want to delete this ticket?",
-        confirmText = "Delete",
+        title = stringResource(R.string.ticket_detail_delete_title),
+        message = stringResource(R.string.ticket_detail_delete_message),
+        confirmText = stringResource(R.string.common_delete),
         showCancelButton = true,
         onConfirm = {
             showDeleteDialog = false
@@ -140,10 +147,10 @@ fun TicketDetailScreen(
     showAlreadyInRoomDialog?.let { (roomId, roomName) ->
         AppConfirmDialog(
             visible = true,
-            title = "Already in room",
-            message = "This sheet is already in Room $roomName.",
-            confirmText = "Open Room",
-            cancelText = "OK",
+            title = stringResource(R.string.ticket_detail_already_in_room_title),
+            message = stringResource(R.string.ticket_detail_already_in_room_message, roomName),
+            confirmText = stringResource(R.string.ticket_detail_open_room),
+            cancelText = stringResource(R.string.import_ticket_scan_tips_dialog_ok),
             showCancelButton = true,
             onConfirm = {
                 showAlreadyInRoomDialog = null
@@ -156,7 +163,7 @@ fun TicketDetailScreen(
     if (viewModel != null) {
         RoomConflictDialog(
             visible = roomConflict.visible,
-            existingRoomName = roomConflict.existingRoomName ?: "another room",
+            existingRoomName = roomConflict.existingRoomName ?: anotherRoomFallback,
             hasTargetRoom = roomConflict.targetRoomId != null,
             onCancel = { viewModel.dismissConflict() },
             onOpenExistingRoom = { viewModel.openExistingRoom() },
@@ -205,7 +212,7 @@ fun TicketDetailScreen(
             )
             Column(Modifier.fillMaxSize()) {
                 AppTopBar(
-                    title = "Ticket Detail",
+                    title = stringResource(R.string.ticket_detail_title),
                     showBack = true,
                     onBackClick = onBack,
                     actions = {
@@ -219,7 +226,7 @@ fun TicketDetailScreen(
                                         QrTicketCodec.encodeDeepLink(
                                             QrTicketPayload(
                                                 grid = grid,
-                                                sheetName = sheetName,
+                                                sheetName = resolvedSheetName,
                                                 serial = serialNumber,
                                                 los = losNumber,
                                             )
@@ -228,7 +235,7 @@ fun TicketDetailScreen(
                                     if (encoded.isFailure) {
                                         qrBitmap = null
                                         qrErrorMessage = encoded.exceptionOrNull()?.message
-                                            ?: "Could not encode ticket for QR"
+                                            ?: qrEncodeFailedMessage
                                         showQrDialog = true
                                         return@launch
                                     }
@@ -243,7 +250,7 @@ fun TicketDetailScreen(
                                         },
                                         onFailure = { e ->
                                             qrBitmap = null
-                                            qrErrorMessage = e.message ?: "Could not generate QR image"
+                                            qrErrorMessage = e.message ?: qrImageFailedMessage
                                             showQrDialog = true
                                         }
                                     )
@@ -252,7 +259,7 @@ fun TicketDetailScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.QrCode2,
-                                contentDescription = "Show QR",
+                                contentDescription = stringResource(R.string.history_detail_show_qr_cd),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -277,7 +284,7 @@ fun TicketDetailScreen(
                         .padding(Dimens.spacing16)
                 ) {
                     Text(
-                        text = sheetName,
+                        text = resolvedSheetName,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -293,7 +300,7 @@ fun TicketDetailScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Preview",
+                text = stringResource(R.string.ticket_detail_preview),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -370,13 +377,13 @@ fun TicketDetailScreen(
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "In live room",
+                                text = stringResource(R.string.ticket_detail_in_live_room),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Remove below to unassign",
+                                text = stringResource(R.string.ticket_detail_remove_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                             )
@@ -394,7 +401,7 @@ fun TicketDetailScreen(
                     colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(
-                        text = "Remove from Live Room",
+                        text = stringResource(R.string.ticket_detail_remove_from_live),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = Dimens.spacing8)
                     )
@@ -402,15 +409,15 @@ fun TicketDetailScreen(
                 Spacer(modifier = Modifier.height(Dimens.spacing16))
             }
             AppPrimaryButton(
-                text = "Play",
+                text = stringResource(R.string.ticket_detail_play),
                 onClick = {
                     scope.launch {
                         val assigned = RoomRepository.findAssignedRoomId(sessionId)
                         if (assigned != null) {
-                            val name = RoomRepository.getRoom(assigned)?.name ?: "another room"
+                            val name = RoomRepository.getRoom(assigned)?.name ?: anotherRoomFallback
                             showAlreadyInRoomDialog = Pair(assigned, name)
                         } else {
-                            if (rooms.isEmpty()) roomsViewModel.createRoom("Room 1")
+                            if (rooms.isEmpty()) roomsViewModel.createRoom(defaultRoomName)
                             showRoomPicker = true
                         }
                     }
@@ -438,12 +445,12 @@ fun TicketDetailScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Edit,
-                        contentDescription = "Edit",
+                        contentDescription = stringResource(R.string.ticket_detail_edit_cd),
                         modifier = Modifier.size(Dimens.iconCompact),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Edit",
+                        text = stringResource(R.string.ticket_detail_edit),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = Dimens.spacing8)
                     )
@@ -457,12 +464,12 @@ fun TicketDetailScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(R.string.ticket_detail_delete_cd),
                         modifier = Modifier.size(Dimens.iconCompact),
                         tint = Error
                     )
                     Text(
-                        text = "Delete",
+                        text = stringResource(R.string.common_delete),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = Dimens.spacing8)
                     )
@@ -494,7 +501,7 @@ private fun TicketRoomPickerDialog(
                 .padding(Dimens.spacing16)
         ) {
             Text(
-                text = "Select Room",
+                text = stringResource(R.string.ticket_detail_select_room),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface

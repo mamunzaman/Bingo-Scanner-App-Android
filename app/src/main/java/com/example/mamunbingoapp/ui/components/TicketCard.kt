@@ -19,6 +19,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 
 @Composable
@@ -57,7 +59,7 @@ fun TicketCard(
             )
             Spacer(modifier = Modifier.height(Dimens.spacing4))
             Text(
-                text = "Draw: $drawDate",
+                text = stringResource(R.string.ticket_card_draw, drawDate),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

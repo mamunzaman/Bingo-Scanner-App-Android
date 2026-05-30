@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
@@ -47,7 +49,7 @@ fun EnvironmentalImpactScreen(onBack: () -> Unit) {
         )
         Column(Modifier.fillMaxSize()) {
             AppTopBar(
-                title = "Environmental Impact",
+                title = stringResource(R.string.settings_environmental_impact),
                 showBack = true,
                 onBackClick = onBack
             )
@@ -61,34 +63,34 @@ fun EnvironmentalImpactScreen(onBack: () -> Unit) {
                     .padding(bottom = Dimens.spacing16)
             ) {
                 Text(
-                    text = "Track how your play choices can relate to environmental awareness. Figures shown here are illustrative until full analytics are connected.",
+                    text = stringResource(R.string.profile_env_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(Dimens.spacing16))
-                SettingsSubpageSection(title = "INSIGHTS") {
+                SettingsSubpageSection(title = stringResource(R.string.profile_env_insights_section)) {
                     InfoRow(
                         icon = Icons.Default.Eco,
-                        title = "Eco focus",
-                        body = "The app highlights eco-themed tasks and education alongside bingo play."
+                        title = stringResource(R.string.profile_env_eco_focus_title),
+                        body = stringResource(R.string.profile_env_eco_focus_body)
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing16))
                     InfoRow(
                         icon = Icons.Default.EnergySavingsLeaf,
-                        title = "CO₂ awareness",
-                        body = "Future updates may estimate cumulative CO₂ savings from digital actions and eco challenges."
+                        title = stringResource(R.string.profile_env_co2_title),
+                        body = stringResource(R.string.profile_env_co2_body)
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing16))
                     InfoRow(
                         icon = Icons.Default.Park,
-                        title = "Green goals",
-                        body = "Reminders and rewards can nudge daily habits that support sustainability."
+                        title = stringResource(R.string.profile_env_green_goals_title),
+                        body = stringResource(R.string.profile_env_green_goals_body)
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing16))
                     InfoRow(
                         icon = Icons.Default.Recycling,
-                        title = "Transparency",
-                        body = "When metrics go live, you will see clear explanations of how numbers are calculated."
+                        title = stringResource(R.string.profile_env_transparency_title),
+                        body = stringResource(R.string.profile_env_transparency_body)
                     )
                 }
             }

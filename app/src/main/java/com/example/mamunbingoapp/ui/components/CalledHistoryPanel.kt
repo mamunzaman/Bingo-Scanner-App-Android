@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import kotlinx.coroutines.coroutineScope
@@ -153,12 +155,7 @@ fun CalledHistoryPanel(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = when (panelContext) {
-                            CalledHistoryPanelContext.HistoryDetail ->
-                                "No numbers called yet"
-                            CalledHistoryPanelContext.Default ->
-                                "No numbers called yet"
-                        },
+                        text = stringResource(R.string.live_play_no_numbers_called),
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
                         maxLines = if (panelContext == CalledHistoryPanelContext.HistoryDetail) 2 else 1,
@@ -166,7 +163,7 @@ fun CalledHistoryPanel(
                     )
                     if (panelContext != CalledHistoryPanelContext.HistoryDetail) {
                         Text(
-                            text = "Called numbers will appear here during the game.",
+                            text = stringResource(R.string.live_play_called_numbers_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                             maxLines = 2,
@@ -265,7 +262,7 @@ fun CalledHistoryPanel(
 
         if (showLimitMessage && isCallLimitReached) {
             Text(
-                text = "Round complete — all calls shown",
+                text = stringResource(R.string.live_play_round_complete_all_calls),
                 modifier = Modifier.padding(top = Dimens.spacing4),
                 style = MaterialTheme.typography.labelSmall,
                 color = colorScheme.onSurfaceVariant.copy(alpha = 0.8f),

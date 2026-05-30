@@ -32,4 +32,8 @@
         <item quantity="one">vor %1$d Std.</item>
         <item quantity="other">vor %1$d Std.</item>
     </plurals>
+    <plurals name="live_play_almost_bingo_need">
+        <item quantity="one">%1$s · noch %2$d Zahl</item>
+        <item quantity="other">%1$s · noch %2$d Zahlen</item>
+    </plurals>
 </resources>

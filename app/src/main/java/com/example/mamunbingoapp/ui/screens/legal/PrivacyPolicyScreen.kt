@@ -46,7 +46,7 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
         )
         Column(Modifier.fillMaxSize()) {
             AppTopBar(
-                title = "Datenschutz",
+                title = stringResource(R.string.settings_privacy),
                 showBack = true,
                 onBackClick = onBack
             )

@@ -1,9 +1,11 @@
 package com.example.mamunbingoapp.viewmodel
 
+import android.app.Application
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
@@ -60,8 +62,11 @@ data class HistoryDetailUiState(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryDetailViewModel(
-    private val sessionId: String
-) : ViewModel() {
+    application: Application,
+    private val sessionId: String,
+) : AndroidViewModel(application) {
+
+    private val app get() = getApplication<Application>()
 
     private val _state = MutableStateFlow(HistoryDetailUiState())
     val state: StateFlow<HistoryDetailUiState> = _state.asStateFlow()
@@ -90,7 +95,7 @@ class HistoryDetailViewModel(
                             sheetStatus = SheetStatus.IDLE,
                             calledNumbers = emptyList(),
                             cells = null,
-                            errorMessage = "Session not found"
+                            errorMessage = app.getString(R.string.history_detail_session_not_found)
                         )
                     )
                     assignedRoomId == null -> TicketRepository.ticketCellsFlow(session.ticketId).map { cells ->
@@ -145,7 +150,7 @@ class HistoryDetailViewModel(
                 emit(
                     HistoryDetailUiState(
                         isLoading = false,
-                        errorMessage = e.message ?: "Error loading session",
+                        errorMessage = e.message ?: app.getString(R.string.history_detail_load_error),
                         roomStatus = null,
                         sheetStatus = SheetStatus.IDLE
                     )
@@ -178,10 +183,11 @@ class HistoryDetailViewModel(
                                 )
                             )
                         }
-                        snackbarMessage.emit("Ticket added to room")
+                        snackbarMessage.emit(app.getString(R.string.ticket_detail_snackbar_added))
                     }
                     is AssignTicketResult.AlreadyInRoom -> {
-                        val roomName = RoomRepository.getRoom(result.existingRoomId)?.name ?: "another room"
+                        val roomName = RoomRepository.getRoom(result.existingRoomId)?.name
+                            ?: app.getString(R.string.history_detail_another_room_fallback)
                         _state.update {
                             it.copy(
                                 showRoomConflictDialog = true,
@@ -193,7 +199,7 @@ class HistoryDetailViewModel(
                     }
                     is AssignTicketResult.Error -> {
                         _state.update { it.copy(errorMessage = result.message) }
-                        snackbarMessage.emit("Could not add ticket")
+                        snackbarMessage.emit(app.getString(R.string.ticket_detail_snackbar_add_failed))
                     }
                 }
             } finally {
@@ -224,12 +230,12 @@ class HistoryDetailViewModel(
                                 )
                             )
                         }
-                        snackbarMessage.emit("Ticket moved to room")
+                        snackbarMessage.emit(app.getString(R.string.ticket_detail_snackbar_moved))
                     }
                     is AssignTicketResult.AlreadyInRoom -> { }
                     is AssignTicketResult.Error -> {
                         _state.update { it.copy(errorMessage = (it.errorMessage ?: "") + " Move failed.") }
-                        snackbarMessage.emit("Could not move ticket")
+                        snackbarMessage.emit(app.getString(R.string.ticket_detail_snackbar_move_failed))
                     }
                 }
             } finally {
@@ -261,9 +267,10 @@ class HistoryDetailViewModel(
 }
 
 class HistoryDetailViewModelFactory(
-    private val sessionId: String
+    private val sessionId: String,
+    private val application: Application,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        HistoryDetailViewModel(sessionId) as T
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
+        HistoryDetailViewModel(application, sessionId) as T
 }

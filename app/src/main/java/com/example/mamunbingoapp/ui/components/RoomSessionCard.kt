@@ -41,7 +41,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.core.AlmostBingoInfo
 import com.example.mamunbingoapp.core.MAX_CALLED_NUMBERS
 import com.example.mamunbingoapp.theme.Dimens
@@ -87,15 +89,17 @@ fun RoomSessionCard(
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
+    val dateUnavailable = stringResource(R.string.room_session_date_unavailable)
+    val notInRoomLabel = stringResource(R.string.room_session_not_in_room)
 
-    val dateLabel = remember(addedAtMillis) {
+    val dateLabel = remember(addedAtMillis, dateUnavailable) {
         addedAtMillis?.let { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(it)) }
-            ?: "Date unavailable"
+            ?: dateUnavailable
     }
     val safeTotal = totalCount.coerceAtLeast(1)
     val safeCalled = calledCount.coerceIn(0, safeTotal)
     val progressValue = (safeCalled.toFloat() / safeTotal.toFloat()).coerceIn(0f, 1f)
-    val roomLabel = addedToRoomName?.takeIf { it.isNotBlank() } ?: "Not in room"
+    val roomLabel = addedToRoomName?.takeIf { it.isNotBlank() } ?: notInRoomLabel
     val isActive = sheetStatus == SheetStatus.ACTIVE || statusText.equals("Active", ignoreCase = true)
     val isJoinAction = actionText.equals("Join", ignoreCase = true)
 
@@ -147,7 +151,7 @@ fun RoomSessionCard(
                         )
                         if (isActive) {
                             Text(
-                                text = "Active",
+                                text = stringResource(R.string.bingo_session_active),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PrimaryPressed,
                                 fontWeight = FontWeight.SemiBold,
@@ -187,7 +191,7 @@ fun RoomSessionCard(
                             maxLines = 1
                         )
                         Text(
-                            text = "• $roomLabel",
+                            text = "? $roomLabel",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -207,7 +211,7 @@ fun RoomSessionCard(
                             contentPadding = PaddingValues(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
                             border = BorderStroke(Dimens.cardBorderDefault, MaterialTheme.colorScheme.outlineVariant)
                         ) {
-                            Text("View", maxLines = 1)
+                            Text(stringResource(R.string.common_view), maxLines = 1)
                         }
                         Button(
                             onClick = if (isJoinAction) onActionClick else ({ /* no-op */ }), 
@@ -224,7 +228,7 @@ fun RoomSessionCard(
                                 modifier = Modifier.size(Dimens.iconCompact)
                             )
                             Spacer(modifier = Modifier.size(Dimens.spacing4))
-                            Text("Join", maxLines = 1)
+                            Text(stringResource(R.string.bingo_session_join), maxLines = 1)
                         }
                     }
                 }
@@ -245,14 +249,14 @@ fun RoomSessionCard(
             ) {
                 if (!selectionMode && onLeaveRoomClick != null) {
                     TextButton(onClick = { showLeaveConfirm = true }) {
-                        Text("leave room")
+                        Text(stringResource(R.string.room_session_leave_button))
                     }
                 }
                 if (!selectionMode && onDeleteClick != null) {
                     IconButton(onClick = { showDeleteConfirm = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete sheet",
+                            contentDescription = stringResource(R.string.room_session_delete_cd),
                             tint = Secondary
                         )
                     }
@@ -263,10 +267,10 @@ fun RoomSessionCard(
 
     AppConfirmDialog(
         visible = showDeleteConfirm,
-        title = "Delete Bingo Sheet?",
-        message = "This will delete this sheet from history. This cannot be undone.",
-        confirmText = "Delete",
-        cancelText = "Cancel",
+        title = stringResource(R.string.history_detail_delete_title),
+        message = stringResource(R.string.history_detail_delete_message),
+        confirmText = stringResource(R.string.common_delete),
+        cancelText = stringResource(R.string.common_cancel),
         showCancelButton = true,
         onConfirm = {
             onDeleteClick?.invoke()
@@ -278,10 +282,10 @@ fun RoomSessionCard(
 
     AppConfirmDialog(
         visible = showLeaveConfirm,
-        title = "Leave room?",
-        message = "This sheet will be removed from the room but stay in your history.",
-        confirmText = "Leave",
-        cancelText = "Cancel",
+        title = stringResource(R.string.room_session_leave_title),
+        message = stringResource(R.string.room_session_leave_message),
+        confirmText = stringResource(R.string.common_leave),
+        cancelText = stringResource(R.string.common_cancel),
         showCancelButton = true,
         onConfirm = {
             onLeaveRoomClick?.invoke()

@@ -1,7 +1,9 @@
 package com.example.mamunbingoapp.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.AccountProfile
 import com.example.mamunbingoapp.data.AccountRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,7 +29,9 @@ data class AccountFormUiState(
     val submittedOnce: Boolean = false,
 )
 
-class AccountViewModel : ViewModel() {
+class AccountViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app get() = getApplication<Application>()
     val profile: StateFlow<AccountProfile> = AccountRepository.profileFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountProfile())
 
@@ -98,7 +102,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             AccountRepository.saveProfile(profile)
             // TODO: upsert to Supabase profiles table when backend is wired
-            _snackbarMessages.emit("Account saved locally")
+            _snackbarMessages.emit(app.getString(R.string.account_saved_snackbar))
         }
     }
 
@@ -108,8 +112,8 @@ class AccountViewModel : ViewModel() {
         val emailInvalid = !state.email.contains("@")
         _uiState.update {
             it.copy(
-                fullNameError = if (nameBlank) "Full name is required" else null,
-                emailError = if (emailInvalid) "Enter a valid email address" else null,
+                fullNameError = if (nameBlank) app.getString(R.string.account_error_full_name_required) else null,
+                emailError = if (emailInvalid) app.getString(R.string.account_error_valid_email) else null,
             )
         }
         return !nameBlank && !emailInvalid

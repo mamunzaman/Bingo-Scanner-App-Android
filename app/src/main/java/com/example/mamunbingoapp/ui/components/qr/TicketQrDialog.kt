@@ -18,11 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Error
 import com.example.mamunbingoapp.ui.model.BingoCellUi
@@ -37,8 +39,6 @@ fun cellsToQrGrid5x5(cells: List<BingoCellUi>): List<List<String>> {
         row.map { cell -> cell.number?.trim().orEmpty() }
     }
 }
-
-private const val QR_HELP_TEXT = "Scan this QR to add this Bingo sheet"
 
 @Composable
 fun TicketQrDialog(
@@ -61,14 +61,14 @@ fun TicketQrDialog(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Ticket QR",
+                text = stringResource(R.string.ticket_qr_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(Dimens.spacing8))
             Text(
-                text = QR_HELP_TEXT,
+                text = stringResource(R.string.ticket_qr_help),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = Dimens.spacing8)
@@ -90,7 +90,7 @@ fun TicketQrDialog(
                 bitmap != null -> {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Ticket QR code",
+                        contentDescription = stringResource(R.string.ticket_qr_code_cd),
                         modifier = Modifier
                             .size(280.dp)
                             .clip(RoundedCornerShape(Dimens.spacing8))
@@ -99,7 +99,7 @@ fun TicketQrDialog(
             }
             if (bitmap != null && errorMessage == null && !isLoading) {
                 Text(
-                    text = "Scan with another phone camera, then tap the link to open in Mamun Bingo.",
+                    text = stringResource(R.string.ticket_qr_scan_instruction),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -114,7 +114,7 @@ fun TicketQrDialog(
             }
             Spacer(modifier = Modifier.height(Dimens.spacing16))
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.ticket_qr_close))
             }
         }
     }

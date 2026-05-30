@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.example.mamunbingoapp.theme.Dimens
@@ -39,14 +41,14 @@ fun RoomConflictDialog(
         content = {
             Column {
                 Text(
-                    "Ticket already in another room",
+                    stringResource(R.string.live_play_room_conflict_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() }
                 )
                 Spacer(modifier = Modifier.height(Dimens.spacing8))
                 Text(
-                    "This ticket is already assigned to $existingRoomName.",
+                    stringResource(R.string.live_play_room_conflict_message, existingRoomName),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                 )
@@ -55,14 +57,16 @@ fun RoomConflictDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onCancel) { Text("Cancel") }
-                    TextButton(onClick = onOpenExistingRoom) { Text("Go to existing room") }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.settings_cancel)) }
+                    TextButton(onClick = onOpenExistingRoom) {
+                        Text(stringResource(R.string.live_play_go_to_existing_room))
+                    }
                     if (hasTargetRoom) {
                         TextButton(
                             onClick = onMoveToTargetRoom,
                             enabled = moveButtonEnabled
                         ) {
-                            Text("Move to selected room")
+                            Text(stringResource(R.string.live_play_move_to_selected_room))
                         }
                     }
                 }
