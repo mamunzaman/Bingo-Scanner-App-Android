@@ -75,6 +75,7 @@ import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTopBar
@@ -159,7 +160,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = Dimens.screenHorizontalPadding)
-                        .padding(top = Dimens.spacing8, bottom = Dimens.spacing16)
+                        .padding(top = Dimens.spacing8, bottom = Dimens.spacing16 + AppBottomBarScrollExtraPadding)
                 ) {
                     SettingsSection(title = stringResource(R.string.settings_section_data)) {
                 SettingsToggleRow(

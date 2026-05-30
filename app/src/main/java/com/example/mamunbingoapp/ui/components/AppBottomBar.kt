@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -71,12 +74,37 @@ enum class AppTab(
     Profile("profile", R.string.tab_profile, Icons.Filled.Person)
 }
 
-/** Space reserved above [AppBottomBar] for Home floating scan FAB. */
-val AppBottomBarFabClearance: Dp = 92.dp
-
 private val JackpotDiamondSize = 50.dp
 private val JackpotDiamondDrop = 4.dp
+private val BottomBarHairlineHeight = 1.dp
 private val BottomBarHeight = 72.dp
+
+/** Bar shell: hairline + tab row ([navigationBarsPadding] not included). */
+val AppBottomBarShellHeight: Dp = BottomBarHairlineHeight + BottomBarHeight
+
+/** Jackpot diamond overlap above [AppBottomBarShellHeight]. */
+val AppBottomBarDiamondProtrusion: Dp = JackpotDiamondSize / 2 - JackpotDiamondDrop
+
+/**
+ * Extra scroll bottom inset when [AppBottomBar] is in scaffold [bottomBar]
+ * (scaffold already applies shell height + navigation inset).
+ */
+val AppBottomBarScrollExtraPadding: Dp =
+    AppBottomBarDiamondProtrusion + Dimens.spacing12
+
+/** Space reserved above [AppBottomBar] for Home floating scan FAB. */
+val AppBottomBarFabClearance: Dp =
+    AppBottomBarShellHeight + AppBottomBarDiamondProtrusion + Dimens.spacing16
+
+/** Full scroll bottom inset when no scaffold bottom bar inset is applied. */
+@Composable
+fun appBottomBarTotalScrollBottomPadding(): Dp {
+    val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    return AppBottomBarShellHeight + navigationBottom + AppBottomBarScrollExtraPadding
+}
+
+fun Modifier.appBottomBarScrollExtraPadding(): Modifier =
+    padding(bottom = AppBottomBarScrollExtraPadding)
 private val BottomBarTabIconSize = 22.dp
 private val BottomBarTabHeight = 52.dp
 private val BottomBarLabelBottomPad = Dimens.spacing4

@@ -1,6 +1,10 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Bottom nav final polish:** Softer side pills (42% alpha, 14dp radius); primary tint labels; diamond shadow 4dp; shared label baseline. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Live Play keypad diamond clearance:** `LivePlayCallKeypad` uses `AppBottomBarScrollExtraPadding` above bottom nav. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Bottom bar scroll clearance:** `AppBottomBarScrollExtraPadding` (diamond protrusion + 12dp); Profile/Settings scroll bottom padding; `appBottomBarTotalScrollBottomPadding()` helper. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Bottom nav final polish:** Softer side pills (42% alpha, 14dp radius); primary tint labels; diamond shadow 4dp; shared label baseline. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Bottom nav spacing polish:** Diamond +4dp drop; 52dp tab columns (`SpaceBetween` / bottom label); compact pills (22dp icons); label `spacing4` above gesture inset. `./gradlew :app:assembleDebug` OK.
 

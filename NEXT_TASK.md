@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — final bottom nav polish.
+**Goal:** Device QA — Live Play keypad clears Jackpot diamond.
 
-**Verify:** Side pills softer than diamond; shared label baseline; Jackpot green/centered; diamond shadow lighter. `./gradlew :app:assembleDebug` OK.
+**Verify:** Input row + expanded keypad sit above diamond; nav/gesture inset OK; call flow unchanged. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Softer selected pills (42% alpha), compact radius, lighter diamond shadow.
+**Previous:** Live Play `LivePlayCallKeypad` bottom padding via `AppBottomBarScrollExtraPadding`.

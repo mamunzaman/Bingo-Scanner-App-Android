@@ -73,6 +73,7 @@ import com.example.mamunbingoapp.ui.components.appPremiumCardBorder
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.theme.Secondary
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
@@ -191,7 +192,7 @@ fun ProfileScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(bottom = Dimens.spacing16)
+                .padding(bottom = Dimens.spacing16 + AppBottomBarScrollExtraPadding)
         ) {
             Column(
                 modifier = Modifier

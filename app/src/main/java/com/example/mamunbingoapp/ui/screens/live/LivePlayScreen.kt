@@ -173,6 +173,7 @@ import com.example.mamunbingoapp.theme.WarningContainer
 import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.theme.LiveFonts
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -894,6 +895,7 @@ private fun LivePlayBottomArea(
     ) {
         Column(verticalArrangement = Arrangement.Bottom) {
             LivePlayCallKeypad(
+                modifier = Modifier.padding(bottom = AppBottomBarScrollExtraPadding),
                 latestCalled = calledNumbers.lastOrNull(),
                 draft = inputText,
                 onDraftChange = onInputChange,
