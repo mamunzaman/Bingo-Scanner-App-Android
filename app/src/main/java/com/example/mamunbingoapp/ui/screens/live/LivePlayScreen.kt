@@ -861,6 +861,7 @@ private fun LivePlayBottomArea(
                             onInputChange("")
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
+                            onInputChange("")
                             val alreadyCalledMessage = context.getString(
                                 R.string.live_play_snackbar_already_called,
                                 bingoLetter(n),
