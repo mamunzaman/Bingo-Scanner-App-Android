@@ -1,6 +1,32 @@
 # Project status
 
-**Last update:** 2026-05-30 - **My Tickets SERIAL/LOS fix:** Picker model maps real `serialNumber`/`losNumber` from `HistorySession`; My Tickets no longer fakes values from ticket id suffix; room lookup uses `session.ticketId`. Live Play already reads from `TicketEntity`. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Scan overlay markers:** 5 focus markers (1 main + 4 staggered secondaries); 8 spread waypoints; clean single beam unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Scan overlay simplify:** Single thin scan beam + soft band. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Scan overlay animation:** Multi-marker sweep (superseded by simplify pass). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Import Ticket idle screen:** Shared photo action row + AppSectionSurface cards. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Import Ticket failed scan (compact):** AppSectionSurface helper/stats; softer WarningContainer error card. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Import Ticket failed scan UI:** Premium error card, white helper/stats cards, primary + gallery actions. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **History Detail ticket dividers:** Removed green LOS/SERIE strip; plain white meta row + section dividers; spacing 12/10/8dp. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **History Detail ticket spacing rhythm:** 10dp header/grid/footer gaps, 16dp card bottom; footer labels 10sp / timestamps 13sp Semibold. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **History Detail ticket meta:** LOS-NR/SERIE stacked above BINGO header inside grid section. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Playable marked count (22):** Shared `BingoPlayableNumbers`; History/Live/Detail marked labels show `x/22`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Mini bingo thumbnail 22-cell layout:** `MiniBingoGrid` center free cell distinct from 22 playable dots. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **History photo import discard fix:** `HistoryPhotoImportScreen` uses `hasActiveImportSession()` for leave/discard; auto-dismisses confirm when VM session cleared. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **History Detail meta strip + scan state reset:** LOS-NR/SERIE strip/divider/grid share computed `bingoGridWidth`; import VM clears on route destroy, camera cancel, and fresh History add-photo; pending photo handoff cleared on leave. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **My Tickets SERIAL/LOS fix:** Picker model maps real `serialNumber`/`losNumber` from `HistorySession`; My Tickets no longer fakes values from ticket id suffix; room lookup uses `session.ticketId`. Live Play already reads from `TicketEntity`. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Home Active Ticket result source:** Home cards use same called-number priority as History Detail via shared `TicketCalledNumbersResolver`. `./gradlew :app:assembleDebug` OK.
 
@@ -344,6 +370,15 @@
 
 ## Completed features
 
+- **Import Ticket scan overlay:** Premium sweep line + 3 focus markers (`ScanningAnalysisAnimation`).
+- **Import Ticket idle + failed scan UI:** Shared photo action row; AppSectionSurface cards; scroll-safe layouts.
+- **History Detail ticket dividers:** Unified white bingo container; LOS left / SERIE right on surface; subtle horizontal dividers below meta and above footer; grid-width aligned.
+- **History Detail ticket meta layout:** LOS-NR/SERIE inside grid section above BINGO header.
+- **Playable marked count (22):** `BingoPlayableNumbers` helper; History/Live/Detail marked labels use `x/22`, excluding free center.
+- **Mini bingo thumbnail 22-cell layout:** `MiniBingoGrid` center free cell distinct from 22 playable dots.
+- **History photo import discard fix:** Discard confirm gated by `hasActiveImportSession()`; dialog dismissed when session cleared externally.
+- **History Detail grid-aligned meta strip:** LOS-NR/SERIE + divider + bingo grid share same computed width (`HistoryDetailGridWithMetaStrip`).
+- **Scan import stale-state reset:** `ImportTicketViewModel.clear()` + `hasActiveImportSession()`; NavGraph clears VM/handoff on destroy, camera cancel, and History re-entry; discard confirm only when session active.
 - **My Tickets SERIAL/LOS:** `TicketUiModel` carries real metadata; My Tickets bottom sheet shows saved serial/los (fallback `common_placeholder_dash`), not id-derived fake values.
 - **Home Active Ticket result source:** Shared `TicketCalledNumbersResolver`; Home cards resolve live room / test-date week draw / archived play log / plain; optional EN/DE result-source label.
 - **Live room reset/archive:** `ticket_play_logs` table (DB v8); reset archives per-ticket play history, unassigns sheets, clears room calls; History/Ticket detail play log section + archived called numbers when not in room.

@@ -182,6 +182,7 @@ import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
 import com.example.mamunbingoapp.ui.core.interaction.appClickable
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.core.BingoWinChecker
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.ui.components.BingoCardGrid
 import com.example.mamunbingoapp.ui.components.BingoGridMode
 import com.example.mamunbingoapp.ui.components.AlmostBingoAlertRowV2
@@ -695,7 +696,9 @@ fun LivePlayScreen(
                         ) {
                             ListSheetRow(
                                 title = sheet.title,
-                                marked = "${sheet.markedCount}/25",
+                                marked = BingoPlayableNumbers.formatMarkedProgress(
+                                    BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+                                ),
                                 serialNumber = sheet.serialNumber,
                                 losNumber = sheet.losNumber,
                                 scannedDate = formatPlayDate(sheet.playedAtMillis),
@@ -1756,7 +1759,11 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
                         softWrap = false
                     )
                     Text(
-                        text = stringResource(R.string.live_play_marked_count, sheet.markedCount),
+                        text = stringResource(
+                            R.string.live_play_marked_count,
+                            BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+                            BingoPlayableNumbers.PLAYABLE_COUNT,
+                        ),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = if (isWin) WarningText else MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -2163,7 +2170,11 @@ private fun SheetDetailBottomSheet(
                                 )
                             }
                             Text(
-                                text = stringResource(R.string.live_play_marked_count_compact, sheet.markedCount),
+                                text = stringResource(
+                                    R.string.live_play_marked_count_compact,
+                                    BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+                                    BingoPlayableNumbers.PLAYABLE_COUNT,
+                                ),
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier

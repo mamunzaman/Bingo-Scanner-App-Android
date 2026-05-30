@@ -225,10 +225,13 @@
     <string name="history_detail_stat_draw_date">Ziehungsdatum</string>
     <string name="history_detail_stat_sheets">Blätter</string>
     <string name="history_detail_stat_called">Gerufen</string>
+    <string name="history_detail_stat_marked">Markiert</string>
     <string name="history_detail_numbers_called">Gerufene Zahlen</string>
     <string name="history_detail_live_feed">Live-Feed</string>
     <string name="history_detail_created_at">Erstellt %1$s</string>
     <string name="history_detail_updated_at">Aktualisiert %1$s</string>
+    <string name="history_detail_label_created">Erstellt</string>
+    <string name="history_detail_label_updated">Aktualisiert</string>
     <string name="history_detail_change_test_date">Testdatum ändern</string>
     <string name="history_detail_test_date_label">Temporäres Testdatum (Debug)</string>
     <string name="history_detail_test_date_active">Testdatum: %1$s</string>
@@ -284,8 +287,8 @@
     <string name="live_play_enter">EINGABE</string>
     <string name="live_play_scan_ticket_cd">Ticket scannen</string>
     <string name="live_play_undo_cd">Letzten Aufruf rückgängig</string>
-    <string name="live_play_marked_count">Markiert: %1$d/25</string>
-    <string name="live_play_marked_count_compact">Markiert %1$d/25</string>
+    <string name="live_play_marked_count">Markiert: %1$d/%2$d</string>
+    <string name="live_play_marked_count_compact">Markiert %1$d/%2$d</string>
     <string name="live_play_scanned_date">Gescannt: %1$s</string>
     <string name="live_play_label_serial">SERIE</string>
     <string name="live_play_label_los">LOS</string>

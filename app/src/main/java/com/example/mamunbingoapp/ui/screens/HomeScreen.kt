@@ -331,7 +331,13 @@ private fun HomeScrollBody(
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacing14),
                 ) {
                     tickets
-                        .sortedByDescending { it.effectivePlayedAtMillis() }
+                        .sortedWith(
+                            compareByDescending<HistorySession> { session ->
+                                activeTicketsUi.previews
+                                    .find { it.sessionId == session.id }
+                                    ?.isInLiveRoom == true
+                            }.thenByDescending { it.homeTicketSortMillis() },
+                        )
                         .take(5)
                         .forEach { session ->
                             val preview = activeTicketsUi.previews.find { it.sessionId == session.id }
@@ -514,6 +520,9 @@ private fun HomeActiveTicketsStatItem(
         }
     }
 }
+
+private fun HistorySession.homeTicketSortMillis(): Long =
+    playedAtMillis ?: effectivePlayedAtMillis()
 
 private fun formatHomeTicketDate(millis: Long): String {
     val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())

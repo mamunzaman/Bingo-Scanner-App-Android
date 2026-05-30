@@ -96,7 +96,6 @@ import com.yalantis.ucrop.model.AspectRatio
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.CardBorderGreen
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.theme.EmptyHistoryCardBg
 import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.theme.Scrim
 import com.example.mamunbingoapp.theme.OnPrimary
@@ -104,15 +103,17 @@ import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.PrimaryContainer
 import com.example.mamunbingoapp.theme.PrimaryDark
 import com.example.mamunbingoapp.theme.Slate200
-import com.example.mamunbingoapp.theme.Slate600
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
+import com.example.mamunbingoapp.ui.components.APP_SECTION_BORDER_ALPHA
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.ImportTicketFailedScanContent
+import com.example.mamunbingoapp.ui.components.ImportTicketPhotoActionRow
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.ProcessingDataCard
 import com.example.mamunbingoapp.ui.components.ScanningAnalysisAnimation
 import com.example.mamunbingoapp.viewmodel.GalleryManualTrim
@@ -370,12 +371,7 @@ fun ImportTicketScreen(
     }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var pendingReplaceAction by remember { mutableStateOf<PendingReplace?>(null) }
-    val isDirty =
-        selectedUri != null ||
-            galleryPendingUri != null ||
-            scanResult is ScanResultUiState.Loading ||
-            scanResult is ScanResultUiState.Success ||
-            scanResult is ScanResultUiState.Error
+    val isDirty = viewModel.hasActiveImportSession()
     val isAnalyzing = scanResult is ScanResultUiState.Loading
     val allowScroll = scanResult !is ScanResultUiState.Error
     val scrollState = rememberScrollState()
@@ -475,7 +471,11 @@ fun ImportTicketScreen(
         message = stringResource(R.string.import_ticket_discard_scan_message),
         confirmText = stringResource(R.string.import_ticket_gallery_discard),
         cancelText = stringResource(R.string.common_stay),
-        onConfirm = { showDiscardDialog = false; onDiscardAndBack() },
+        onConfirm = {
+            viewModel.clear()
+            showDiscardDialog = false
+            onDiscardAndBack()
+        },
         onCancel = { showDiscardDialog = false },
         onDismiss = { showDiscardDialog = false },
     )
@@ -559,7 +559,11 @@ fun ImportTicketMainContent(
         val scanFailedFallback = stringResource(R.string.import_ticket_scan_failed_fallback)
         val primary = err.message.takeIf { it.isNotBlank() } ?: scanFailedFallback
         val errHeroUri = if (suppressHeroImage) null else selectedUri
-        Column(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
             if (errHeroUri != null) {
                 HeroBannerCard(
                     selectedImageUri = errHeroUri,
@@ -569,11 +573,12 @@ fun ImportTicketMainContent(
                     scanAgainOnError = null,
                     heroOverlay = null,
                     compactPadding = false,
+                    appPreviewStyle = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 156.dp),
+                        .heightIn(min = 128.dp, max = 168.dp),
                 )
-                Spacer(modifier = Modifier.height(Dimens.spacing12))
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
             }
             ImportTicketFailedScanContent(
                 primaryMessage = primary,
@@ -581,13 +586,12 @@ fun ImportTicketMainContent(
                 onTakePhoto = onTakePhoto,
                 onPickFromGallery = onPickFromGallery,
                 enabled = !isAnalyzing,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(if (errHeroUri != null) Modifier.fillMaxHeight() else Modifier.fillMaxSize()),
+                modifier = Modifier.fillMaxWidth(),
                 detectedValidCount = err.detectedValidCount,
                 losNumber = err.losNumber,
                 serialNumber = err.serialNumber,
             )
+            Spacer(modifier = Modifier.height(Dimens.spacing12))
         }
     } else {
     val galleryCtx = LocalContext.current.applicationContext
@@ -625,10 +629,10 @@ fun ImportTicketMainContent(
     val fullGridSuccess = (scanResult as? ScanResultUiState.Success)?.let {
         finalUiGridRowMajor(it.numbers).count { n -> n != 0 } == FULL_GRID_COUNT
     } == true
-    val useExpandHero = scanResult !is ScanResultUiState.Success && (
-        preScanIdle ||
-            (selectedUri != null && (scanResult is ScanResultUiState.Idle || scanResult is ScanResultUiState.Loading))
-        )
+    val useExpandHero = scanResult !is ScanResultUiState.Success &&
+        !preScanIdle &&
+        selectedUri != null &&
+        (scanResult is ScanResultUiState.Idle || scanResult is ScanResultUiState.Loading)
     val compactHero = heroUri != null
     val summary = scanSummaryMetrics(scanResult)
     val successForGrid = scanResult as? ScanResultUiState.Success
@@ -636,7 +640,13 @@ fun ImportTicketMainContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight()
+            .then(
+                if (preScanIdle) {
+                    Modifier.verticalScroll(rememberScrollState())
+                } else {
+                    Modifier.fillMaxHeight()
+                },
+            )
             .then(if (showSaveRow) Modifier else Modifier.animateContentSize()),
     ) {
         if (useExpandHero) {
@@ -666,18 +676,19 @@ fun ImportTicketMainContent(
                 scanAgainOnError = null,
                 heroOverlay = null,
                 compactPadding = false,
+                appPreviewStyle = preScanIdle,
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(
-                        if (compactHero) Modifier.heightIn(max = 156.dp) else Modifier
+                        when {
+                            preScanIdle -> Modifier.heightIn(min = 120.dp, max = 152.dp)
+                            compactHero -> Modifier.heightIn(max = 156.dp)
+                            else -> Modifier
+                        },
                     ),
             )
         }
-        if (showSaveRow) {
-            Spacer(modifier = Modifier.height(Dimens.spacing8))
-        } else {
-            Spacer(modifier = Modifier.height(Dimens.spacing10))
-        }
+        Spacer(modifier = Modifier.height(if (preScanIdle) Dimens.spacing8 else Dimens.spacing10))
         if (showLargePhotoRow) {
             if (galleryPendingEditUri != null) {
                 Text(
@@ -724,28 +735,18 @@ fun ImportTicketMainContent(
                     }
                 }
             } else {
-                Row(
+                ImportTicketPhotoActionRow(
+                    onTakePhoto = onTakePhoto,
+                    onPickFromGallery = onPickFromGallery,
+                    enabled = !isAnalyzing,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-                ) {
-                    TakePhotoCard(
-                        modifier = Modifier.weight(1f),
-                        compact = fullGridSuccess,
-                        enabled = !isAnalyzing,
-                        onClick = onTakePhoto
-                    )
-                    GalleryCard(
-                        modifier = Modifier.weight(1f),
-                        compact = fullGridSuccess,
-                        enabled = !isAnalyzing,
-                        onClick = onPickFromGallery
-                    )
-                }
+                )
             }
-            Spacer(modifier = Modifier.height(Dimens.spacing8))
             if (preScanIdle) {
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
                 ImportTicketPrescanTipsCard(modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(Dimens.spacing12))
+            } else {
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
             }
         }
         if (scanResult is ScanResultUiState.Success && imageSource != null) {
@@ -759,16 +760,28 @@ fun ImportTicketMainContent(
             Spacer(modifier = Modifier.height(Dimens.spacing16))
         }
         ctaHelperLine(scanResult, idleHint)?.let { (text, useWarningColor) ->
-            val gap = if (fullGridSuccess) Dimens.spacing8 else Dimens.spacing16
+            val gap = when {
+                preScanIdle -> Dimens.spacing8
+                fullGridSuccess -> Dimens.spacing8
+                else -> Dimens.spacing16
+            }
             Spacer(modifier = Modifier.height(gap))
             Text(
                 text = text,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (useWarningColor) WarningText else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = if (preScanIdle) {
+                    MaterialTheme.typography.labelSmall
+                } else {
+                    MaterialTheme.typography.bodySmall
+                },
+                color = when {
+                    useWarningColor -> WarningText
+                    preScanIdle -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f)
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(gap))
+            Spacer(modifier = Modifier.height(if (preScanIdle) Dimens.spacing12 else gap))
         }
     }
     }
@@ -856,27 +869,19 @@ private fun GalleryTrimRow(
 @Composable
 private fun ImportTicketPrescanTipsCard(modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme
-    val dark = isSystemInDarkTheme()
-    val cardBg =
-        if (dark) lerp(cs.surface, cs.surfaceVariant, 0.14f)
-        else lerp(Color(0xFFF6F8F4), cs.surfaceVariant, 0.07f)
     val shape = RoundedCornerShape(Dimens.radiusCard)
-    Surface(
-        modifier = modifier,
-        shape = shape,
-        color = cardBg,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = if (dark) 0.09f else 0.06f)),
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp,
-    ) {
+    AppSectionSurface(modifier = modifier, shape = shape) {
         Column(
-            modifier = Modifier.padding(Dimens.spacing16),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            modifier = Modifier.padding(
+                horizontal = Dimens.spacing12,
+                vertical = Dimens.spacing10,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
         ) {
             Text(
                 text = stringResource(R.string.import_ticket_prescan_tips_title),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = cs.onSurface.copy(alpha = 0.96f),
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = cs.onSurface.copy(alpha = 0.92f),
             )
             listOf(
                 R.string.import_ticket_prescan_tip_1,
@@ -886,7 +891,7 @@ private fun ImportTicketPrescanTipsCard(modifier: Modifier = Modifier) {
                 Text(
                     text = "• ${stringResource(tipId)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = cs.onSurfaceVariant.copy(alpha = 0.72f),
+                    color = cs.onSurfaceVariant.copy(alpha = 0.68f),
                 )
             }
         }
@@ -995,22 +1000,36 @@ private fun HeroBannerCard(
     scanAgainOnError: (() -> Unit)? = null,
     heroOverlay: (@Composable BoxScope.() -> Unit)? = null,
     compactPadding: Boolean = false,
+    appPreviewStyle: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val shape = RoundedCornerShape(Dimens.radiusCard)
-    val imageShape = RoundedCornerShape(Dimens.radiusBingoCell)
+    val imageShape = RoundedCornerShape(if (appPreviewStyle) Dimens.radiusMedium else Dimens.radiusBingoCell)
     val cs = MaterialTheme.colorScheme
     val dark = isSystemInDarkTheme()
-    val heroContainerBg =
-        if (dark) lerp(cs.surface, cs.surfaceVariant, 0.12f)
-        else lerp(Color(0xFFF6F8F4), cs.surfaceVariant, 0.06f)
-    val pad = if (compactPadding) Dimens.spacing8 else Dimens.spacing16
+    val heroContainerBg = when {
+        appPreviewStyle -> cs.surface
+        dark -> lerp(cs.surface, cs.surfaceVariant, 0.12f)
+        else -> lerp(Color(0xFFF6F8F4), cs.surfaceVariant, 0.06f)
+    }
+    val outerBorderColor = when {
+        appPreviewStyle -> cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA)
+        else -> cs.outline.copy(alpha = if (dark) 0.1f else 0.065f)
+    }
+    val pad = when {
+        appPreviewStyle -> Dimens.spacing12
+        compactPadding -> Dimens.spacing8
+        else -> Dimens.spacing16
+    }
     Box(
         modifier = modifier
             .clip(shape)
-            .border(BorderStroke(1.dp, cs.outline.copy(alpha = if (dark) 0.1f else 0.065f)), shape)
+            .border(BorderStroke(Dimens.cardBorderDefault, outerBorderColor), shape)
             .background(heroContainerBg)
-            .importHeroDashedBorder(CardBorderGreen.copy(alpha = 0.14f), Dimens.radiusCard)
+            .then(
+                if (appPreviewStyle) Modifier
+                else Modifier.importHeroDashedBorder(CardBorderGreen.copy(alpha = 0.14f), Dimens.radiusCard),
+            )
             .padding(pad)
     ) {
         val imageModel = asyncImageModel ?: selectedImageUri
@@ -1020,9 +1039,13 @@ private fun HeroBannerCard(
                     .fillMaxWidth()
                     .then(if (expandVertically) Modifier.fillMaxHeight() else Modifier)
             ) {
+                val previewAspect = if (appPreviewStyle) 16f / 10f else 16f / 9f
                 val imgMod = Modifier
                     .fillMaxWidth()
-                    .then(if (expandVertically) Modifier.fillMaxHeight() else Modifier.aspectRatio(16f / 9f))
+                    .then(
+                        if (expandVertically) Modifier.fillMaxHeight()
+                        else Modifier.aspectRatio(previewAspect),
+                    )
                     .clip(imageShape)
                 AsyncImage(
                     model = imageModel,
@@ -1060,139 +1083,56 @@ private fun HeroBannerCard(
             }
         } else {
             Column(
-                modifier = if (expandVertically) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (expandVertically && !appPreviewStyle) Modifier.fillMaxSize()
+                        else Modifier.padding(vertical = if (appPreviewStyle) Dimens.spacing8 else 0.dp),
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = if (expandVertically) Arrangement.Center else Arrangement.spacedBy(Dimens.spacing12)
+                verticalArrangement = when {
+                    expandVertically && !appPreviewStyle -> Arrangement.Center
+                    appPreviewStyle -> Arrangement.spacedBy(Dimens.spacing8)
+                    else -> Arrangement.spacedBy(Dimens.spacing12)
+                },
             ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(if (appPreviewStyle) Dimens.iconAlertBox else 44.dp)
                         .clip(RoundedCornerShape(Dimens.radiusSmall))
                         .background(IconContainerBg)
-                        .border(Dimens.cardBorderDefault, CardBorderGreen, RoundedCornerShape(Dimens.radiusSmall)),
-                    contentAlignment = Alignment.Center
+                        .border(
+                            Dimens.cardBorderDefault,
+                            cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA),
+                            RoundedCornerShape(Dimens.radiusSmall),
+                        ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.PhotoCamera,
                         contentDescription = null,
-                        modifier = Modifier.size(Dimens.iconDefault),
-                        tint = Primary
+                        modifier = Modifier.size(if (appPreviewStyle) Dimens.iconCompact else Dimens.iconDefault),
+                        tint = Primary,
                     )
                 }
                 Text(
                     text = stringResource(R.string.import_ticket_no_photo_selected),
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.96f)
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = if (appPreviewStyle) FontWeight.SemiBold else FontWeight.SemiBold,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.94f),
+                    textAlign = TextAlign.Center,
                 )
                 Text(
                     text = stringResource(R.string.import_ticket_hero_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                    textAlign = TextAlign.Center
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = if (appPreviewStyle) 0.68f else 0.72f,
+                    ),
+                    textAlign = TextAlign.Center,
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun TakePhotoCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    compact: Boolean = false,
-) {
-    val pad = if (compact) Dimens.spacing8 else Dimens.spacing16
-    val minH = if (compact) 72.dp else Dimens.buttonHeight * 2
-    val iconBox = if (compact) 28.dp else 36.dp
-    val iconSz = if (compact) 18.dp else 22.dp
-    val gap = if (compact) Dimens.spacing4 else Dimens.spacing8
-    Column(
-        modifier = modifier
-            .heightIn(min = minH)
-            .clip(RoundedCornerShape(Dimens.radiusCard))
-            .background(PrimaryDark)
-            .clickable(enabled = enabled, onClick = onClick)
-            .alpha(if (enabled) 1f else 0.38f)
-            .padding(pad),
-        verticalArrangement = Arrangement.spacedBy(gap),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(iconBox)
-                .clip(RoundedCornerShape(Dimens.radiusSmall))
-                .background(PrimaryContainer.copy(alpha = 0.45f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Filled.PhotoCamera,
-                contentDescription = null,
-                modifier = Modifier.size(iconSz),
-                tint = PrimaryContainer
-            )
-        }
-        Text(
-            text = stringResource(R.string.import_ticket_take_photo),
-            style = if (compact) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = OnPrimary
-        )
-        Text(
-            text = stringResource(R.string.import_ticket_take_photo_subtitle),
-            style = MaterialTheme.typography.labelSmall,
-            color = PrimaryContainer
-        )
-    }
-}
-
-@Composable
-private fun GalleryCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    compact: Boolean = false,
-) {
-    val pad = if (compact) Dimens.spacing8 else Dimens.spacing16
-    val minH = if (compact) 72.dp else Dimens.buttonHeight * 2
-    val iconBox = if (compact) 28.dp else 36.dp
-    val iconSz = if (compact) 18.dp else 22.dp
-    val gap = if (compact) Dimens.spacing4 else Dimens.spacing8
-    Column(
-        modifier = modifier
-            .heightIn(min = minH)
-            .clip(RoundedCornerShape(Dimens.radiusCard))
-            .background(EmptyHistoryCardBg)
-            .border(Dimens.cardBorderDefault, CardBorderGreen.copy(alpha = 0.6f), RoundedCornerShape(Dimens.radiusCard))
-            .alpha(if (enabled) 1f else 0.38f)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(pad),
-        verticalArrangement = Arrangement.spacedBy(gap),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(iconBox)
-                .clip(RoundedCornerShape(Dimens.radiusSmall))
-                .background(PrimaryContainer.copy(alpha = 0.55f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Filled.PhotoLibrary,
-                contentDescription = null,
-                modifier = Modifier.size(iconSz),
-                tint = PrimaryDark
-            )
-        }
-        Text(
-            text = stringResource(R.string.import_ticket_gallery),
-            style = if (compact) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = PrimaryDark
-        )
-        Text(
-            text = stringResource(R.string.import_ticket_gallery_subtitle),
-            style = MaterialTheme.typography.labelSmall,
-            color = Slate600
-        )
     }
 }
 

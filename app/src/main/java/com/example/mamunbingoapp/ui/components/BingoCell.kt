@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.model.BingoCellUi
@@ -39,7 +40,8 @@ fun BingoCell(
     isWinning: Boolean = false,
     animateWinningPulse: Boolean = false,
     isNearWinning: Boolean = false,
-    animateNearWin: Boolean = false
+    animateNearWin: Boolean = false,
+    numberFontWeight: FontWeight = FontWeight.SemiBold,
 ) {
     val isClickable = onClick != null && cell.isEditable && !cell.isDisabled
     val winningStrokeColor = MaterialTheme.colorScheme.error
@@ -115,7 +117,8 @@ fun BingoCell(
             isSelected = cell.isSelected,
             modifier = Modifier.fillMaxSize(),
             size = null,
-            showBorderWhenMarked = true
+            showBorderWhenMarked = true,
+            numberFontWeight = numberFontWeight,
         )
     }
 }

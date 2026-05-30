@@ -332,10 +332,13 @@
     <string name="history_detail_stat_draw_date">Draw Date</string>
     <string name="history_detail_stat_sheets">Sheets</string>
     <string name="history_detail_stat_called">Called</string>
+    <string name="history_detail_stat_marked">Marked</string>
     <string name="history_detail_numbers_called">Numbers Called</string>
     <string name="history_detail_live_feed">Live Feed</string>
     <string name="history_detail_created_at">Created %1$s</string>
     <string name="history_detail_updated_at">Updated %1$s</string>
+    <string name="history_detail_label_created">Created</string>
+    <string name="history_detail_label_updated">Updated</string>
     <string name="history_detail_change_test_date">Change test date</string>
     <string name="history_detail_test_date_label">Temporary test date (debug)</string>
     <string name="history_detail_test_date_active">Test date: %1$s</string>
@@ -391,8 +394,8 @@
     <string name="live_play_enter">ENTER</string>
     <string name="live_play_scan_ticket_cd">Scan ticket</string>
     <string name="live_play_undo_cd">Undo last call</string>
-    <string name="live_play_marked_count">Marked: %1$d/25</string>
-    <string name="live_play_marked_count_compact">Marked %1$d/25</string>
+    <string name="live_play_marked_count">Marked: %1$d/%2$d</string>
+    <string name="live_play_marked_count_compact">Marked %1$d/%2$d</string>
     <string name="live_play_scanned_date">Scanned: %1$s</string>
     <string name="live_play_label_serial">SERIAL</string>
     <string name="live_play_label_los">LOS</string>

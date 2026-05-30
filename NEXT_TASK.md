@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — live room reset/archive + Home result source + SERIAL/LOS picker + duplicate call input clear.
+**Goal:** Device QA — 5-marker scan overlay.
 
-**Verify:** Reset room archives tickets; Home test-date/archived cards; My Tickets SERIAL/LOS match detail; duplicate call clears input + snackbar. `./gradlew :app:assembleDebug` OK.
+**Verify:** 5 corner markers (1 main + 4 subtle); single scan beam unchanged; markers stay above processing card. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Live Play duplicate call now clears draft input in `handleCallClick`.
+**Previous:** Scan focus markers increased from 3 to 5 with wider waypoint spread.

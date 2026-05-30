@@ -3,16 +3,21 @@ package com.example.mamunbingoapp.navigation
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -20,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
+import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.MainTabsViewModel
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 import com.example.mamunbingoapp.ui.screens.ForgotPasswordScreen
@@ -61,7 +67,6 @@ import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
 import com.example.mamunbingoapp.viewmodel.MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
 import com.example.mamunbingoapp.viewmodel.validFilledCellCount
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -360,6 +365,14 @@ private fun ImportTicketDeepLinkHandler(
     }
 }
 
+private fun clearPendingHistoryPhotoImportHandoff(navController: NavHostController) {
+    runCatching {
+        val mainHandle = navController.getBackStackEntry("main").savedStateHandle
+        mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
+        mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
+    }
+}
+
 @Composable
 fun NavGraph(
     themeViewModel: ThemeViewModel,
@@ -630,6 +643,10 @@ fun NavGraph(
             LaunchedEffect(scanType) {
                 stagePendingHistoryPhotoImportScanType(navController, scanType)
             }
+            val photoImportEntry = navController.previousBackStackEntry?.takeIf { entry ->
+                entry.destination.route?.startsWith("historyPhotoImport") == true
+            }
+            val importVmForCameraCancel = photoImportEntry?.let { viewModel<ImportTicketViewModel>(it) }
             val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
             val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
             val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
@@ -679,7 +696,12 @@ fun NavGraph(
                         popUpTo("bingoLiveCameraImport") { inclusive = true }
                     }
                 },
-                onBack = { navController.popBackStack() },
+                onBack = {
+                    importVmForCameraCancel?.clear()
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.popBackStack()
+                    Unit
+                },
             )
         }
         composable("livePlayRoom/{roomId}") { backStackEntry ->
@@ -968,7 +990,14 @@ fun NavGraph(
                     com.example.mamunbingoapp.data.RoomRepository.unassignTicket(sessionId)
                 },
                 onAddFromPhotoClick = {
-                    navController.navigate("historyPhotoImport")
+                    runCatching {
+                        navController.getBackStackEntry("historyPhotoImport")
+                            .savedStateHandle["clearImportSession"] = true
+                    }
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.navigate("historyPhotoImport") {
+                        launchSingleTop = true
+                    }
                 },
                 onPlayClick = {
                     runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
@@ -1018,6 +1047,21 @@ fun NavGraph(
             val context = LocalContext.current
             val importVm: com.example.mamunbingoapp.viewmodel.ImportTicketViewModel =
                 viewModel(backStackEntry)
+            LaunchedEffect(backStackEntry) {
+                if (backStackEntry.savedStateHandle.remove<Boolean>("clearImportSession") == true) {
+                    importVm.clear()
+                }
+            }
+            DisposableEffect(backStackEntry.lifecycle, importVm) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_DESTROY) {
+                        importVm.clear()
+                        clearPendingHistoryPhotoImportHandoff(navController)
+                    }
+                }
+                backStackEntry.lifecycle.addObserver(observer)
+                onDispose { backStackEntry.lifecycle.removeObserver(observer) }
+            }
             val selectedUri by importVm.selectedImageUri.collectAsState(initial = null)
             val galleryPendingUri by importVm.galleryPendingEditUri.collectAsState(initial = null)
             val displayImportUri = galleryPendingUri ?: selectedUri
@@ -1162,8 +1206,11 @@ fun NavGraph(
                     HistoryPhotoImportScreen(
                         importViewModel = importVm,
                         onBackClick = {
-                            navController.popBackStack()
-                            Unit
+                            val leave: () -> Unit = {
+                                clearPendingHistoryPhotoImportHandoff(navController)
+                                navController.popBackStack()
+                            }
+                            photoImportLeaveHandler?.invoke(leave) ?: leave()
                         },
                         onClearImageClick = {},
                         onLaunchCamera = { scanType ->

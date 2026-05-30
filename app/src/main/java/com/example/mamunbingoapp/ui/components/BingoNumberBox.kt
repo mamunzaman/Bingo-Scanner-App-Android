@@ -42,7 +42,8 @@ fun BingoNumberBox(
     shape: Shape = RoundedCornerShape(BingoBoxTokens.Radius),
     enabled: Boolean = true,
     isSelected: Boolean = false,
-    showBorderWhenMarked: Boolean = false
+    showBorderWhenMarked: Boolean = false,
+    numberFontWeight: FontWeight = FontWeight.SemiBold,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val bg = when {
@@ -72,8 +73,14 @@ fun BingoNumberBox(
     Box(modifier = mod, contentAlignment = Alignment.Center) {
         Text(
             text = numberText,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 22.sp),
-            color = textColor
+            modifier = Modifier.padding(horizontal = 1.dp),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = numberFontWeight,
+                fontSize = 22.sp,
+            ),
+            color = textColor,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }

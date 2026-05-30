@@ -22,16 +22,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 
 enum class BingoGridMode { EDIT, PLAY, PREVIEW }
 
-private fun bingoNumberFontScaleForCellSize(cellSize: Dp): Float {
-    val numberFontSp = (cellSize.value * 0.48f).coerceIn(14f, 32f)
+private fun bingoNumberFontScaleForCellSize(cellSize: Dp, emphasize: Boolean = false): Float {
+    val sizeFactor = if (emphasize) 0.52f else 0.48f
+    val maxScale = if (emphasize) 1.58f else 1.45f
+    val numberFontSp = (cellSize.value * sizeFactor).coerceIn(14f, if (emphasize) 30f else 32f)
     val baseNumberSp = 22f
-    return (numberFontSp / baseNumberSp).coerceIn(0.7f, 1.45f)
+    return (numberFontSp / baseNumberSp).coerceIn(0.7f, maxScale)
 }
 
 @Composable
@@ -230,7 +233,7 @@ private fun FixedPlayModeGrid(
     cellSpacing: Dp,
 ) {
     val outerDensity = LocalDensity.current
-    val numberFontScale = remember(cellSize) { bingoNumberFontScaleForCellSize(cellSize) }
+    val numberFontScale = remember(cellSize) { bingoNumberFontScaleForCellSize(cellSize, emphasize = true) }
     val numberScaledDensity = remember(outerDensity, numberFontScale) {
         Density(
             density = outerDensity.density,
@@ -257,6 +260,7 @@ private fun FixedPlayModeGrid(
                                     animateWinningPulse = index in newWinningCells,
                                     isNearWinning = index in nearWinningCells,
                                     animateNearWin = index in newNearWinningCells,
+                                    numberFontWeight = FontWeight.Bold,
                                 )
                             }
                         }

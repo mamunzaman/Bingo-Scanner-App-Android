@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.MiniBingoGrid
@@ -76,8 +77,12 @@ fun HistorySheetCard(
     val subtitle = "$dateLabelPrefix: $dateStr"
     val safeSerial = serialNumber?.takeIf { it.isNotBlank() } ?: "--"
     val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: "--"
-    val markedNumerator = markedCount.coerceIn(0, 25)
-    val marked = "$markedNumerator/25"
+    val markedNumerator = when {
+        markedCells != null && markedCells.size >= BingoPlayableNumbers.GRID_CELL_COUNT ->
+            BingoPlayableNumbers.countMarkedPlayableFlags(markedCells)
+        else -> BingoPlayableNumbers.coercePlayableMarkedCount(markedCount)
+    }
+    val marked = BingoPlayableNumbers.formatMarkedProgress(markedNumerator)
     val selectedA11y = stringResource(R.string.live_play_a11y_selected)
     val notSelectedA11y = stringResource(R.string.live_play_a11y_not_selected)
     val selectionA11y = stringResource(
@@ -87,8 +92,10 @@ fun HistorySheetCard(
     )
     val openA11y = stringResource(R.string.live_play_a11y_sheet_open, title, markedNumerator)
     val miniGrid = when {
-        markedCells != null && markedCells.size == 25 -> markedCells
-        else -> List(25) { it < markedNumerator }
+        markedCells != null && markedCells.size >= BingoPlayableNumbers.GRID_CELL_COUNT -> markedCells
+        else -> List(BingoPlayableNumbers.GRID_CELL_COUNT) { index ->
+            index != BingoPlayableNumbers.FREE_CENTER_CELL_INDEX && index < markedNumerator
+        }
     }
     val rowShape = RoundedCornerShape(Dimens.radiusCard)
     val leadingSlotWidth = 42.dp
