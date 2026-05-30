@@ -161,7 +161,7 @@ fun ForgotPasswordScreen(
                             if (newPassword.length < 8) {
                                 Spacer(modifier = Modifier.height(Dimens.spacing4))
                                 Text(
-                                    text = "Use at least 8 characters.",
+                                    text = stringResource(R.string.password_min_length_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -210,14 +210,18 @@ fun ForgotPasswordScreen(
                         if (!displayError.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(Dimens.spacing12))
                         }
+                        val errorEnterNew = stringResource(R.string.change_password_error_enter_new)
+                        val errorMinLength = stringResource(R.string.change_password_error_min_length)
+                        val errorConfirm = stringResource(R.string.change_password_error_confirm)
+                        val errorMismatch = stringResource(R.string.change_password_error_mismatch)
                         AppPrimaryButton(
                             text = stringResource(R.string.change_password_button),
                             onClick = {
                                 localValidationError = when {
-                                    newPassword.isBlank() -> "Enter a new password."
-                                    newPassword.length < 8 -> "Password must be at least 8 characters."
-                                    confirmPassword.isBlank() -> "Confirm your new password."
-                                    newPassword != confirmPassword -> "Passwords do not match."
+                                    newPassword.isBlank() -> errorEnterNew
+                                    newPassword.length < 8 -> errorMinLength
+                                    confirmPassword.isBlank() -> errorConfirm
+                                    newPassword != confirmPassword -> errorMismatch
                                     else -> null
                                 }
                                 if (localValidationError == null) {

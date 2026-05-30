@@ -54,6 +54,8 @@ import androidx.compose.ui.draw.alpha
 import android.app.Activity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.data.dev.DevReset
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
@@ -104,20 +106,20 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     AppConfirmDialog(
         visible = showLogoutDialog,
-        title = "Are you sure?",
-        message = "Do you want to continue?",
-        confirmText = "Confirm",
-        cancelText = "Cancel",
+        title = stringResource(R.string.settings_logout_title),
+        message = stringResource(R.string.settings_logout_message),
+        confirmText = stringResource(R.string.settings_confirm),
+        cancelText = stringResource(R.string.settings_cancel),
         onConfirm = { showLogoutDialog = false; onLogout() },
         onCancel = { showLogoutDialog = false },
         onDismiss = { showLogoutDialog = false }
     )
     AppConfirmDialog(
         visible = showResetDialog,
-        title = "Reset database?",
-        message = "This will delete all local rooms, tickets, history, and settings. (Debug only)",
-        confirmText = "Reset",
-        cancelText = "Cancel",
+        title = stringResource(R.string.settings_reset_title),
+        message = stringResource(R.string.settings_reset_message),
+        confirmText = stringResource(R.string.settings_reset_confirm),
+        cancelText = stringResource(R.string.settings_cancel),
         onConfirm = {
             showResetDialog = false
             scope.launch {
@@ -145,7 +147,7 @@ fun SettingsScreen(
             modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),
             topBar = {
                 AppTopBar(
-                    title = "Settings",
+                    title = stringResource(R.string.settings_title),
                     showBack = true,
                     onBackClick = onBack
                 )
@@ -159,29 +161,29 @@ fun SettingsScreen(
                         .padding(horizontal = Dimens.screenHorizontalPadding)
                         .padding(top = Dimens.spacing8, bottom = Dimens.spacing16)
                 ) {
-                    SettingsSection(title = "DATA") {
+                    SettingsSection(title = stringResource(R.string.settings_section_data)) {
                 SettingsToggleRow(
                     icon = Icons.Default.Eco,
-                    title = "Show demo data",
-                    subtitle = "Include demo sessions in History and ticket picker",
+                    title = stringResource(R.string.settings_show_demo_data),
+                    subtitle = stringResource(R.string.settings_show_demo_data_subtitle),
                     checked = showDemoData,
                     onCheckedChange = { viewModel.setShowDemoData(it) }
                 )
             }
-            SettingsGroupedSection(title = "LIVE PLAY") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_live_play)) {
                 SettingsToggleRow(
                     icon = Icons.Filled.StayCurrentPortrait,
-                    title = "Keep screen on during game",
-                    subtitle = "Prevents your phone from locking while playing live Bingo.",
+                    title = stringResource(R.string.settings_keep_screen_on),
+                    subtitle = stringResource(R.string.settings_keep_screen_on_subtitle),
                     checked = keepScreenOnDuringGame,
                     onCheckedChange = { viewModel.setKeepScreenOnDuringGame(it) },
                     groupedInCard = true,
                 )
             }
-            SettingsGroupedSection(title = "APPEARANCE") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_appearance)) {
                 SettingsThemeRow(
                     icon = Icons.Default.Smartphone,
-                    title = "System",
+                    title = stringResource(R.string.settings_theme_system),
                     selected = themeMode == ThemeMode.SYSTEM,
                     onClick = { themeViewModel.setThemeMode(ThemeMode.SYSTEM) },
                     groupedInCard = true,
@@ -192,7 +194,7 @@ fun SettingsScreen(
                 )
                 SettingsThemeRow(
                     icon = Icons.Default.LightMode,
-                    title = "Light",
+                    title = stringResource(R.string.settings_theme_light),
                     selected = themeMode == ThemeMode.LIGHT,
                     onClick = { themeViewModel.setThemeMode(ThemeMode.LIGHT) },
                     groupedInCard = true,
@@ -203,7 +205,7 @@ fun SettingsScreen(
                 )
                 SettingsThemeRow(
                     icon = Icons.Default.DarkMode,
-                    title = "Dark",
+                    title = stringResource(R.string.settings_theme_dark),
                     selected = themeMode == ThemeMode.DARK,
                     onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) },
                     groupedInCard = true,
@@ -218,11 +220,11 @@ fun SettingsScreen(
                     groupedInCard = true,
                 )
             }
-            SettingsGroupedSection(title = "NOTIFICATIONS") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_notifications)) {
                 SettingsToggleRow(
                     icon = Icons.Default.Notifications,
-                    title = "Push Notifications",
-                    subtitle = "Game updates and rewards",
+                    title = stringResource(R.string.settings_push_notifications),
+                    subtitle = stringResource(R.string.settings_push_notifications_subtitle),
                     checked = pushNotifications,
                     onCheckedChange = { viewModel.setPushNotifications(it) },
                     groupedInCard = true,
@@ -234,18 +236,18 @@ fun SettingsScreen(
                 )
                 SettingsToggleRow(
                     icon = Icons.Default.Alarm,
-                    title = "Daily Reminders",
-                    subtitle = "Never miss your daily eco-task",
+                    title = stringResource(R.string.settings_daily_reminders),
+                    subtitle = stringResource(R.string.settings_daily_reminders_subtitle),
                     checked = dailyReminders,
                     onCheckedChange = { viewModel.setDailyReminders(it) },
                     groupedInCard = true,
                     comingSoon = true,
                 )
             }
-            SettingsGroupedSection(title = "SECURITY") {
+            SettingsGroupedSection(title = stringResource(R.string.settings_section_security)) {
                 SettingsToggleRow(
                     icon = Icons.Default.Fingerprint,
-                    title = "FaceID / TouchID",
+                    title = stringResource(R.string.settings_face_id),
                     checked = faceIdTouchId,
                     onCheckedChange = { viewModel.setFaceIdTouchId(it) },
                     groupedInCard = true,
@@ -257,45 +259,45 @@ fun SettingsScreen(
                 )
                 SettingsNavRow(
                     icon = Icons.Default.Lock,
-                    title = "Change Password",
+                    title = stringResource(R.string.settings_change_password),
                     onClick = onChangePassword,
                     groupedInCard = true,
                 )
             }
-            SettingsSection(title = "PRIVACY") {
+            SettingsSection(title = stringResource(R.string.settings_section_privacy)) {
                 SettingsNavRow(
                     icon = Icons.Default.LocationOn,
-                    title = "Location Services",
+                    title = stringResource(R.string.settings_location_services),
                     onClick = onLocationServices
                 )
                 SettingsToggleRow(
                     icon = Icons.Default.Share,
-                    title = "Data Sharing",
-                    subtitle = "Help us improve anonymously",
+                    title = stringResource(R.string.settings_data_sharing),
+                    subtitle = stringResource(R.string.settings_data_sharing_subtitle),
                     checked = dataSharing,
                     onCheckedChange = { viewModel.setDataSharing(it) }
                 )
             }
-            SettingsSection(title = "ABOUT") {
+            SettingsSection(title = stringResource(R.string.settings_section_about)) {
                 SettingsNavRow(
                     icon = Icons.Default.Eco,
-                    title = "Environmental Impact",
-                    subtitle = "See your cumulative CO2 savings",
+                    title = stringResource(R.string.settings_environmental_impact),
+                    subtitle = stringResource(R.string.settings_environmental_impact_subtitle),
                     onClick = onEnvironmentalImpact,
                     showChevron = false
                 )
-                SettingsNavRow(title = "Terms of Service", onClick = onTermsOfService)
-                SettingsNavRow(title = "Privacy Policy", onClick = onPrivacyPolicy)
+                SettingsNavRow(title = stringResource(R.string.settings_terms), onClick = onTermsOfService)
+                SettingsNavRow(title = stringResource(R.string.settings_privacy), onClick = onPrivacyPolicy)
             }
             if (BuildConfig.DEBUG) {
-                SettingsSection(title = "Developer") {
+                SettingsSection(title = stringResource(R.string.settings_section_developer)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(Dimens.screenHorizontalPadding, 16.dp)
                     ) {
                         AppPrimaryButton(
-                            text = "Reset local database",
+                            text = stringResource(R.string.settings_reset_local_db),
                             onClick = { showResetDialog = true }
                         )
                     }
@@ -308,7 +310,7 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Version 1.0.0 (Build 242)",
+                    text = stringResource(R.string.settings_version),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -318,7 +320,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Made with ",
+                        text = stringResource(R.string.settings_made_with),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -329,7 +331,7 @@ fun SettingsScreen(
                         tint = Secondary
                     )
                     Text(
-                        text = " for the Earth",
+                        text = stringResource(R.string.settings_for_the_earth),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -347,7 +349,7 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Log Out",
+                        text = stringResource(R.string.settings_log_out),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = Secondary
@@ -581,7 +583,7 @@ private fun SettingsLanguageRow(
                 AppIconContainer(icon = Icons.Default.Language, size = 40.dp, iconSize = 24.dp)
             }
             Text(
-                text = "Language",
+                text = stringResource(R.string.settings_language),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
@@ -589,7 +591,7 @@ private fun SettingsLanguageRow(
                     .padding(start = textStart),
             )
             Text(
-                text = selectedLanguage.displayName,
+                text = localizedLanguageName(selectedLanguage),
                 style = MaterialTheme.typography.bodyMedium,
                 color = mutedColor,
             )
@@ -607,7 +609,7 @@ private fun SettingsLanguageRow(
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(language.displayName)
+                            Text(localizedLanguageName(language))
                             if (language.code == selectedLanguage.code) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
@@ -630,6 +632,13 @@ private fun SettingsLanguageRow(
             }
         }
     }
+}
+
+@Composable
+private fun localizedLanguageName(language: AppLanguage): String = when (language.code) {
+    AppLanguage.English.code -> stringResource(R.string.language_english)
+    AppLanguage.Deutsch.code -> stringResource(R.string.language_german)
+    else -> language.displayName
 }
 
 @Composable

@@ -171,7 +171,7 @@ fun RegisterScreen(
                         if (password.length < 8) {
                             Spacer(modifier = Modifier.height(Dimens.spacing4))
                             Text(
-                                text = "Use at least 8 characters.",
+                                text = stringResource(R.string.password_min_length_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
