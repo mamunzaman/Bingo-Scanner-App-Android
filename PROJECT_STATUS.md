@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Profile card polish:** Wins-only highlight; level badge/trees removed; Account Overview 20dp padding + inset dividers. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Profile avatar delete persist:** `clearRemoteAvatarUrl` Postgrest `set(avatar_url, null)`; VM cache evict + local clear; no refresh rehydrate hack. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Profile card polish:** Wins-only highlight; level badge/trees removed; Account Overview 20dp padding + inset dividers. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Profile compact header:** Horizontal summary card (avatar + level badge, name, Wins/Trees); Account Overview card (email, member since, ID); removed old stats block. `./gradlew :app:assembleDebug` OK.
 

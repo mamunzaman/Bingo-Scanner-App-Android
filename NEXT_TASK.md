@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — polished Profile summary + Account Overview.
+**Goal:** Device QA — profile photo delete persists after refresh.
 
-**Verify:** Wins-only stat prominent; no level badge/trees; account rows spaced; email/ID readable. `./gradlew :app:assembleDebug` OK.
+**Verify:** Delete photo → pull-to-refresh → initials/no image; re-upload still works; delete failure shows error. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Profile card polish — larger Wins, premium Account Overview spacing.
+**Previous:** Fix remote `avatar_url` null via Postgrest `set()`; VM clears cache + local state on success.
