@@ -270,6 +270,14 @@
     <string name="profile_tap_remove_photo">Tap remove to delete photo</string>
     <string name="profile_tap_add_photo">Tap photo to add</string>
     <string name="profile_id_format">ID: %1$s</string>
+    <string name="profile_account_overview">ACCOUNT OVERVIEW</string>
+    <string name="profile_email_label">Email</string>
+    <string name="profile_member_since_label">Member Since</string>
+    <string name="profile_id_label">ID</string>
+    <string name="profile_eco_warrior_subtitle">Eco-Warrior</string>
+    <string name="profile_stat_wins">WINS</string>
+    <string name="profile_stat_trees">Trees</string>
+    <string name="profile_level_badge">Lv %1$d</string>
     <string name="profile_eco_warrior_level">Eco-Warrior Level %1$d</string>
     <string name="profile_impact_member_since">Impact Member since %1$s</string>
     <string name="profile_total_wins_label">TOTAL WINS</string>
