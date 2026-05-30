@@ -22,8 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.theme.Dimens
 
@@ -36,12 +38,13 @@ fun CalledNumbersDetailSheet(
     onDismiss: () -> Unit,
     calledNumbers: List<Int>,
     maxCalls: Int = MAX_LIVE_CALLS,
-    title: String = "Called Numbers",
+    title: String? = null,
     countPillText: String? = null,
     footerText: String? = null,
     onOverflowMenuClick: (() -> Unit)? = null,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    val resolvedTitle = title ?: stringResource(R.string.live_play_called_numbers_label)
     val scheme = MaterialTheme.colorScheme
     val orderedCalls = remember(calledNumbers) { calledNumbers.distinct() }
     val numbersByColumn = remember(calledNumbers) { groupCalledNumbersByColumn(calledNumbers) }
@@ -79,7 +82,7 @@ fun CalledNumbersDetailSheet(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
                 ) {
                     Text(
-                        text = title,
+                        text = resolvedTitle,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface,

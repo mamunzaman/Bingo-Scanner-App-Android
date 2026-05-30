@@ -202,6 +202,9 @@ private fun TicketsBottomSheetContent(
         TicketSort.NameAZ -> sortNameAzLabel
         TicketSort.Date -> sortDateLabel
     }
+    val filterLabels = TicketFilter.entries.associateWith { stringResource(it.labelResId) }
+    val filterOptions = TicketFilter.entries.map { filterLabels.getValue(it) }
+    val selectedFilterLabel = filterLabels.getValue(selectedFilter)
     val selectedInThisRoom = remember(selectedTicketIds, filtered, roomId) {
         if (roomId.isBlank()) emptySet()
         else selectedTicketIds.filter { tid ->
@@ -272,9 +275,11 @@ private fun TicketsBottomSheetContent(
             query = query,
             onQueryChange = vm::setQuery,
             placeholder = stringResource(R.string.live_play_search_tickets),
-            filterOptions = TicketFilter.entries.map { it.displayName },
-            selectedFilter = selectedFilter.displayName,
-            onFilterSelect = { label -> vm.setFilter(TicketFilter.entries.first { it.displayName == label }) },
+            filterOptions = filterOptions,
+            selectedFilter = selectedFilterLabel,
+            onFilterSelect = { label ->
+                vm.setFilter(filterLabels.entries.first { it.value == label }.key)
+            },
             filterCounts = filterCounts,
             showFilterCounts = true,
             sortOptions = sortOptions,

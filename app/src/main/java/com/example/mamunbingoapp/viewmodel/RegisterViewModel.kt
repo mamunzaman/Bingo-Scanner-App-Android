@@ -1,7 +1,9 @@
 package com.example.mamunbingoapp.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.auth.AuthRepository
 import com.example.mamunbingoapp.data.auth.AuthState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +14,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class RegisterViewModel : ViewModel() {
+class RegisterViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app get() = getApplication<Application>()
 
     val authState: StateFlow<AuthState> = AuthRepository.authState
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AuthState.Loading)
@@ -34,10 +38,10 @@ class RegisterViewModel : ViewModel() {
         val trimmedEmail = email.trim()
         when {
             trimmedEmail.isBlank() || !trimmedEmail.contains("@") -> {
-                _validationError.value = "Enter a valid email address."
+                _validationError.value = app.getString(R.string.auth_error_valid_email)
             }
             password.length < MIN_PASSWORD_LENGTH -> {
-                _validationError.value = "Password must be at least $MIN_PASSWORD_LENGTH characters."
+                _validationError.value = app.getString(R.string.change_password_error_min_length)
             }
             else -> {
                 _validationError.value = null

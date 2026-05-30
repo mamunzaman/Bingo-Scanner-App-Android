@@ -467,8 +467,7 @@ fun HistoryDetailScreen(
                                     }
                                     if (encoded.isFailure) {
                                         qrBitmap = null
-                                        qrErrorMessage = encoded.exceptionOrNull()?.message
-                                            ?: qrEncodeFailedMessage
+                                        qrErrorMessage = qrEncodeFailedMessage
                                         showQrDialog = true
                                         return@launch
                                     }
@@ -483,7 +482,7 @@ fun HistoryDetailScreen(
                                         },
                                         onFailure = { e ->
                                             qrBitmap = null
-                                            qrErrorMessage = e.message ?: qrImageFailedMessage
+                                            qrErrorMessage = qrImageFailedMessage
                                             showQrDialog = true
                                         }
                                     )

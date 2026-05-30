@@ -203,7 +203,11 @@ private fun ActiveTicketStatusChip(
     isInLiveRoom: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val label = if (isInLiveRoom) "Live room" else "Saved ticket"
+    val label = if (isInLiveRoom) {
+        stringResource(R.string.home_active_ticket_status_live_room)
+    } else {
+        stringResource(R.string.home_active_ticket_status_saved)
+    }
     val container = if (isInLiveRoom) {
         Primary.copy(alpha = 0.18f)
     } else {

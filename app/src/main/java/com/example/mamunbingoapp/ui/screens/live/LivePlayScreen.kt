@@ -2132,8 +2132,7 @@ private fun SheetDetailBottomSheet(
                                         }
                                         if (encoded.isFailure) {
                                             ticketQrBitmap = null
-                                            ticketQrError = encoded.exceptionOrNull()?.message
-                                                ?: qrEncodeFailedMessage
+                                            ticketQrError = qrEncodeFailedMessage
                                             ticketQrLoading = false
                                             return@launch
                                         }
@@ -2148,8 +2147,7 @@ private fun SheetDetailBottomSheet(
                                             },
                                             onFailure = { e ->
                                                 ticketQrBitmap = null
-                                                ticketQrError = e.message
-                                                    ?: qrImageFailedMessage
+                                                ticketQrError = qrImageFailedMessage
                                             }
                                         )
                                     }

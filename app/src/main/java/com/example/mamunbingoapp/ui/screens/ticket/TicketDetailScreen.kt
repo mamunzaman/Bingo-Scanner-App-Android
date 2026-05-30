@@ -136,6 +136,7 @@ fun TicketDetailScreen(
         title = stringResource(R.string.ticket_detail_delete_title),
         message = stringResource(R.string.ticket_detail_delete_message),
         confirmText = stringResource(R.string.common_delete),
+        cancelText = stringResource(R.string.settings_cancel),
         showCancelButton = true,
         onConfirm = {
             showDeleteDialog = false
@@ -234,8 +235,7 @@ fun TicketDetailScreen(
                                     }
                                     if (encoded.isFailure) {
                                         qrBitmap = null
-                                        qrErrorMessage = encoded.exceptionOrNull()?.message
-                                            ?: qrEncodeFailedMessage
+                                        qrErrorMessage = qrEncodeFailedMessage
                                         showQrDialog = true
                                         return@launch
                                     }
@@ -250,7 +250,7 @@ fun TicketDetailScreen(
                                         },
                                         onFailure = { e ->
                                             qrBitmap = null
-                                            qrErrorMessage = e.message ?: qrImageFailedMessage
+                                            qrErrorMessage = qrImageFailedMessage
                                             showQrDialog = true
                                         }
                                     )

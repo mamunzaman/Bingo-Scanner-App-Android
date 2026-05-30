@@ -1,6 +1,10 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Phase 3 localization (complete):** Remaining shared components (CurrentJackpotCard, ActiveTicketCard, RoomSessionCard, BingoSessionCard_V3, SearchFilterSortHeader, PasswordStrengthMeter, TicketCard, BingoDetailGridCard, JackpotHeroCard), Privacy Policy title, OCR stage/error strings; ViewModels → `AndroidViewModel` for localized snackbars/errors (`ImportTicketViewModel`, `LiveRoomsViewModel`, `HistoryDetailViewModel`, `ProfileViewModel`, `AccountViewModel`). `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket status chips; My Tickets filter labels (`TicketFilter` `@StringRes`); `CalledNumbersDetailSheet` default title; `HomeViewModel` localized remote errors + internal logs; QR encode/image failures use safe strings (History Detail, Ticket Detail, Live Play). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **QA Critical fixes:** AppBottomBar `stringResource` tabs; +83 DE keys in `values-de/strings.xml`; auth strings + `AuthRepository`/`LoginViewModel`/`RegisterViewModel` localized; ManualEntry `ShowSnackbar` wired; `AppConfirmDialog` default Confirm/Cancel localized; AccountForm save snackbar via `profileMessage`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Phase 3 localization (complete):** Remaining shared components (CurrentJackpotCard, ActiveTicketCard, RoomSessionCard, BingoSessionCard_V3, SearchFilterSortHeader, PasswordStrengthMeter, TicketCard, BingoDetailGridCard, JackpotHeroCard), Privacy Policy title, OCR stage/error strings; ViewModels → `AndroidViewModel` for localized snackbars/errors (`ImportTicketViewModel`, `LiveRoomsViewModel`, `HistoryDetailViewModel`, `ProfileViewModel`, `AccountViewModel`). `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Phase 3 live/components localization:** +~120 strings appended to `strings_phase3.xml` (EN/DE); `stringResource()` on LiveSheetDetail, RoomInfo, MyTickets, LiveRoomTopSection, HistorySheetCard, bulk dialogs/action bar, RoomConflict, CalledHistory, EmptyHistory, LiveRoomTopBar, RoundProgress, win/almost banners, LiveCallInputBar (a11y), BingoCardGrid (untitled/rename only), ProfileMenuItem + Account/Support/Payment/Placeholder/Env/Location screens. Reused `common_*`, `history_*`, `live_play_*`, `settings_*`, `profile_*`, `import_ticket_*`. `./gradlew :app:assembleDebug` OK.
 
@@ -334,6 +338,7 @@
 
 ## Completed features
 
+- **v0.10 pre-tag i18n/runtime cleanup:** Active ticket chips; ticket filters All/Today/Week; called-numbers sheet title; home jackpot load errors; QR paths never show raw `Throwable.message`.
 - **Phase 3 i18n (complete):** Import/scan/OCR, manual entry, ticket detail, live sheets, shared dialogs/bottom sheets, home jackpot cards, profile VM messages, account form validation — `stringResource` / `getString` + DE in `strings_phase3.xml`.
 - **Phase 3 i18n (live/components + profile sub-screens):** Live sheet detail, room info, My Tickets, top bar/section, history bulk UI, called history, win/almost banners, profile account/env/location — `stringResource` + DE in `strings_phase3.xml`.
 - **Phase 2 i18n (core screens):** Home, Profile, History list/detail, Live Rooms, Live Play, Jackpot — `stringResource` + DE in `values-de/`.

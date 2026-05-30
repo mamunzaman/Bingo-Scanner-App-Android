@@ -46,8 +46,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -55,14 +58,14 @@ import androidx.compose.ui.tooling.preview.Preview
 
 enum class AppTab(
     val route: String,
-    val label: String,
+    @StringRes val labelResId: Int,
     val icon: ImageVector
 ) {
-    Home("home", "Home", Icons.Filled.Home),
-    Scan("scan", "Scan", Icons.Filled.QrCodeScanner),
-    Jackpot("jackpot", "Jackpot", Icons.Filled.EmojiEvents),
-    Projects("projects", "Projects", Icons.Filled.Newspaper),
-    Profile("profile", "Profile", Icons.Filled.Person)
+    Home("home", R.string.tab_home, Icons.Filled.Home),
+    Scan("scan", R.string.tab_scan, Icons.Filled.QrCodeScanner),
+    Jackpot("jackpot", R.string.tab_jackpot, Icons.Filled.EmojiEvents),
+    Projects("projects", R.string.tab_projects, Icons.Filled.Newspaper),
+    Profile("profile", R.string.tab_profile, Icons.Filled.Person)
 }
 
 /** Space reserved above [AppBottomBar] for Home floating scan FAB. */
@@ -104,6 +107,7 @@ fun AppBottomBar(
                 ) {
                     AppTab.entries.forEach { tab ->
                         val selected = selectedTab == tab
+                        val tabLabel = stringResource(tab.labelResId)
                         val pillShape = RoundedCornerShape(Dimens.radiusPill)
                         val interactionSource = remember { MutableInteractionSource() }
                         val iconScale by animateFloatAsState(
@@ -159,7 +163,7 @@ fun AppBottomBar(
                             ) {
                                 Icon(
                                     imageVector = tab.icon,
-                                    contentDescription = tab.label,
+                                    contentDescription = tabLabel,
                                     modifier = Modifier
                                         .size(Dimens.iconDefault)
                                         .scale(iconScale),
@@ -167,7 +171,7 @@ fun AppBottomBar(
                                 )
                             }
                             Text(
-                                text = tab.label,
+                                text = tabLabel,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                                 ),

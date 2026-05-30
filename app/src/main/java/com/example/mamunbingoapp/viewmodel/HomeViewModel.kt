@@ -1,7 +1,10 @@
 package com.example.mamunbingoapp.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.remote.BingoDrawDto
 import com.example.mamunbingoapp.data.remote.BingoPrizeDto
 import com.example.mamunbingoapp.data.remote.BingoRemoteRepository
@@ -10,7 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
+
+    private companion object {
+        const val TAG = "HomeViewModel"
+    }
 
     private val _latestDraw = MutableStateFlow<BingoDrawDto?>(null)
     val latestDraw: StateFlow<BingoDrawDto?> = _latestDraw.asStateFlow()
@@ -38,13 +45,19 @@ class HomeViewModel : ViewModel() {
                     BingoRemoteRepository.getPrizesForDraw(draw.id)
                         .onSuccess { prizes -> _latestPrizes.value = prizes }
                         .onFailure { error ->
-                            _remoteError.value = error.message ?: "Could not load prizes."
+                            Log.w(TAG, "Failed to load prizes", error)
+                            _remoteError.value = getApplication<Application>().getString(
+                                R.string.home_error_load_prizes,
+                            )
                         }
                 }
                 .onFailure { error ->
+                    Log.w(TAG, "Failed to load latest draw", error)
                     _latestDraw.value = null
                     _latestPrizes.value = emptyList()
-                    _remoteError.value = error.message ?: "Could not load latest draw."
+                    _remoteError.value = getApplication<Application>().getString(
+                        R.string.home_error_load_latest_draw,
+                    )
                 }
             _isRemoteLoading.value = false
         }

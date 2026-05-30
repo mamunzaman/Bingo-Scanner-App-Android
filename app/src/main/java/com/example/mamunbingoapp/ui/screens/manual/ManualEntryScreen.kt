@@ -55,6 +55,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -254,6 +258,8 @@ fun ManualEntryScreen(
     val sheetTitleFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
     val isPartialScan = scannedNumbers.isNotEmpty() && (scannedNumbers.size < 25 || scannedNumbers.any { it == 0 })
     var hasShownPartialInfoDialog by rememberSaveable { mutableStateOf(false) }
     var allowNavigationByEvent by remember { mutableStateOf(false) }
@@ -285,7 +291,9 @@ fun ManualEntryScreen(
                     Log.d(MANUAL_ENTRY_TAG, "saveOnlyCompleted triggered, ticketId=${event.ticketId}")
                     if (allowNavigationByEvent) onSaveOnlySuccess(event.ticketId, event.roomId)
                 }
-                is ManualEntryUiEvent.ShowSnackbar -> { }
+                is ManualEntryUiEvent.ShowSnackbar -> {
+                    snackbarScope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
                 is ManualEntryUiEvent.ShowInfoDialog -> infoDialog = event.title to event.message
             }
         }
@@ -440,6 +448,7 @@ fun ManualEntryScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { },
         bottomBar = {
             AppBottomBar(

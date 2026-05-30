@@ -3,6 +3,8 @@ package com.example.mamunbingoapp.data.auth
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.annotation.StringRes
+import com.example.mamunbingoapp.R
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -53,8 +55,13 @@ object AuthRepository {
     private var lastHandledAuthDeepLink: String? = null
     private var pendingRecoveryFromDeepLink: Boolean = false
     private var sessionObserverStarted: Boolean = false
+    private lateinit var appContext: Context
+
+    private fun str(@StringRes id: Int, vararg formatArgs: Any): String =
+        appContext.getString(id, *formatArgs)
 
     fun startup(context: Context) {
+        appContext = context.applicationContext
         SupabaseClientProvider.ensureInitialized(context)
         if (sessionObserverStarted) return
         sessionObserverStarted = true
@@ -103,7 +110,7 @@ object AuthRepository {
 
     private fun enterPendingPasswordRecovery(email: String?) {
         _passwordRecovery.value = AuthPasswordRecoveryState.PendingSetNewPassword(email)
-        _authRecoveryHint.value = "Reset link accepted. Set a new password below."
+        _authRecoveryHint.value = str(R.string.auth_recovery_reset_accepted)
         Log.d(TAG, "Recovery state entered: pending set-new-password email=$email")
     }
 
@@ -143,8 +150,7 @@ object AuthRepository {
         }
         if (success && SupabaseClientProvider.client.auth.currentSessionOrNull() == null) {
             _authRecoveryHint.value = null
-            _authActionError.value =
-                "Account created. Open the confirmation email on this device and tap the link."
+            _authActionError.value = str(R.string.auth_signup_confirm_email)
         }
     }
 
@@ -157,7 +163,7 @@ object AuthRepository {
         )
         val trimmed = email.trim()
         if (trimmed.isBlank() || !trimmed.contains("@")) {
-            _authActionError.value = "Enter a valid email address."
+            _authActionError.value = str(R.string.auth_error_valid_email)
             return
         }
         val redirectTo = SupabaseAuthDeepLink.validatedRedirectUrl()
@@ -169,15 +175,13 @@ object AuthRepository {
             )
         }
         if (success) {
-            _authRecoveryHint.value =
-                "Check your email for the password reset link. Open the newest email on this device. " +
-                "If an older link opens a previous redirect, request a fresh reset after Supabase URL config is updated."
+            _authRecoveryHint.value = str(R.string.auth_reset_email_sent)
         }
     }
 
     suspend fun changePassword(currentPassword: String, newPassword: String): Boolean {
         if (_authState.value !is AuthState.SignedIn) {
-            _authActionError.value = "Sign in to change your password."
+            _authActionError.value = str(R.string.auth_error_sign_in_change_password)
             return false
         }
         clearAuthActionError()
@@ -214,7 +218,7 @@ object AuthRepository {
 
     suspend fun updateDisplayName(displayName: String): Boolean {
         if (_authState.value !is AuthState.SignedIn) {
-            _authActionError.value = "Sign in to update your profile."
+            _authActionError.value = str(R.string.auth_error_sign_in_update_profile)
             return false
         }
         clearAuthActionError()
@@ -235,11 +239,11 @@ object AuthRepository {
     suspend fun updateEmail(newEmail: String): Boolean {
         val email = newEmail.trim()
         if (email.isBlank() || !email.contains("@")) {
-            _authActionError.value = "Enter a valid email address."
+            _authActionError.value = str(R.string.auth_error_valid_email)
             return false
         }
         if (_authState.value !is AuthState.SignedIn) {
-            _authActionError.value = "Sign in to update your email."
+            _authActionError.value = str(R.string.auth_error_sign_in_update_email)
             return false
         }
         clearAuthActionError()
@@ -249,7 +253,7 @@ object AuthRepository {
             }
         }
         if (success) {
-            _authRecoveryHint.value = "Check your new email address to confirm the change."
+            _authRecoveryHint.value = str(R.string.auth_recovery_email_confirm_change)
         }
         // TODO: depending Supabase dashboard policy, confirmation may be required on both old and new email.
         return success
@@ -257,11 +261,11 @@ object AuthRepository {
 
     suspend fun updatePasswordAfterRecovery(newPassword: String): Boolean {
         if (newPassword.isBlank()) {
-            _authActionError.value = "Enter a new password."
+            _authActionError.value = str(R.string.auth_error_enter_new_password)
             return false
         }
         if (newPassword.length < MIN_PASSWORD_LENGTH) {
-            _authActionError.value = "Password must be at least $MIN_PASSWORD_LENGTH characters."
+            _authActionError.value = str(R.string.change_password_error_min_length)
             return false
         }
         clearAuthActionError()
@@ -272,7 +276,7 @@ object AuthRepository {
         }
         if (success) {
             clearPasswordRecovery()
-            _authRecoveryHint.value = "Password updated. You can sign in with your new password."
+            _authRecoveryHint.value = str(R.string.auth_recovery_password_updated)
         }
         return success
     }
@@ -359,7 +363,7 @@ object AuthRepository {
         val auth = SupabaseClientProvider.getClientOrNull()?.auth ?: run {
             pendingRecoveryFromDeepLink = false
             clearPasswordRecovery()
-            _authActionError.value = "Password reset is unavailable. Try again."
+            _authActionError.value = str(R.string.auth_error_reset_unavailable)
             return
         }
         repeat(5) {
@@ -394,8 +398,7 @@ object AuthRepository {
             clearHandledDeepLink = true,
             reason = "invalid_recovery_link",
         )
-        _authActionError.value =
-            "Password reset link is invalid or expired. Request a new reset email."
+        _authActionError.value = str(R.string.auth_error_reset_link_invalid)
     }
 
     suspend fun signOut(): Boolean {
@@ -522,7 +525,7 @@ object AuthRepository {
         }
         is SessionStatus.NotAuthenticated -> AuthState.SignedOut
         is SessionStatus.RefreshFailure -> {
-            _authActionError.value = "Session expired. Please sign in again."
+            _authActionError.value = str(R.string.auth_error_session_expired)
             AuthState.SignedOut
         }
     }
@@ -534,7 +537,7 @@ object AuthRepository {
             return message.lineSequence().first().trim()
         }
         if (error is UnknownHostException || error is IOException) {
-            return "Network error. Check your connection and try again."
+            return str(R.string.auth_error_network)
         }
         return mapAuthErrorMessage(message)
     }
@@ -549,29 +552,28 @@ object AuthRepository {
 
     private fun mapAuthErrorMessage(message: String): String = when {
             message.contains("over_email_send_rate_limit", ignoreCase = true) ->
-                EMAIL_SEND_RATE_LIMIT_MESSAGE
+                str(R.string.auth_error_rate_limit)
             message.contains("Unable to resolve host", ignoreCase = true) ||
                 message.contains("Failed to connect", ignoreCase = true) ||
                 message.contains("timeout", ignoreCase = true) ||
                 (message.contains("Network", ignoreCase = true) &&
                     !message.contains("error_code", ignoreCase = true)) ->
-                "Network error. Check your connection and try again."
+                str(R.string.auth_error_network)
             message.contains("Invalid login credentials", ignoreCase = true) ->
-                "Incorrect email or password."
+                str(R.string.auth_error_invalid_credentials)
             message.contains("User already registered", ignoreCase = true) ->
-                "An account with this email already exists."
-            message.contains("Password should be at least", ignoreCase = true) &&
-                isSafeUserFacingAuthMessage(message) ->
-                message.lineSequence().first().trim()
+                str(R.string.auth_error_user_exists)
+            message.contains("Password should be at least", ignoreCase = true) ->
+                str(R.string.change_password_error_min_length)
             message.contains("Unable to validate email address", ignoreCase = true) ->
-                "Enter a valid email address."
+                str(R.string.auth_error_valid_email)
             message.contains("otp", ignoreCase = true) ||
                 message.contains("email link", ignoreCase = true) ||
                 message.contains("recovery", ignoreCase = true) ||
                 message.contains("verification", ignoreCase = true) ->
-                "This link is invalid or expired. Request a new email and try again."
+                str(R.string.auth_error_link_invalid)
             isSafeUserFacingAuthMessage(message) -> message.lineSequence().first().trim()
-            else -> "Authentication failed. Please try again."
+            else -> str(R.string.auth_error_auth_failed)
     }
 
     private fun isSafeUserFacingAuthMessage(message: String): Boolean {
@@ -590,9 +592,6 @@ object AuthRepository {
         if (message.contains("over_") && message.contains("_rate_limit")) return false
         return true
     }
-
-    private const val EMAIL_SEND_RATE_LIMIT_MESSAGE =
-        "Too many verification emails sent. Please wait a few minutes and try again."
 
     private const val MIN_PASSWORD_LENGTH = 8
 }

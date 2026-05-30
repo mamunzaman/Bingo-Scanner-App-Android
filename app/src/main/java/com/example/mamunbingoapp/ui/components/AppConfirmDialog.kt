@@ -23,18 +23,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.mamunbingoapp.R
 
 @Composable
 fun AppConfirmDialog(
     visible: Boolean,
     title: String,
     message: String = "",
-    confirmText: String = "Confirm",
-    cancelText: String = "Cancel",
+    confirmText: String? = null,
+    cancelText: String? = null,
     showCancelButton: Boolean = true,
     confirmEnabled: Boolean = true,
     onConfirm: () -> Unit,
@@ -43,6 +45,8 @@ fun AppConfirmDialog(
     content: (@Composable () -> Unit)? = null
 ) {
     if (!visible) return
+    val resolvedConfirmText = confirmText ?: stringResource(R.string.settings_confirm)
+    val resolvedCancelText = cancelText ?: stringResource(R.string.settings_cancel)
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -109,7 +113,7 @@ fun AppConfirmDialog(
                                     )
                                 ) {
                                     Text(
-                                        text = cancelText,
+                                        text = resolvedCancelText,
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -127,7 +131,7 @@ fun AppConfirmDialog(
                                 )
                             ) {
                                 Text(
-                                    text = confirmText,
+                                    text = resolvedConfirmText,
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold
                                 )
