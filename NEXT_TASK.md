@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — 5-marker scan overlay.
+**Goal:** Device QA — final bottom nav polish.
 
-**Verify:** 5 corner markers (1 main + 4 subtle); single scan beam unchanged; markers stay above processing card. `./gradlew :app:assembleDebug` OK.
+**Verify:** Side pills softer than diamond; shared label baseline; Jackpot green/centered; diamond shadow lighter. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Scan focus markers increased from 3 to 5 with wider waypoint spread.
+**Previous:** Softer selected pills (42% alpha), compact radius, lighter diamond shadow.

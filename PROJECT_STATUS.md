@@ -1,6 +1,18 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Scan overlay markers:** 5 focus markers (1 main + 4 staggered secondaries); 8 spread waypoints; clean single beam unchanged. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Bottom nav final polish:** Softer side pills (42% alpha, 14dp radius); primary tint labels; diamond shadow 4dp; shared label baseline. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Bottom nav spacing polish:** Diamond +4dp drop; 52dp tab columns (`SpaceBetween` / bottom label); compact pills (22dp icons); label `spacing4` above gesture inset. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Bottom nav reference reset:** 72dp surface bar + nav inset; 50dp diamond overlay on bar top edge (`offset` half-size); no protrude/clearance strip. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Jackpot diamond in-bar:** Diamond inside white `Column`; bar height +28dp protrude zone; no transparent clearance strip; `navigationBarsPadding` on bar root. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Jackpot diamond bar anchor:** Overlay offset `-54dp` from nav content bottom (replaces full bar-height formula); ~half diamond overlaps bar hairline; protrude `28dp`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Jackpot diamond transparent clearance:** No root top padding/background; bar surface bottom-only; diamond overlay above transparent zone. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Scan overlay markers:** 5 focus markers with spread waypoints. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Scan overlay simplify:** Single thin scan beam + soft band. `./gradlew :app:assembleDebug` OK.
 
@@ -370,7 +382,7 @@
 
 ## Completed features
 
-- **Import Ticket scan overlay:** Premium sweep line + 3 focus markers (`ScanningAnalysisAnimation`).
+- **Bottom nav Jackpot diamond:** Reference 72dp bar + 50dp floating diamond; softer side pills; diamond remains primary active focal point.
 - **Import Ticket idle + failed scan UI:** Shared photo action row; AppSectionSurface cards; scroll-safe layouts.
 - **History Detail ticket dividers:** Unified white bingo container; LOS left / SERIE right on surface; subtle horizontal dividers below meta and above footer; grid-width aligned.
 - **History Detail ticket meta layout:** LOS-NR/SERIE inside grid section above BINGO header.
