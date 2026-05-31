@@ -70,6 +70,7 @@ import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppSectionHeader
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -311,11 +312,7 @@ private fun HomeScrollBody(
                 },
             )
             Spacer(modifier = Modifier.height(Dimens.spacing24))
-            Text(
-                text = stringResource(R.string.home_quick_actions),
-                style = AppTextStyles.sectionTitle,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            AppSectionTitle(text = stringResource(R.string.home_quick_actions))
             Spacer(modifier = Modifier.height(Dimens.spacing12))
             QuickActionsScrollRow(
                 modifier = Modifier.fillMaxWidth(),

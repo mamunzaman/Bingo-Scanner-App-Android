@@ -248,7 +248,7 @@ private fun ProjectsList(
             item(key = "featured_section_title") {
                 AppSectionTitle(
                     text = stringResource(R.string.projects_featured_section),
-                    modifier = Modifier.padding(bottom = Dimens.spacing4),
+                    modifier = Modifier.padding(bottom = Dimens.spacing12),
                 )
             }
             item(key = "featured_slider") {
@@ -263,7 +263,7 @@ private fun ProjectsList(
                 item(key = "recent_section_title") {
                     AppSectionTitle(
                         text = stringResource(R.string.projects_recent_section),
-                        modifier = Modifier.padding(top = Dimens.spacing4, bottom = Dimens.spacing4),
+                        modifier = Modifier.padding(top = Dimens.spacing24, bottom = Dimens.spacing12),
                     )
                 }
             }

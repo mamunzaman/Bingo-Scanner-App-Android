@@ -77,6 +77,7 @@ import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -373,11 +374,9 @@ fun ProfileScreen(
                     }
                 }
             )
-            Text(
+            AppSectionTitle(
                 text = stringResource(R.string.profile_settings_section),
-                style = AppTextStyles.sectionLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(bottom = Dimens.spacing12),
             )
             val profileMenuDividerColor =
                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.10f)
@@ -460,11 +459,9 @@ private fun InviteParticipantsCard(
             .appPremiumCardBorder(profileSectionCardShape)
             .padding(24.dp)
     ) {
-        Text(
+        AppSectionTitle(
             text = stringResource(R.string.profile_invite_section),
-            style = AppTextStyles.sectionLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = Dimens.spacing16),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -372,9 +372,7 @@ private fun SettingsSection(
     Column(modifier = Modifier.padding(top = 24.dp)) {
         AppSectionTitle(
             text = title,
-            uppercase = false,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-            modifier = Modifier.padding(top = 8.dp, bottom = 6.dp),
+            modifier = Modifier.padding(bottom = Dimens.spacing12),
         )
         AppSectionSurface(
             modifier = Modifier.fillMaxWidth(),
@@ -396,13 +394,7 @@ private fun SettingsGroupedSection(
     Column(modifier = Modifier.padding(top = Dimens.spacing24)) {
         AppSectionTitle(
             text = title,
-            uppercase = false,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-            modifier = Modifier.padding(
-                start = Dimens.spacing4,
-                top = Dimens.spacing8,
-                bottom = 6.dp,
-            ),
+            modifier = Modifier.padding(bottom = Dimens.spacing12),
         )
         AppSectionSurface(
             modifier = Modifier.fillMaxWidth(),

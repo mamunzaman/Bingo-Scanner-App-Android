@@ -79,11 +79,7 @@ fun TicketInfoCard(
                 .fillMaxWidth()
                 .padding(Dimens.spacing16)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-            )
+            AppSectionTitle(text = title)
             Spacer(modifier = Modifier.height(Dimens.spacing10))
             items.forEachIndexed { index, item ->
                 if (index > 0) {

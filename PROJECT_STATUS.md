@@ -1,6 +1,6 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Sunday countdown hierarchy:** 31sp Black numbers, 72dp boxes, lighter `OnDarkPrimaryContainer` labels; softer title; muted colons. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Jackpot Quick Actions polish:** Taller green-tint action cards, larger icon container, bolder titles. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Sunday live lock banner:** Prominent warning card + dimmed keypad when locked.
 

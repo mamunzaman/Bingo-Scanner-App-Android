@@ -25,6 +25,7 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Slate400
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppTopBar
 
 private const val TERMS_URL = "https://www.bingo-umweltlotterie.de/teilnahmebedingungen"
@@ -93,12 +94,7 @@ fun TermsOfServiceScreen(onBack: () -> Unit) {
 @Composable
 private fun LegalSection(title: String, content: String) {
     Spacer(modifier = Modifier.height(24.dp))
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface
-    )
+    AppSectionTitle(text = title)
     Spacer(modifier = Modifier.height(4.dp))
     Text(
         text = content,

@@ -58,6 +58,7 @@ import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.appImeScrollable
@@ -384,17 +385,12 @@ private fun AccountSectionHeader(
     subtitle: String,
     emphasized: Boolean,
 ) {
-    Text(
+    AppSectionTitle(
         text = title,
-        style = if (emphasized) {
-            MaterialTheme.typography.titleMedium
-        } else {
-            MaterialTheme.typography.titleSmall
-        },
         color = if (emphasized) {
             MaterialTheme.colorScheme.onSurface
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
         },
     )
     Spacer(modifier = Modifier.height(Dimens.spacing4))

@@ -82,6 +82,7 @@ import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
 import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.AppSectionHeader
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
@@ -168,25 +169,10 @@ private fun HistoryDetailSectionTitle(
     title: String,
     trailing: String? = null,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (trailing != null) {
-            Text(
-                text = trailing,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-            )
-        }
-    }
+    AppSectionHeader(
+        title = title,
+        actionText = trailing,
+    )
 }
 
 @Composable

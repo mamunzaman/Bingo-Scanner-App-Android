@@ -22,7 +22,7 @@ const val APP_SECTION_BORDER_ALPHA = 0.14f
 /**
  * Premium section shell: [surface] fill, primary-tinted border ([APP_SECTION_BORDER_ALPHA]), flat shadow.
  * UI kit peers: [AppCard] (standalone M3 card), [AppListRow], [AppIconTile], [AppInsetDivider],
- * [AppSectionTitle], [AppBottomSheetSurface].
+ * [AppSectionTitle] (screen section headings), [AppFieldLabel], [AppBottomSheetSurface].
  *
  * For Row/Column shells that cannot use [Surface], use [appPremiumCardBorder] with the same [shape].
  */

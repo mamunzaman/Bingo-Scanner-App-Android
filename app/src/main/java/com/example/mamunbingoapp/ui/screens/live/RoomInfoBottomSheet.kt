@@ -24,7 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
-import com.example.mamunbingoapp.ui.components.AppSectionTitle
+import com.example.mamunbingoapp.ui.components.AppFieldLabel
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -146,10 +146,8 @@ fun RoomInfoBottomSheet(
                 )
             }
             AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            AppSectionTitle(
+            AppFieldLabel(
                 text = stringResource(R.string.live_play_session_label),
-                uppercase = false,
-                usePrimaryColor = false,
                 modifier = Modifier.padding(top = 4.dp),
             )
             Row(

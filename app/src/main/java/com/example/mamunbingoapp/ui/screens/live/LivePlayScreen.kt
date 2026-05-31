@@ -130,7 +130,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.AlertDialog
 import com.example.mamunbingoapp.ui.components.AppInsetDivider
-import com.example.mamunbingoapp.ui.components.AppSectionTitle
+import com.example.mamunbingoapp.ui.components.AppFieldLabel
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
@@ -2383,12 +2383,7 @@ private fun SheetPreviewInfoCell(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        AppSectionTitle(
-            text = label,
-            uppercase = false,
-            usePrimaryColor = false,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-        )
+        AppFieldLabel(text = label)
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(
@@ -2477,7 +2472,7 @@ private fun RoomSettingsBottomSheet(
                     enabled = !isCallLimitReached
                 )
             }
-            AppSectionTitle(text = stringResource(R.string.live_play_interval_seconds), uppercase = false, usePrimaryColor = false)
+            AppFieldLabel(text = stringResource(R.string.live_play_interval_seconds))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3, 5, 8, 10).forEach { sec ->
                     OutlinedButton(onClick = { RoomTimerManager.setInterval(roomId, sec) }) {
@@ -2490,10 +2485,8 @@ private fun RoomSettingsBottomSheet(
                 color = MaterialTheme.colorScheme.outlineVariant,
                 thickness = 1.dp,
             )
-            AppSectionTitle(
+            AppFieldLabel(
                 text = stringResource(R.string.live_play_danger_zone),
-                uppercase = false,
-                usePrimaryColor = false,
                 color = MaterialTheme.colorScheme.error,
             )
             OutlinedButton(

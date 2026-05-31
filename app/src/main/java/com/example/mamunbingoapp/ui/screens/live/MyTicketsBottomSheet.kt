@@ -78,7 +78,7 @@ import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
-import com.example.mamunbingoapp.ui.components.AppSectionTitle
+import com.example.mamunbingoapp.ui.components.AppFieldLabel
 import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
@@ -620,11 +620,7 @@ private fun TicketInfoCell(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        AppSectionTitle(
-            text = label,
-            uppercase = false,
-            usePrimaryColor = false,
-        )
+        AppFieldLabel(text = label)
         Text(
             text = value,
             style = MaterialTheme.typography.labelMedium,

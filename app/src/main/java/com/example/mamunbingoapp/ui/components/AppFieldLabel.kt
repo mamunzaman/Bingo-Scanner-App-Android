@@ -7,23 +7,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.mamunbingoapp.theme.AppTextStyles
+import java.util.Locale
 
-/**
- * Screen section heading — matches [com.example.mamunbingoapp.ui.screens.HomeScreen]
- * (`AppTextStyles.sectionTitle`, [MaterialTheme.colorScheme.onSurface], sentence case).
- * For compact in-card field labels use [AppFieldLabel].
- */
+/** Compact label for fields/meta rows — not a screen section heading (see [AppSectionTitle]). */
 @Composable
-fun AppSectionTitle(
+fun AppFieldLabel(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onSurface,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    uppercase: Boolean = false,
     maxLines: Int = 1,
     overflow: TextOverflow = TextOverflow.Ellipsis,
 ) {
+    val label = if (uppercase) text.uppercase(Locale.getDefault()) else text
     Text(
-        text = text,
-        style = AppTextStyles.sectionTitle,
+        text = label,
+        style = AppTextStyles.sectionLabel,
         color = color,
         maxLines = maxLines,
         overflow = overflow,

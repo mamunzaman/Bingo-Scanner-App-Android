@@ -140,7 +140,7 @@
     <string name="live_play_ticket_id_label">Ticket ID</string>
     <string name="live_play_status_label">Status</string>
     <string name="live_play_status_in_room">In Room</string>
-    <string name="live_play_ticket_info_title">TICKET INFORMATION</string>
+    <string name="live_play_ticket_info_title">Ticket Information</string>
     <string name="live_play_bingo_sheet_section">Bingo Sheet</string>
     <string name="live_play_this_room">this room</string>
     <string name="live_play_room_info_title">Room Info</string>

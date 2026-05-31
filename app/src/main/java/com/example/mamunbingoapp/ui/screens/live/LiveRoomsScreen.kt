@@ -48,7 +48,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -102,6 +102,7 @@ import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.theme.DarkPrimary
 import com.example.mamunbingoapp.theme.OnDarkPrimaryContainer
 import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.theme.PrimaryBorder
 import com.example.mamunbingoapp.theme.PrimaryDark
 import com.example.mamunbingoapp.theme.WarningIcon
@@ -116,6 +117,7 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTextField
@@ -449,12 +451,7 @@ private fun SundayAddedSheetsSheet(
                 .padding(top = Dimens.spacing8, bottom = Dimens.spacing16),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
         ) {
-            Text(
-                text = stringResource(R.string.live_nav_added_bingo_sheets),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = scheme.onSurface,
-            )
+            AppSectionTitle(text = stringResource(R.string.live_nav_added_bingo_sheets))
             if (addedSheets.isEmpty()) {
                 Text(
                     text = stringResource(R.string.live_nav_no_sheets_added_yet),
@@ -721,11 +718,7 @@ private fun QuickActionsSection(
         )
     )
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)) {
-        Text(
-            text = stringResource(R.string.live_nav_quick_actions),
-            style = AppTextStyles.sectionTitle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        AppSectionTitle(text = stringResource(R.string.live_nav_quick_actions))
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
             contentPadding = PaddingValues(end = Dimens.spacing8)
@@ -735,7 +728,7 @@ private fun QuickActionsSection(
                     title = item.title,
                     subtitle = item.subtitle,
                     icon = item.icon,
-                    modifier = Modifier.width(132.dp),
+                    modifier = Modifier.width(140.dp),
                     onClick = item.onClick
                 )
             }
@@ -751,33 +744,48 @@ private fun QuickActionTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Dimens.radiusMedium)
-    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+    val iconShape = RoundedCornerShape(Dimens.radiusSmall)
     Column(
         modifier = modifier
             .wrapContentHeight()
-            .defaultMinSize(minHeight = 92.dp)
+            .defaultMinSize(minHeight = 108.dp)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(Dimens.cardBorderDefault, borderColor, shape)
+            .background(IconContainerBg)
+            .border(Dimens.cardBorderDefault, PrimaryBorder.copy(alpha = 0.34f), shape)
             .clickable(onClick = onClick)
-            .padding(Dimens.spacing12),
-        verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+            .padding(Dimens.spacing16),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacing10),
     ) {
-        AppIconContainer(icon = icon, size = 32.dp, iconSize = 18.dp)
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(iconShape)
+                .background(Primary.copy(alpha = 0.14f))
+                .border(Dimens.cardBorderDefault, PrimaryBorder.copy(alpha = 0.28f), iconShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing4)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                color = cs.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp),
+                color = cs.onSurfaceVariant.copy(alpha = 0.92f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -827,39 +835,16 @@ private fun RecentRoomsSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
+            AppSectionTitle(
                 text = stringResource(R.string.live_nav_other_rooms),
-                style = AppTextStyles.sectionTitle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f, fill = false),
             )
             if (roomsWithStats.isNotEmpty()) {
                 Box(modifier = Modifier.wrapContentWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .height(Dimens.spacing32)
-                            .clip(RoundedCornerShape(Dimens.radiusPill))
-                            .background(Color.Transparent)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(Dimens.radiusPill))
-                            .clickable { sortExpanded = true }
-                            .padding(horizontal = Dimens.spacing12),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                sortLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Icon(
-                                Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(Dimens.iconDefault)
-                            )
-                        }
-                    }
+                    LiveRoomSortChip(
+                        label = sortLabel,
+                        onClick = { sortExpanded = true },
+                    )
                     DropdownMenu(
                         expanded = sortExpanded,
                         onDismissRequest = { sortExpanded = false },
@@ -1326,6 +1311,95 @@ private fun SundayFeaturedRoomHero(
 }
 
 @Composable
+private fun LiveRoomSortChip(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val chipShape = RoundedCornerShape(Dimens.radiusPill)
+    Row(
+        modifier = modifier
+            .heightIn(min = Dimens.buttonHeight)
+            .clip(chipShape)
+            .background(cs.surface)
+            .border(Dimens.cardBorderDefault, cs.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha), chipShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing8),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = cs.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            tint = cs.onSurfaceVariant,
+            modifier = Modifier.size(Dimens.iconCompact),
+        )
+    }
+}
+
+@Composable
+private fun LiveRoomJoinPill(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val joinRoomText = stringResource(R.string.live_nav_join_room)
+    val joinShortText = stringResource(R.string.live_nav_join)
+    var useShortJoinLabel by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(Dimens.radiusPill)
+    Row(
+        modifier = modifier
+            .height(40.dp)
+            .clip(shape)
+            .background(IconContainerBg)
+            .border(Dimens.cardBorderDefault, PrimaryBorder.copy(alpha = 0.38f), shape)
+            .clickable(onClick = onClick)
+            .padding(start = Dimens.spacing4, end = Dimens.spacing10),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Primary.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(Dimens.iconCompact),
+            )
+        }
+        Text(
+            text = if (useShortJoinLabel) joinShortText else joinRoomText,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = Primary,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+            onTextLayout = { result ->
+                if (result.didOverflowWidth && !useShortJoinLabel) {
+                    useShortJoinLabel = true
+                }
+            },
+        )
+    }
+}
+
+@Composable
 private fun LiveRoomListCard(
     title: String,
     ticketsInRoom: Int,
@@ -1429,24 +1503,7 @@ private fun LiveRoomListCard(
                     trackColor = cs.outlineVariant.copy(alpha = 0.35f),
                 )
             }
-            Button(
-                onClick = onJoin,
-                modifier = Modifier.height(36.dp),
-                shape = RoundedCornerShape(Dimens.radiusPill),
-                contentPadding = PaddingValues(horizontal = Dimens.spacing14),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Primary,
-                    contentColor = cs.onPrimary,
-                ),
-            ) {
-                Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = stringResource(R.string.bingo_session_join),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            LiveRoomJoinPill(onClick = onJoin)
         }
     }
 }

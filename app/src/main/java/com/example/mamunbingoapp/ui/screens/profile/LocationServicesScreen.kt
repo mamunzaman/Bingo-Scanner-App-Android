@@ -32,6 +32,7 @@ import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppIconContainer
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppTopBar
 
 @Composable
@@ -104,11 +105,9 @@ private fun SettingsSubpageSection(
     content: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
+        AppSectionTitle(
             text = title,
-            style = AppTextStyles.sectionLabel,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = Dimens.spacing8)
+            modifier = Modifier.padding(bottom = Dimens.spacing12),
         )
         Column(
             modifier = Modifier
