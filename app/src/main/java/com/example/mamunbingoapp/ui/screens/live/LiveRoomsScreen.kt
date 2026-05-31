@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -72,9 +73,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mamunbingoapp.data.SettingsRepository
+import com.example.mamunbingoapp.data.TicketPlayLogRepository
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,6 +101,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ButtonDefaults
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.SundayBingoSchedule
+import com.example.mamunbingoapp.core.SundayTestTimeSettings
 import com.example.mamunbingoapp.core.RoomStatusResolver
 import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.ui.components.BingoSessionCard_V3
@@ -122,6 +127,7 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -134,10 +140,19 @@ import androidx.compose.ui.unit.dp
 
 private val berlinZone: ZoneId = SundayBingoSchedule.berlinZone
 
-private fun resolveSundayFeaturedRoom(
-    rooms: List<RoomWithStats>,
-    sundayTitle: String,
-): RoomWithStats? = rooms.find { it.room.name.equals(sundayTitle, ignoreCase = true) }
+private fun pickCanonicalSundayFeaturedRoom(rooms: List<RoomWithStats>): RoomWithStats? {
+    val canonical = RoomRepository.pickCanonicalLiveRoom(
+        rooms.map { it.room },
+        rooms.associate { it.room.roomId to it.ticketCount },
+    ) ?: return null
+    return rooms.find { it.room.roomId == canonical.roomId }
+}
+
+private fun sundayFeaturedRoomIds(rooms: List<RoomWithStats>): Set<String> =
+    rooms
+        .filter { SundayBingoSchedule.isSundayFeaturedRoom(it.room.name) }
+        .map { it.room.roomId }
+        .toSet()
 
 @Composable
 fun LiveRoomsScreen(
@@ -147,6 +162,7 @@ fun LiveRoomsScreen(
     onLaunchCamera: (BingoScanType) -> Unit = onScanSheet,
     onManualEntry: () -> Unit,
     onHistory: () -> Unit,
+    onArchivedGames: () -> Unit = {},
     onGoLivePlay: () -> Unit,
     onTabSelected: (AppTab) -> Unit = {},
     showBottomBar: Boolean = true,
@@ -171,18 +187,24 @@ fun LiveRoomsScreen(
     var pendingSundayRoomAction by remember { mutableStateOf<((String) -> Unit)?>(null) }
     val sundayTitle = stringResource(R.string.live_nav_sunday_featured_title)
     val sundayReservedMessage = stringResource(R.string.live_nav_sunday_room_reserved)
-    val sundayFeaturedRoom = remember(roomsWithStats, sundayTitle) {
-        resolveSundayFeaturedRoom(roomsWithStats, sundayTitle)
+    val sundayFeaturedRoom = remember(roomsWithStats) {
+        pickCanonicalSundayFeaturedRoom(roomsWithStats)
     }
+    val sundayFeaturedRoomIdsToHide = remember(roomsWithStats) {
+        sundayFeaturedRoomIds(roomsWithStats)
+    }
+    val sundayTestTimeSettings by SettingsRepository.sundayTestTimeSettingsFlow
+        .collectAsState(initial = SundayTestTimeSettings())
+    val showDemoData by SettingsRepository.showDemoDataFlow.collectAsState(initial = false)
 
     fun ensureSundayRoom(action: (String) -> Unit) {
-        val existingId = sundayFeaturedRoom?.room?.roomId
-        if (existingId != null) {
-            action(existingId)
-        } else {
-            pendingSundayRoomAction = action
-            suppressCreateNavigation = true
-            viewModel.createRoom(sundayTitle)
+        sundayFeaturedRoom?.room?.roomId?.let { roomId ->
+            action(roomId)
+            return
+        }
+        scope.launch {
+            val roomId = RoomRepository.getOrCreateSundayFeaturedRoom(sundayTitle)
+            action(roomId)
         }
     }
 
@@ -222,7 +244,7 @@ fun LiveRoomsScreen(
             onDismiss = { showCreateDialog = false },
             onCreate = {
                 val name = newRoomName.trim().ifBlank { defaultRoomName }
-                if (name.equals(sundayTitle, ignoreCase = true)) {
+                if (SundayBingoSchedule.isSundayFeaturedRoom(name, sundayTitle)) {
                     showCreateDialog = false
                     newRoomName = ""
                     scope.launch { snackbarHostState.showSnackbar(sundayReservedMessage) }
@@ -278,10 +300,11 @@ fun LiveRoomsScreen(
                 .padding(top = Dimens.spacing24, bottom = Dimens.spacing16),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
         ) {
-            val sundayFeaturedRoomId = sundayFeaturedRoom?.room?.roomId
             SundayFeaturedRoomHero(
                 sundayTitle = sundayTitle,
                 roomWithStats = sundayFeaturedRoom,
+                sundayTestTimeSettings = sundayTestTimeSettings,
+                useDemoEndCountdownFallback = sundayTestTimeSettings.enabled || showDemoData,
                 onAddSheet = { showAddOptionsSheet = true },
                 onOpenRoom = { ensureSundayRoom(onEnterRoom) },
             )
@@ -290,9 +313,10 @@ fun LiveRoomsScreen(
                 onHistory = onHistory,
                 onManualEntry = onManualEntry
             )
+            ArchivedGamesEntrySection(onClick = onArchivedGames)
             RecentRoomsSection(
                 roomsWithStats = roomsWithStats,
-                excludeRoomId = sundayFeaturedRoomId,
+                excludeRoomIds = sundayFeaturedRoomIdsToHide,
                 onJoinRoom = onEnterRoom,
                 onCreateRoomClick = { showCreateDialog = true },
             )
@@ -694,6 +718,52 @@ private data class QuickActionItem(
 )
 
 @Composable
+private fun ArchivedGamesEntrySection(onClick: () -> Unit) {
+    val sessions by TicketPlayLogRepository.observeArchivedSessions()
+        .collectAsState(initial = emptyList())
+    val subtitle = if (sessions.isEmpty()) {
+        stringResource(R.string.live_nav_archived_games_subtitle_empty)
+    } else {
+        stringResource(R.string.live_nav_archived_games_subtitle, sessions.size)
+    }
+    AppSectionSurface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.spacing16),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+            ) {
+                Text(
+                    text = stringResource(R.string.live_nav_archived_games),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
 private fun QuickActionsSection(
     onScanSheet: () -> Unit,
     onHistory: () -> Unit,
@@ -810,7 +880,7 @@ private fun liveRoomSortLabel(option: LiveRoomSortOption): String = when (option
 @Composable
 private fun RecentRoomsSection(
     roomsWithStats: List<RoomWithStats>,
-    excludeRoomId: String?,
+    excludeRoomIds: Set<String> = emptySet(),
     onJoinRoom: (String) -> Unit,
     onCreateRoomClick: () -> Unit = {},
 ) {
@@ -818,11 +888,11 @@ private fun RecentRoomsSection(
     var selectedSort by remember { mutableStateOf(LiveRoomSortOption.NEWEST) }
     val sortLabel = stringResource(R.string.live_nav_sort_by, liveRoomSortLabel(selectedSort))
     val sortOptions = LiveRoomSortOption.entries
-    val sortedRooms = remember(roomsWithStats, selectedSort, excludeRoomId) {
-        val filtered = if (excludeRoomId != null) {
-            roomsWithStats.filter { it.room.roomId != excludeRoomId }
-        } else {
+    val sortedRooms = remember(roomsWithStats, selectedSort, excludeRoomIds) {
+        val filtered = if (excludeRoomIds.isEmpty()) {
             roomsWithStats
+        } else {
+            roomsWithStats.filter { it.room.roomId !in excludeRoomIds }
         }
         when (selectedSort) {
             LiveRoomSortOption.OLDEST -> filtered.sortedBy { it.room.createdAt }
@@ -922,18 +992,6 @@ private fun RecentRoomsSection(
     }
 }
 
-private fun nextSundayDrawBerlin(from: ZonedDateTime = ZonedDateTime.now(berlinZone)): ZonedDateTime {
-    var target = from.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-        .withHour(17)
-        .withMinute(0)
-        .withSecond(0)
-        .withNano(0)
-    if (!target.isAfter(from)) {
-        target = target.plusWeeks(1)
-    }
-    return target
-}
-
 private fun formatSundaySessionCountdown(remaining: Duration): String {
     val totalSeconds = remaining.seconds.coerceAtLeast(0)
     val days = totalSeconds / 86_400
@@ -951,11 +1009,58 @@ private sealed interface SundayHeroCountdownState {
     data class StartsIn(val hours: Int, val minutes: Int, val seconds: Int) : SundayHeroCountdownState
 }
 
-private fun resolveSundayHeroCountdown(now: ZonedDateTime): SundayHeroCountdownState {
-    if (SundayBingoSchedule.activeSessionStart(now) != null) {
+private data class SundayHeroEndsIn(val hours: Int, val minutes: Int, val seconds: Int)
+
+private fun resolveSundayHeroEndsIn(
+    now: ZonedDateTime,
+    test: SundayTestTimeSettings = SundayTestTimeSettings(),
+    useDemoFallback: Boolean = false,
+): SundayHeroEndsIn? {
+    if (SundayBingoSchedule.activeSessionStart(now, test) == null) return null
+    val end = SundayBingoSchedule.heroSessionEndExclusive(now, test, useDemoFallback) ?: return null
+    val remaining = Duration.between(now, end).coerceAtLeast(Duration.ZERO)
+    if (remaining.isZero) return null
+    val totalSeconds = remaining.seconds
+    return SundayHeroEndsIn(
+        hours = (totalSeconds / 3_600).toInt().coerceIn(0, 99),
+        minutes = ((totalSeconds % 3_600) / 60).toInt().coerceIn(0, 59),
+        seconds = (totalSeconds % 60).toInt().coerceIn(0, 59),
+    )
+}
+
+@Composable
+private fun rememberSundayHeroEndsInState(
+    countdownState: SundayHeroCountdownState,
+    sundayTestTimeSettings: SundayTestTimeSettings,
+    useDemoFallback: Boolean,
+): SundayHeroEndsIn? {
+    if (countdownState !is SundayHeroCountdownState.LiveNow) return null
+    var clockTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(sundayTestTimeSettings, countdownState, useDemoFallback) {
+        clockTick++
+        while (true) {
+            delay(1_000L)
+            clockTick++
+        }
+    }
+    return remember(sundayTestTimeSettings, countdownState, useDemoFallback, clockTick) {
+        resolveSundayHeroEndsIn(
+            ZonedDateTime.now(berlinZone),
+            sundayTestTimeSettings,
+            useDemoFallback,
+        )
+    }
+}
+
+private fun resolveSundayHeroCountdown(
+    now: ZonedDateTime,
+    test: SundayTestTimeSettings = SundayTestTimeSettings(),
+): SundayHeroCountdownState {
+    if (SundayBingoSchedule.activeSessionStart(now, test) != null) {
         return SundayHeroCountdownState.LiveNow
     }
-    val remaining = Duration.between(now, nextSundayDrawBerlin(now)).coerceAtLeast(Duration.ZERO)
+    val remaining = Duration.between(now, SundayBingoSchedule.nextSessionStartBerlin(now, test))
+        .coerceAtLeast(Duration.ZERO)
     val totalSeconds = remaining.seconds
     val hours = (totalSeconds / 3_600).toInt().coerceIn(0, 99)
     val minutes = ((totalSeconds % 3_600) / 60).toInt().coerceIn(0, 59)
@@ -964,18 +1069,23 @@ private fun resolveSundayHeroCountdown(now: ZonedDateTime): SundayHeroCountdownS
 }
 
 @Composable
-private fun rememberSundayHeroCountdownState(): SundayHeroCountdownState {
-    var state by remember {
-        mutableStateOf(resolveSundayHeroCountdown(ZonedDateTime.now(berlinZone)))
-    }
-    LaunchedEffect(Unit) {
+private fun rememberSundayHeroCountdownState(
+    sundayTestTimeSettings: SundayTestTimeSettings,
+): SundayHeroCountdownState {
+    var clockTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(sundayTestTimeSettings) {
+        clockTick++
         while (true) {
-            val now = ZonedDateTime.now(berlinZone)
-            state = resolveSundayHeroCountdown(now)
             delay(1_000L)
+            clockTick++
         }
     }
-    return state
+    return remember(sundayTestTimeSettings, clockTick) {
+        resolveSundayHeroCountdown(
+            ZonedDateTime.now(berlinZone),
+            sundayTestTimeSettings,
+        )
+    }
 }
 
 @Composable
@@ -990,6 +1100,38 @@ private fun SundayHeroCountdownFocus(
             minutes = state.minutes,
             seconds = state.seconds,
             modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun SundayHeroCountdownDigitsRow(
+    hours: Int,
+    minutes: Int,
+    seconds: Int,
+    segmentModifier: Modifier,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+    ) {
+        SundayHeroCountdownSegment(
+            value = "%02d".format(hours),
+            label = stringResource(R.string.live_nav_countdown_hr),
+            modifier = segmentModifier,
+        )
+        SundayHeroCountdownSeparator()
+        SundayHeroCountdownSegment(
+            value = "%02d".format(minutes),
+            label = stringResource(R.string.live_nav_countdown_min),
+            modifier = segmentModifier,
+        )
+        SundayHeroCountdownSeparator()
+        SundayHeroCountdownSegment(
+            value = "%02d".format(seconds),
+            label = stringResource(R.string.live_nav_countdown_sec),
+            modifier = segmentModifier,
         )
     }
 }
@@ -1011,28 +1153,64 @@ private fun SundayHeroCountdownBoxes(
             fontWeight = FontWeight.Medium,
             color = Color.White.copy(alpha = 0.45f),
         )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            SundayHeroCountdownDigitsRow(
+                hours = hours,
+                minutes = minutes,
+                seconds = seconds,
+                segmentModifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SundayHeroEndsInPanel(
+    endsIn: SundayHeroEndsIn,
+    modifier: Modifier = Modifier,
+) {
+    val panelShape = RoundedCornerShape(Dimens.radiusMedium)
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = panelShape,
+        color = Color.Transparent,
+        border = BorderStroke(Dimens.cardBorderDefault, WarningIcon.copy(alpha = 0.85f)),
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing10),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
         ) {
-            SundayHeroCountdownSegment(
-                value = "%02d".format(hours),
-                label = stringResource(R.string.live_nav_countdown_hr),
-                modifier = Modifier.weight(1f),
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = null,
+                tint = DarkPrimary,
+                modifier = Modifier.size(28.dp),
             )
-            SundayHeroCountdownSeparator()
-            SundayHeroCountdownSegment(
-                value = "%02d".format(minutes),
-                label = stringResource(R.string.live_nav_countdown_min),
+            Column(
                 modifier = Modifier.weight(1f),
-            )
-            SundayHeroCountdownSeparator()
-            SundayHeroCountdownSegment(
-                value = "%02d".format(seconds),
-                label = stringResource(R.string.live_nav_countdown_sec),
-                modifier = Modifier.weight(1f),
-            )
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            ) {
+                Text(
+                    text = stringResource(R.string.live_nav_countdown_ends_in_label),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    SundayHeroCountdownDigitsRow(
+                        hours = endsIn.hours,
+                        minutes = endsIn.minutes,
+                        seconds = endsIn.seconds,
+                        segmentModifier = Modifier.widthIn(min = 52.dp, max = 72.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -1156,6 +1334,8 @@ private fun formatStartedAgo(createdAtMillis: Long): String {
 private fun SundayFeaturedRoomHero(
     sundayTitle: String,
     roomWithStats: RoomWithStats?,
+    sundayTestTimeSettings: SundayTestTimeSettings = SundayTestTimeSettings(),
+    useDemoEndCountdownFallback: Boolean = false,
     onAddSheet: () -> Unit,
     onOpenRoom: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1165,7 +1345,12 @@ private fun SundayFeaturedRoomHero(
     val progress = if (MAX_LIVE_CALLS > 0) called.toFloat() / MAX_LIVE_CALLS else 0f
     val percent = (progress * 100).toInt()
     val sessionInProgress = called > 0
-    val countdownState = rememberSundayHeroCountdownState()
+    val countdownState = rememberSundayHeroCountdownState(sundayTestTimeSettings)
+    val endsInState = rememberSundayHeroEndsInState(
+        countdownState,
+        sundayTestTimeSettings,
+        useDemoEndCountdownFallback,
+    )
     val startedAgoLabel = if (sessionInProgress && roomWithStats != null) {
         formatStartedAgo(roomWithStats.room.createdAt)
     } else {
@@ -1269,6 +1454,10 @@ private fun SundayFeaturedRoomHero(
             color = WarningIcon,
             trackColor = Color.White.copy(alpha = 0.18f),
         )
+        if (endsInState != null) {
+            Spacer(modifier = Modifier.height(Dimens.spacing12))
+            SundayHeroEndsInPanel(endsIn = endsInState)
+        }
         Spacer(modifier = Modifier.height(Dimens.spacing12))
         Button(
             onClick = onOpenRoom,
