@@ -7,6 +7,7 @@ import com.example.mamunbingoapp.data.db.RoomSettingsEntity
 import com.example.mamunbingoapp.data.db.RoomTicketEntity
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.RoomStatusResolver
+import com.example.mamunbingoapp.core.SundayBingoSchedule
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -198,6 +199,10 @@ object RoomRepository {
 
     suspend fun addCalledNumberIfAllowed(roomId: String, number: Int): Boolean = withContext(Dispatchers.IO) {
         if (number !in 1..75) return@withContext false
+        val room = roomDao().observeRoom(roomId).first()
+        if (room != null && SundayBingoSchedule.isSundayFeaturedRoom(room.name)) {
+            if (!SundayBingoSchedule.isLiveCallingUnlocked()) return@withContext false
+        }
         val existing = calledDao().observeCalled(roomId).first().map { it.number }
         if (existing.size >= MAX_LIVE_CALLS) return@withContext false
         if (number in existing) return@withContext false
@@ -277,6 +282,26 @@ object RoomRepository {
 
     suspend fun resetCalledNumbers(roomId: String) = withContext(Dispatchers.IO) {
         calledDao().clearCalled(roomId)
+    }
+
+    suspend fun ensureSundayFeaturedRoomCallsReset(roomId: String, roomName: String) =
+        withContext(Dispatchers.IO) {
+            if (!SundayBingoSchedule.isSundayFeaturedRoom(roomName)) return@withContext
+            if (!SundayBingoSchedule.shouldResetStaleSundayCalls()) return@withContext
+            val count = calledDao().observeCalled(roomId).first().size
+            if (count == 0) return@withContext
+            calledDao().clearCalled(roomId)
+            setRoomArchived(roomId, false)
+        }
+
+    suspend fun ensureSundayFeaturedRoomCallsResetAll() = withContext(Dispatchers.IO) {
+        roomDao().observeRooms().first().forEach { entity ->
+            ensureSundayFeaturedRoomCallsReset(entity.roomId, entity.name)
+        }
+    }
+
+    fun scheduleSundayFeaturedRoomMaintenance() {
+        scope.launch { ensureSundayFeaturedRoomCallsResetAll() }
     }
 
     fun clearRoomTickets(roomId: String) {

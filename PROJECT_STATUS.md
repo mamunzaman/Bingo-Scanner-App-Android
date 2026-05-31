@@ -1,6 +1,20 @@
 # Project status
 
-**Last update:** 2026-05-30 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket status chips; My Tickets filter labels (`TicketFilter` `@StringRes`); `CalledNumbersDetailSheet` default title; `HomeViewModel` localized remote errors + internal logs; QR encode/image failures use safe strings (History Detail, Ticket Detail, Live Play). `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-30 - **Sunday countdown hierarchy:** 31sp Black numbers, 72dp boxes, lighter `OnDarkPrimaryContainer` labels; softer title; muted colons. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Sunday live lock banner:** Prominent warning card + dimmed keypad when locked.
+
+**Previous:** 2026-05-30 - **Live Rooms Sunday Scan New:** Scan New opens `ScanTypeSelectionSheet` then camera with selected type.
+
+**Previous:** 2026-05-30 - **Live Rooms Sunday add-options:** Hero **Add Bingo Card** → bottom sheet (Scan New / Add Existing); `MyTicketsBottomSheet` attaches saved sheets to Sunday room.
+
+**Previous:** 2026-05-30 - **Live Rooms Sunday add-sheet flow:** Removed embedded `AppBottomBar`; hero **Add Bingo Card** → scan (+ silent Sunday room create); FAB blocks duplicate Sunday room name. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Live Rooms Sunday hero (structure restore):** Permanent Sunday 17:00 featured card; Other Live Rooms list restored. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Live Rooms premium hero:** Most Active dark-green hero; compact Quick Actions; polished secondary room cards. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket status chips; My Tickets filter labels (`TicketFilter` `@StringRes`); `CalledNumbersDetailSheet` default title; `HomeViewModel` localized remote errors + internal logs; QR encode/image failures use safe strings (History Detail, Ticket Detail, Live Play). `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **QA Critical fixes:** AppBottomBar `stringResource` tabs; +83 DE keys in `values-de/strings.xml`; auth strings + `AuthRepository`/`LoginViewModel`/`RegisterViewModel` localized; ManualEntry `ShowSnackbar` wired; `AppConfirmDialog` default Confirm/Cancel localized; AccountForm save snackbar via `profileMessage`. `./gradlew :app:assembleDebug` OK.
 
@@ -338,6 +352,8 @@
 
 ## Completed features
 
+- **Live Rooms Sunday window + reset:** Hero tap opens room; calling Sun 17:00–Mon 17:00 Berlin; 24h auto-reset of calls (sheets kept); `SundayBingoSchedule` + `RoomRepository` maintenance.
+- **Live Rooms Sunday add-sheet (prior):** No embedded bottom bar; FAB reserved for custom rooms; blocks duplicate Sunday name.
 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket chips; ticket filters All/Today/Week; called-numbers sheet title; home jackpot load errors; QR paths never show raw `Throwable.message`.
 - **Phase 3 i18n (complete):** Import/scan/OCR, manual entry, ticket detail, live sheets, shared dialogs/bottom sheets, home jackpot cards, profile VM messages, account form validation — `stringResource` / `getString` + DE in `strings_phase3.xml`.
 - **Phase 3 i18n (live/components + profile sub-screens):** Live sheet detail, room info, My Tickets, top bar/section, history bulk UI, called history, win/almost banners, profile account/env/location — `stringResource` + DE in `strings_phase3.xml`.

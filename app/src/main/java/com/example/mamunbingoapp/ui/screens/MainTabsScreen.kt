@@ -93,6 +93,7 @@ fun MainTabsScreen(
                 onEnterRoom = onNavigateToLiveRoom,
                 onCreateRoom = onNavigateToLiveRoom,
                 onScanSheet = onJackpotScanSheet,
+                onLaunchCamera = onNavigateToBingoLiveCamera,
                 onManualEntry = onNavigateToManualEntry,
                 onHistory = onNavigateToHistory,
                 onGoLivePlay = onNavigateToLiveRooms,

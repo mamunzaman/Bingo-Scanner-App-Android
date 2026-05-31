@@ -170,6 +170,8 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Warning
 import com.example.mamunbingoapp.theme.WarningBorder
 import com.example.mamunbingoapp.theme.WarningContainer
+import com.example.mamunbingoapp.theme.WarningBorder
+import com.example.mamunbingoapp.theme.WarningIcon
 import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.theme.LiveFonts
 import com.example.mamunbingoapp.ui.components.AppBottomBar
@@ -201,6 +203,7 @@ import com.example.mamunbingoapp.data.RoomSettings
 import com.example.mamunbingoapp.engine.RoomTimerManager
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
+import com.example.mamunbingoapp.core.SundayBingoSchedule
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import com.example.mamunbingoapp.viewmodel.LivePlayUiState
 import com.example.mamunbingoapp.viewmodel.LiveSheetUi
@@ -341,6 +344,29 @@ fun LivePlayScreen(
         .collectAsStateWithLifecycle(initialValue = null)
 
     val room by RoomRepository.roomFlow(roomId).collectAsState(initial = null)
+    val sundayFeaturedTitle = stringResource(R.string.live_nav_sunday_featured_title)
+    val isSundayRoom = room?.name?.let { SundayBingoSchedule.isSundayFeaturedRoom(it, sundayFeaturedTitle) } == true
+    var sundayCallingUnlocked by remember { mutableStateOf(SundayBingoSchedule.isLiveCallingUnlocked()) }
+    LaunchedEffect(isSundayRoom) {
+        if (!isSundayRoom) {
+            sundayCallingUnlocked = true
+            return@LaunchedEffect
+        }
+        sundayCallingUnlocked = SundayBingoSchedule.isLiveCallingUnlocked()
+        while (true) {
+            delay(60_000L)
+            sundayCallingUnlocked = SundayBingoSchedule.isLiveCallingUnlocked()
+        }
+    }
+    val callingLocked = isSundayRoom && !sundayCallingUnlocked
+    val sundayLockedMessage = stringResource(R.string.live_play_sunday_locked_message)
+    LaunchedEffect(roomId, room?.name) {
+        val id = roomId.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        val name = room?.name ?: return@LaunchedEffect
+        scope.launch {
+            RoomRepository.ensureSundayFeaturedRoomCallsReset(id, name)
+        }
+    }
     if (showInfoSheet) {
         RoomInfoBottomSheet(
             onDismiss = { showInfoSheet = false },
@@ -554,6 +580,8 @@ fun LivePlayScreen(
                     onInputChange = { inputText = it },
                     effectiveStatus = effectiveStatus,
                     isCallLimitReached = isCallLimitReached,
+                    callingLocked = callingLocked,
+                    callingLockedMessage = sundayLockedMessage,
                     scope = scope,
                     snackbarHostState = snackbarHostState,
                     onCallRandomNumber = onCallRandomNumber,
@@ -791,6 +819,8 @@ private fun LivePlayBottomArea(
     onInputChange: (String) -> Unit,
     effectiveStatus: RoomStatus,
     isCallLimitReached: Boolean,
+    callingLocked: Boolean = false,
+    callingLockedMessage: String? = null,
     scope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
     onCallRandomNumber: () -> Unit,
@@ -826,6 +856,13 @@ private fun LivePlayBottomArea(
     }
 
     fun handleCallClick() {
+        if (callingLocked) {
+            callingLockedMessage?.let { message ->
+                scope.launch { snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short) }
+            }
+            releaseGuard()
+            return
+        }
         val raw = inputText.trim()
         val n = raw.toIntOrNull()
         if (calledNumbers.size >= MAX_LIVE_CALLS) {
@@ -889,11 +926,22 @@ private fun LivePlayBottomArea(
             .background(MaterialTheme.colorScheme.surface)
     ) {
         Column(verticalArrangement = Arrangement.Bottom) {
-            LivePlayCallKeypad(
+            if (callingLocked) {
+                SundayLivePlayLockedBanner(helperText = callingLockedMessage)
+            }
+            Box(
+                modifier = if (callingLocked) {
+                    Modifier.graphicsLayer { alpha = 0.42f }
+                } else {
+                    Modifier
+                },
+            ) {
+                LivePlayCallKeypad(
                 latestCalled = calledNumbers.lastOrNull(),
                 draft = inputText,
                 onDraftChange = onInputChange,
-                canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached,
+                canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached && !callingLocked,
+                undoEnabled = !callingLocked,
                 actionInProgress = actionGuard.value,
                 showNumberKeypad = showNumberKeypad,
                 onToggleNumberKeypad = onToggleNumberKeypad,
@@ -912,11 +960,83 @@ private fun LivePlayBottomArea(
                     }
                 }
             )
+            }
             AppBottomBar(
                 selectedTab = selectedTabForBottomBar,
                 onTabSelected = onTabSelected,
                 showTopShadow = !showCompactBar
             )
+        }
+    }
+}
+
+@Composable
+private fun SundayLivePlayLockedBanner(
+    helperText: String?,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(Dimens.radiusMedium)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.screenHorizontalPadding)
+            .padding(top = Dimens.spacing8, bottom = Dimens.spacing4),
+        shape = shape,
+        color = WarningContainer,
+        border = BorderStroke(Dimens.cardBorderDefault, WarningBorder.copy(alpha = 0.55f)),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.spacing16),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(WarningIcon.copy(alpha = 0.22f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = WarningIcon,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+                ) {
+                    Text(
+                        text = stringResource(R.string.live_play_sunday_locked_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.live_play_sunday_locked_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+            if (!helperText.isNullOrBlank()) {
+                Text(
+                    text = helperText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

@@ -111,7 +111,10 @@ fun MyTicketsBottomSheet(
     onCreateTicket: () -> Unit,
     onBulkDeleteTickets: (Collection<String>) -> Unit = {},
     onBulkLeaveTickets: (Collection<String>) -> Unit = {},
-    onBulkAddToRoom: (Collection<String>) -> Unit = {}
+    onBulkAddToRoom: (Collection<String>) -> Unit = {},
+    emptyTitleRes: Int = R.string.live_play_no_tickets_title,
+    emptySubtitleRes: Int = R.string.live_play_no_tickets_subtitle,
+    emptyCtaRes: Int = R.string.live_play_create_new_ticket,
 ) {
     if (!visible) return
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
@@ -139,6 +142,9 @@ fun MyTicketsBottomSheet(
                     .padding(horizontal = Dimens.spacing24)
                     .padding(top = Dimens.spacing24),
                 roomId = roomId,
+                emptyTitleRes = emptyTitleRes,
+                emptySubtitleRes = emptySubtitleRes,
+                emptyCtaRes = emptyCtaRes,
                 onDismiss = onDismiss,
                 onAddToRoom = {
                 scope.launch { sheetState.hide() }
@@ -167,6 +173,9 @@ fun MyTicketsBottomSheet(
 private fun TicketsBottomSheetContent(
     modifier: Modifier = Modifier,
     roomId: String = "",
+    emptyTitleRes: Int = R.string.live_play_no_tickets_title,
+    emptySubtitleRes: Int = R.string.live_play_no_tickets_subtitle,
+    emptyCtaRes: Int = R.string.live_play_create_new_ticket,
     onDismiss: () -> Unit = {},
     onAddToRoom: (String) -> Unit = {},
     onGoLive: (String) -> Unit,
@@ -306,7 +315,10 @@ private fun TicketsBottomSheetContent(
             ) {
                 TicketsEmptyState(
                     modifier = Modifier.fillMaxSize(),
-                    onCreateTicket = onCreateTicket
+                    titleRes = emptyTitleRes,
+                    subtitleRes = emptySubtitleRes,
+                    ctaRes = emptyCtaRes,
+                    onCreateTicket = onCreateTicket,
                 )
             }
             androidx.compose.animation.AnimatedVisibility(
@@ -635,7 +647,10 @@ private fun VerticalInfoDivider() {
 @Composable
 private fun TicketsEmptyState(
     modifier: Modifier = Modifier,
-    onCreateTicket: () -> Unit
+    titleRes: Int = R.string.live_play_no_tickets_title,
+    subtitleRes: Int = R.string.live_play_no_tickets_subtitle,
+    ctaRes: Int = R.string.live_play_create_new_ticket,
+    onCreateTicket: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -646,12 +661,12 @@ private fun TicketsEmptyState(
     ) {
         EmptyStateBlock(
             icon = Icons.Default.ConfirmationNumber,
-            title = stringResource(R.string.live_play_no_tickets_title),
-            subtitle = stringResource(R.string.live_play_no_tickets_subtitle),
+            title = stringResource(titleRes),
+            subtitle = stringResource(subtitleRes),
             modifier = Modifier.fillMaxWidth()
         )
         AppPrimaryButton(
-            text = stringResource(R.string.live_play_create_new_ticket),
+            text = stringResource(ctaRes),
             onClick = onCreateTicket,
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {

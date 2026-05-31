@@ -94,6 +94,7 @@ fun LivePlayCallKeypad(
     draft: String,
     onDraftChange: (String) -> Unit,
     canAddNumber: Boolean,
+    undoEnabled: Boolean = true,
     actionInProgress: Boolean,
     showNumberKeypad: Boolean = true,
     onToggleNumberKeypad: () -> Unit = {},
@@ -286,10 +287,10 @@ fun LivePlayCallKeypad(
                 }
                 IconButton(
                     onClick = {
-                        if (!actionsEnabled) return@IconButton
+                        if (!actionsEnabled || !undoEnabled) return@IconButton
                         onUndoClick()
                     },
-                    enabled = actionsEnabled,
+                    enabled = actionsEnabled && undoEnabled,
                     interactionSource = undoInteraction,
                     modifier = Modifier
                         .size(compactActionSize)
