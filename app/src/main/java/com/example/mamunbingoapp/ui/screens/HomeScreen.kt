@@ -40,10 +40,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
-import com.example.mamunbingoapp.data.RoomRepository
-import com.example.mamunbingoapp.data.TicketRepository
-import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.data.remote.BingoDrawDto
+import com.example.mamunbingoapp.data.TicketCalledNumbersResolver
+import com.example.mamunbingoapp.viewmodel.HomeActiveTicketCardState
+import com.example.mamunbingoapp.viewmodel.HomeActiveTicketsUiState
 import com.example.mamunbingoapp.viewmodel.HomeViewModel
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
@@ -116,15 +116,8 @@ fun HomeScreen(
     val latestDraw by homeViewModel.latestDraw.collectAsStateWithLifecycle()
     val isRemoteLoading by homeViewModel.isRemoteLoading.collectAsStateWithLifecycle()
     val remoteError by homeViewModel.remoteError.collectAsStateWithLifecycle()
+    val activeTicketsUi by homeViewModel.activeTicketsUi.collectAsStateWithLifecycle()
     val tickets by HistoryRepository.sessionsFlow.collectAsStateWithLifecycle()
-    val cellsByTicket by TicketRepository.cellsByTicketFlow()
-        .collectAsStateWithLifecycle(initialValue = emptyMap())
-    val ticketToRoom by RoomRepository.ticketToRoomFlow()
-        .collectAsStateWithLifecycle(initialValue = emptyMap())
-    val calledNumbersByRoom by RoomRepository.allRoomsCalledNumbersFlow()
-        .collectAsStateWithLifecycle(initialValue = emptyMap())
-    val archivedByRoom by RoomRepository.roomsArchivedMapFlow()
-        .collectAsStateWithLifecycle(initialValue = emptyMap())
     val defaultPlayerName = stringResource(R.string.home_default_player_name)
     val welcomeName = profileDisplayName?.takeIf { it.isNotBlank() } ?: defaultPlayerName
     val showProfileSummary = profileDisplayName != null
@@ -215,10 +208,7 @@ fun HomeScreen(
                             isRemoteLoading = isRemoteLoading,
                             remoteError = remoteError,
                             tickets = tickets,
-                            cellsByTicket = cellsByTicket,
-                            ticketToRoom = ticketToRoom,
-                            calledNumbersByRoom = calledNumbersByRoom,
-                            archivedByRoom = archivedByRoom,
+                            activeTicketsUi = activeTicketsUi,
                         )
                     }
                 }
@@ -233,10 +223,7 @@ fun HomeScreen(
                         isRemoteLoading = isRemoteLoading,
                         remoteError = remoteError,
                         tickets = tickets,
-                        cellsByTicket = cellsByTicket,
-                        ticketToRoom = ticketToRoom,
-                        calledNumbersByRoom = calledNumbersByRoom,
-                        archivedByRoom = archivedByRoom,
+                        activeTicketsUi = activeTicketsUi,
                     )
                 }
             }
@@ -276,29 +263,8 @@ private fun HomeScrollBody(
     isRemoteLoading: Boolean,
     remoteError: String?,
     tickets: List<HistorySession>,
-    cellsByTicket: Map<String, List<TicketCellEntity>>,
-    ticketToRoom: Map<String, String>,
-    calledNumbersByRoom: Map<String, List<Int>>,
-    archivedByRoom: Map<String, Boolean>,
+    activeTicketsUi: HomeActiveTicketsUiState,
 ) {
-        val activeLiveRoomId = remember(calledNumbersByRoom, archivedByRoom, ticketToRoom) {
-            resolveActiveLiveRoomId(calledNumbersByRoom, archivedByRoom, ticketToRoom)
-        }
-        val ticketSummary = remember(
-            tickets,
-            cellsByTicket,
-            ticketToRoom,
-            calledNumbersByRoom,
-            activeLiveRoomId,
-        ) {
-            buildHomeActiveTicketsSummary(
-                tickets = tickets,
-                cellsByTicket = cellsByTicket,
-                ticketToRoom = ticketToRoom,
-                calledNumbersByRoom = calledNumbersByRoom,
-                activeLiveRoomId = activeLiveRoomId,
-            )
-        }
         val latestNumbers = latestDraw?.winningNumbers.orEmpty()
         var showLatestNumbersSheet by remember { mutableStateOf(false) }
         Column {
@@ -347,7 +313,11 @@ private fun HomeScrollBody(
                 onActionClick = onViewAllTickets,
             )
             Spacer(modifier = Modifier.height(Dimens.spacing12))
-            HomeActiveTicketsSummaryRow(summary = ticketSummary)
+            HomeActiveTicketsSummaryRow(
+                activeCount = activeTicketsUi.activeCount,
+                calledCount = activeTicketsUi.calledCount,
+                hasActiveLiveRoom = activeTicketsUi.hasActiveLiveRoom,
+            )
             if (tickets.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Dimens.spacing12))
                 Row(
@@ -358,23 +328,30 @@ private fun HomeScrollBody(
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacing14),
                 ) {
                     tickets
-                        .sortedByDescending { it.effectivePlayedAtMillis() }
+                        .sortedWith(
+                            compareByDescending<HistorySession> { session ->
+                                activeTicketsUi.previews
+                                    .find { it.sessionId == session.id }
+                                    ?.isInLiveRoom == true
+                            }.thenByDescending { it.homeTicketSortMillis() },
+                        )
                         .take(5)
                         .forEach { session ->
-                            val preview = ticketSummary.previews.find { it.sessionId == session.id }
+                            val preview = activeTicketsUi.previews.find { it.sessionId == session.id }
                             if (preview != null) {
-                                val calledLabel = preview.liveCalledCount?.let { count ->
+                                val calledLabel = preview.calledCount.takeIf { it > 0 }?.let { count ->
                                     stringResource(R.string.home_ticket_called_count, count)
                                 }
                                 ActiveTicketCard(
                                     model = ActiveTicketCardModel(
                                         ticketLabel = sessionDisplayLabel(session),
-                                        drawDate = formatHomeTicketDate(session.effectivePlayedAtMillis()),
+                                        drawDate = formatHomeTicketDate(preview.drawDateMillis),
                                         isInLiveRoom = preview.isInLiveRoom,
                                         calledCountLabel = calledLabel,
                                         calledProgress = preview.calledProgress,
                                         showCalledProgress = preview.showCalledProgress,
                                         neutralGrid = preview.neutralGrid,
+                                        resultSourceLabel = homeTicketResultSourceLabel(preview.resultSource),
                                         cellStates = preview.cellStates,
                                     ),
                                     onClick = { onTicketClick(session.id) },
@@ -408,19 +385,23 @@ private fun HomeScrollBody(
 }
 
 @Composable
-private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
+private fun HomeActiveTicketsSummaryRow(
+    activeCount: Int,
+    calledCount: Int,
+    hasActiveLiveRoom: Boolean,
+) {
     val shape = RoundedCornerShape(Dimens.radiusLarge)
     val cs = MaterialTheme.colorScheme
     val glassSurface = Color.White.copy(alpha = 0.94f)
     val borderColor = cs.outlineVariant.copy(alpha = 0.45f)
     val emDash = stringResource(R.string.common_em_dash)
-    val calledValue = if (summary.hasActiveLiveRoom) summary.calledCount.toString() else emDash
-    val calledLabel = if (summary.hasActiveLiveRoom) {
-        pluralStringResource(R.plurals.home_numbers_called, summary.calledCount)
+    val calledValue = if (hasActiveLiveRoom) calledCount.toString() else emDash
+    val calledLabel = if (hasActiveLiveRoom) {
+        pluralStringResource(R.plurals.home_numbers_called, calledCount)
     } else {
         stringResource(R.string.home_no_live_session)
     }
-    val activeTicketsLabel = pluralStringResource(R.plurals.home_active_tickets, summary.activeCount)
+    val activeTicketsLabel = pluralStringResource(R.plurals.home_active_tickets, activeCount)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
@@ -439,7 +420,7 @@ private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
             ) {
                 HomeActiveTicketsStatItem(
                     icon = Icons.Filled.ConfirmationNumber,
-                    valueText = summary.activeCount.toString(),
+                    valueText = activeCount.toString(),
                     labelText = activeTicketsLabel,
                     iconContainerColor = Primary.copy(alpha = 0.09f),
                     iconTint = Primary.copy(alpha = 0.88f),
@@ -457,19 +438,19 @@ private fun HomeActiveTicketsSummaryRow(summary: HomeActiveTicketsSummary) {
                     icon = Icons.Filled.LiveTv,
                     valueText = calledValue,
                     labelText = calledLabel,
-                    iconContainerColor = if (summary.hasActiveLiveRoom) {
+                    iconContainerColor = if (hasActiveLiveRoom) {
                         Primary.copy(alpha = 0.10f)
                     } else {
                         cs.surfaceVariant.copy(alpha = 0.72f)
                     },
-                    iconTint = if (summary.hasActiveLiveRoom) Primary.copy(alpha = 0.88f) else cs.onSurfaceVariant,
-                    valueColor = if (summary.hasActiveLiveRoom) Primary else cs.onSurfaceVariant,
-                    showLiveDot = summary.hasActiveLiveRoom,
+                    iconTint = if (hasActiveLiveRoom) Primary.copy(alpha = 0.88f) else cs.onSurfaceVariant,
+                    valueColor = if (hasActiveLiveRoom) Primary else cs.onSurfaceVariant,
+                    showLiveDot = hasActiveLiveRoom,
                     modifier = Modifier.weight(1f),
                 )
             }
         }
-        if (summary.activeCount == 0) {
+        if (activeCount == 0) {
             Spacer(modifier = Modifier.height(Dimens.spacing8))
             Text(
                 text = stringResource(R.string.home_scan_to_track_hint),
@@ -537,81 +518,26 @@ private fun HomeActiveTicketsStatItem(
     }
 }
 
-private data class HomeTicketPreview(
-    val sessionId: String,
-    val isInLiveRoom: Boolean,
-    val liveCalledCount: Int?,
-    val calledProgress: Float,
-    val showCalledProgress: Boolean,
-    val neutralGrid: Boolean,
-    val cellStates: List<ActiveTicketCellState>,
-)
+private fun HistorySession.homeTicketSortMillis(): Long =
+    playedAtMillis ?: effectivePlayedAtMillis()
 
-private data class HomeActiveTicketsSummary(
-    val activeCount: Int,
-    val calledCount: Int,
-    val hasActiveLiveRoom: Boolean,
-    val previews: List<HomeTicketPreview>,
-)
-
-private fun resolveActiveLiveRoomId(
-    calledNumbersByRoom: Map<String, List<Int>>,
-    archivedByRoom: Map<String, Boolean>,
-    ticketToRoom: Map<String, String>,
-): String? {
-    val liveRoomIds = ticketToRoom.values.toSet()
-    return calledNumbersByRoom
-        .filter { (roomId, numbers) ->
-            numbers.isNotEmpty() &&
-                !archivedByRoom.getOrDefault(roomId, false) &&
-                (liveRoomIds.isEmpty() || roomId in liveRoomIds)
-        }
-        .maxByOrNull { it.value.size }
-        ?.key
+private fun formatHomeTicketDate(millis: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
+    return ZonedDateTime.ofInstant(
+        java.time.Instant.ofEpochMilli(millis),
+        berlinZone,
+    ).format(formatter)
 }
 
-private fun buildHomeActiveTicketsSummary(
-    tickets: List<HistorySession>,
-    cellsByTicket: Map<String, List<TicketCellEntity>>,
-    ticketToRoom: Map<String, String>,
-    calledNumbersByRoom: Map<String, List<Int>>,
-    activeLiveRoomId: String?,
-): HomeActiveTicketsSummary {
-    val activeCalledNumbers = activeLiveRoomId
-        ?.let { calledNumbersByRoom[it] }
-        .orEmpty()
-    val activeCalledSet = activeCalledNumbers.toSet()
-    val activeCalledCount = activeCalledNumbers.size
-
-    val previews = tickets.map { session ->
-        val roomId = ticketToRoom[session.id]
-        val isInLiveRoom = activeLiveRoomId != null && roomId == activeLiveRoomId
-        val cells = cellsByTicket[session.id].orEmpty().sortedBy { it.cellIndex }
-        val cellStates = (0 until 25).map { index ->
-            val cell = cells.getOrNull(index)
-            val number = cell?.value?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
-            val isCalled = isInLiveRoom && number != null && number in activeCalledSet
-            ActiveTicketCellState(
-                display = cell?.value?.trim().orEmpty(),
-                isCalled = isCalled,
-            )
-        }
-        HomeTicketPreview(
-            sessionId = session.id,
-            isInLiveRoom = isInLiveRoom,
-            liveCalledCount = if (isInLiveRoom && activeCalledCount > 0) activeCalledCount else null,
-            calledProgress = activeCalledCount / 75f,
-            showCalledProgress = isInLiveRoom,
-            neutralGrid = !isInLiveRoom,
-            cellStates = cellStates,
-        )
-    }
-    return HomeActiveTicketsSummary(
-        activeCount = tickets.size,
-        calledCount = activeCalledCount,
-        hasActiveLiveRoom = activeLiveRoomId != null,
-        previews = previews,
-    )
+@Composable
+private fun homeTicketResultSourceLabel(
+    source: TicketCalledNumbersResolver.Source,
+): String? = when (source) {
+    TicketCalledNumbersResolver.Source.TEST_DATE ->
+        stringResource(R.string.home_active_ticket_test_date_result)
+    TicketCalledNumbersResolver.Source.ARCHIVED ->
+        stringResource(R.string.home_active_ticket_archived_result)
+    else -> null
 }
 
 @Composable
@@ -633,14 +559,6 @@ private fun sessionDisplayLabel(session: HistorySession): String {
         return sheet.take(14)
     }
     return "#${session.id.takeLast(4).uppercase(Locale.getDefault())}"
-}
-
-private fun formatHomeTicketDate(millis: Long): String {
-    val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
-    return ZonedDateTime.ofInstant(
-        java.time.Instant.ofEpochMilli(millis),
-        berlinZone,
-    ).format(formatter)
 }
 
 @Composable

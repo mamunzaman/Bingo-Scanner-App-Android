@@ -23,6 +23,7 @@ data class TicketDetailData(
     val calledNumbers: List<Int>,
     val losNumber: String? = null,
     val serialNumber: String? = null,
+    val playLogs: List<TicketPlayLog> = emptyList(),
 )
 
 object HistoryRepository {
@@ -61,14 +62,17 @@ object HistoryRepository {
         withContext(Dispatchers.Default) {
             val ticketToRoom = RoomRepository.ticketToRoomFlow().first()
             _sessionsFlow.value.map { session ->
-                val assignedRoomId = ticketToRoom[session.id]
+                val ticketId = session.ticketId
+                val assignedRoomId = ticketToRoom[ticketId]
                 com.example.mamunbingoapp.ui.model.TicketUiModel(
-                    id = session.id,
+                    id = ticketId,
                     sessionId = session.id,
                     title = session.effectiveSheetName().ifBlank { "Unnamed" },
                     createdAt = session.effectivePlayedAtMillis(),
+                    serialNumber = session.serialNumber,
+                    losNumber = session.losNumber,
                     isInRoom = roomId != null && assignedRoomId == roomId,
-                    assignedRoomId = assignedRoomId
+                    assignedRoomId = assignedRoomId,
                 )
             }
         }
@@ -76,14 +80,17 @@ object HistoryRepository {
     fun ticketsForPickerFlow(roomId: String?): Flow<List<com.example.mamunbingoapp.ui.model.TicketUiModel>> =
         combine(_sessionsFlow, RoomRepository.ticketToRoomFlow()) { sessions, ticketToRoom ->
             sessions.map { session ->
-                val assignedRoomId = ticketToRoom[session.id]
+                val ticketId = session.ticketId
+                val assignedRoomId = ticketToRoom[ticketId]
                 com.example.mamunbingoapp.ui.model.TicketUiModel(
-                    id = session.id,
+                    id = ticketId,
                     sessionId = session.id,
                     title = session.effectiveSheetName().ifBlank { "Unnamed" },
                     createdAt = session.effectivePlayedAtMillis(),
+                    serialNumber = session.serialNumber,
+                    losNumber = session.losNumber,
                     isInRoom = roomId != null && assignedRoomId == roomId,
-                    assignedRoomId = assignedRoomId
+                    assignedRoomId = assignedRoomId,
                 )
             }
         }
@@ -94,6 +101,20 @@ object HistoryRepository {
 
     fun observeSession(sessionId: String): kotlinx.coroutines.flow.Flow<HistorySession?> =
         sessionsFlow.map { list -> list.find { it.id == sessionId } }
+
+    fun observeHistoryTestDate(sessionId: String): Flow<Long?> =
+        HistoryTestDateRepository.observeTestDate(sessionId)
+
+    fun observeAllHistoryTestDates(): Flow<Map<String, Long>> =
+        HistoryTestDateRepository.observeAllTestDates()
+
+    suspend fun updateHistorySessionTestDate(sessionId: String, dateMillis: Long) {
+        HistoryTestDateRepository.setTestDate(sessionId, dateMillis)
+    }
+
+    suspend fun clearHistorySessionTestDate(sessionId: String) {
+        HistoryTestDateRepository.clearTestDate(sessionId)
+    }
 
     suspend fun getSessionIdForTicket(ticketId: String): String? = withContext(Dispatchers.Default) {
         TicketRepository.getSessionById(ticketId)?.id

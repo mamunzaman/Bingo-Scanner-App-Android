@@ -14,6 +14,12 @@ import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
+
 object BingoRemoteRepository {
 
     private const val TAG = "BingoRemoteRepository"
@@ -30,6 +36,41 @@ object BingoRemoteRepository {
             }
         }
     }
+
+    suspend fun getDrawForWeekContaining(dateMillis: Long): Result<BingoDrawDto> = runCatching {
+        SupabaseClientProvider.requireConfigured()
+        val zone = ZoneId.systemDefault()
+        val selectedDate = Instant.ofEpochMilli(dateMillis).atZone(zone).toLocalDate()
+        val exactDate = selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val weekStart = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weekEnd = weekStart.plusDays(6)
+        val weekStartStr = weekStart.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val weekEndStr = weekEnd.format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+        val exactMatch: List<BingoDrawDto> = authorizedGet("bingo_draws") {
+            parameter("select", "*")
+            parameter("draw_date", "eq.$exactDate")
+            parameter("limit", "1")
+        }
+        if (exactMatch.isNotEmpty()) return@runCatching exactMatch.first()
+
+        val weekMatch: List<BingoDrawDto> = authorizedGet("bingo_draws") {
+            parameter("select", "*")
+            parameter("and", "(draw_date.gte.$weekStartStr,draw_date.lte.$weekEndStr)")
+            parameter("order", "draw_date.desc")
+            parameter("limit", "1")
+        }
+        weekMatch.firstOrNull() ?: throw NoDrawForWeekException()
+    }.fold(
+        onSuccess = { Result.success(it) },
+        onFailure = { error ->
+            Log.w(TAG, "getDrawForWeekContaining failed dateMillis=$dateMillis", error)
+            Result.failure(
+                if (error is NoDrawForWeekException) error
+                else IllegalStateException(mapRemoteError(error)),
+            )
+        },
+    )
 
     suspend fun getLatestDraw(): Result<BingoDrawDto> = runCatching {
         SupabaseClientProvider.requireConfigured()

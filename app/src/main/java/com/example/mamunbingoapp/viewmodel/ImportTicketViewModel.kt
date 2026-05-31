@@ -549,6 +549,8 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
     fun clear() {
         analysisJob?.cancel()
         analysisJob = null
+        galleryApplyJob?.cancel()
+        galleryApplyJob = null
         galleryQrProbeJob?.cancel()
         galleryQrProbeJob = null
         _galleryPendingEditUri.value = null
@@ -562,6 +564,11 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         galleryImportScanTypeSnapshot = null
         _pendingScanType.value = null
     }
+
+    fun hasActiveImportSession(): Boolean =
+        _galleryPendingEditUri.value != null ||
+            _selectedImageUri.value != null ||
+            _scanResult.value !is ScanResultUiState.Idle
 
     override fun onCleared() {
         analysisJob?.cancel()

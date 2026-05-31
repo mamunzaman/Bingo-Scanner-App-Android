@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.mamunbingoapp.data.LiveRoom
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.example.mamunbingoapp.R
@@ -497,10 +498,16 @@ fun HistoryListScreen(
                     }
                 } else {
                     items(filteredSessions) { item ->
-                        val markedForCard = maxOf(
-                            item.resolvedMarkedCount,
-                            item.session.sheetsPlayed.firstOrNull()?.markedCount ?: 0
-                        )
+                        val markedForCard = when {
+                            item.resolvedMarkedCells.size >= BingoPlayableNumbers.GRID_CELL_COUNT ->
+                                BingoPlayableNumbers.countMarkedPlayableFlags(item.resolvedMarkedCells)
+                            else -> BingoPlayableNumbers.coercePlayableMarkedCount(
+                                maxOf(
+                                    item.resolvedMarkedCount,
+                                    item.session.sheetsPlayed.firstOrNull()?.markedCount ?: 0,
+                                ),
+                            )
+                        }
                         val playedAt = item.session.effectivePlayedAtMillis()
                         val dateLabelPrefix =
                             if (item.session.ocrSource.isNullOrBlank()) dateSavedLabel else dateScannedLabel
@@ -516,7 +523,9 @@ fun HistoryListScreen(
                                 serialNumber = item.session.serialNumber,
                                 losNumber = item.session.losNumber,
                                 markedCount = markedForCard,
-                                markedCells = item.resolvedMarkedCells.takeIf { it.size == 25 },
+                                markedCells = item.resolvedMarkedCells.takeIf {
+                                    it.size >= BingoPlayableNumbers.GRID_CELL_COUNT
+                                },
                                 onViewClick = { onSessionClick(item.session.id, item.roomId) },
                                 onJoinClick = if (item.isLive && item.roomId != null) ({ onJoinLiveRoom(item.roomId!!) }) else ({ onSessionClick(item.session.id, item.roomId) }),
                                 onDelete = { onDeleteSession(item.session.id) },

@@ -5,6 +5,11 @@ import com.example.mamunbingoapp.data.db.LiveRoomEntity
 import com.example.mamunbingoapp.data.db.RoomCalledNumberEntity
 import com.example.mamunbingoapp.data.db.RoomSettingsEntity
 import com.example.mamunbingoapp.data.db.RoomTicketEntity
+import com.example.mamunbingoapp.data.db.TicketPlayLogEntity
+import com.example.mamunbingoapp.ui.model.BingoCellUi
+import com.example.mamunbingoapp.data.TicketPlayLogRepository
+import com.example.mamunbingoapp.data.TicketPlayLogStats
+import com.example.mamunbingoapp.data.toCalledNumbersSnapshot
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.RoomStatusResolver
 import com.example.mamunbingoapp.core.SundayBingoSchedule
@@ -56,6 +61,8 @@ object RoomRepository {
     private fun ticketDao() = db().roomTicketDao()
     private fun calledDao() = db().roomCalledNumberDao()
     private fun settingsDao() = db().roomSettingsDao()
+    private fun playLogDao() = db().ticketPlayLogDao()
+    private fun mainTicketDao() = db().ticketDao()
 
     fun roomsFlow(): Flow<List<LiveRoom>> =
         roomDao().observeRooms().map { it.map { e -> e.toLiveRoom() } }

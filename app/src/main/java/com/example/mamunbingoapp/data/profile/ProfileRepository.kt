@@ -232,17 +232,30 @@ object ProfileRepository {
             }.onFailure { error ->
                 Log.w(TAG, "avatar delete: storage remove failed path=$uploadPath", error)
             }
-            val existing = loadOrCreateCurrentProfile().getOrElse { ProfileDto(id = userId) }
-            updateProfile(existing.copy(avatarUrl = null)).getOrThrow()
-                .copy(avatarUrl = null)
+            clearRemoteAvatarUrl(client, userId)
         }.fold(
-            onSuccess = { dto -> Result.success(dto.copy(avatarUrl = normalizeAvatarUrl(dto.avatarUrl))) },
+            onSuccess = { dto ->
+                val cleared = dto.copy(avatarUrl = null)
+                Log.d(TAG, "avatar delete: remote avatar_url cleared persisted=${cleared.avatarUrl == null}")
+                Result.success(cleared)
+            },
             onFailure = { error ->
                 Log.w(TAG, "deleteAvatar failed", error)
                 Result.failure(IllegalStateException(mapProfileError(error)))
             },
         )
     }
+
+    /** Postgrest DSL so null is sent explicitly (full [ProfileDto] update omits null fields). */
+    private suspend fun clearRemoteAvatarUrl(client: SupabaseClient, userId: String): ProfileDto =
+        client.postgrest.from(TABLE).update(
+            {
+                set("avatar_url", null as String?)
+            },
+        ) {
+            filter { eq("id", userId) }
+            select(Columns.ALL)
+        }.decodeSingle<ProfileDto>()
 
     private fun requireAuthenticatedSession(
         client: io.github.jan.supabase.SupabaseClient,

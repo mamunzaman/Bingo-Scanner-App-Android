@@ -51,6 +51,7 @@ import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
+import com.example.mamunbingoapp.ui.components.TicketPlayLogSection
 import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.ui.components.AlmostBingoAlertRowV2
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
@@ -98,6 +99,7 @@ fun TicketDetailScreen(
     playedAtMillis: Long = System.currentTimeMillis(),
     cells: List<BingoCellUi> = emptyList(),
     calledNumbers: List<Int> = emptyList(),
+    playLogs: List<com.example.mamunbingoapp.data.TicketPlayLog> = emptyList(),
     serialNumber: String? = null,
     losNumber: String? = null,
     viewModel: TicketDetailViewModel? = null
@@ -351,6 +353,11 @@ fun TicketDetailScreen(
                     CalledHistoryPanel(calledNumbers = calledNumbers)
                     Spacer(modifier = Modifier.height(Dimens.spacing8))
                 }
+            }
+
+            if (playLogs.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
+                TicketPlayLogSection(playLogs = playLogs)
             }
 
             Spacer(modifier = Modifier.height(Dimens.spacing24))

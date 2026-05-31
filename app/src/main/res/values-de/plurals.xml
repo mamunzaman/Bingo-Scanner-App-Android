@@ -36,4 +36,12 @@
         <item quantity="one">%1$s · noch %2$d Zahl</item>
         <item quantity="other">%1$s · noch %2$d Zahlen</item>
     </plurals>
+    <plurals name="ticket_play_log_called_count">
+        <item quantity="one">%1$d Zahl gerufen</item>
+        <item quantity="other">%1$d Zahlen gerufen</item>
+    </plurals>
+    <plurals name="ticket_play_log_result_bingo">
+        <item quantity="one">Bingo (%1$d Linie)</item>
+        <item quantity="other">Bingo (%1$d Linien)</item>
+    </plurals>
 </resources>

@@ -72,6 +72,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import com.example.mamunbingoapp.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.WindowInsets
@@ -88,6 +90,7 @@ import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.LiveRoom
+import com.example.mamunbingoapp.data.TicketPlayLog
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.theme.Dimens
@@ -97,9 +100,11 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanelContext
 import com.example.mamunbingoapp.core.BingoWinChecker
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.ui.components.BingoDetailGridCard
 import com.example.mamunbingoapp.ui.components.CompactAlmostBingoRow
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
+import com.example.mamunbingoapp.ui.components.TicketPlayLogSection
 import com.example.mamunbingoapp.domain.model.QrTicketPayload
 import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
@@ -126,7 +131,12 @@ private fun formatHistoryDetailTimestamp(millis: Long): String =
 private val HistoryDetailCardShape = RoundedCornerShape(Dimens.radiusLarge)
 private val HistoryDetailCardPadding = Dimens.spacing16
 private val HistoryDetailStatCardPadding = Dimens.spacing12
-private val HistoryDetailGridVerticalPadding = Dimens.spacing12
+private val HistoryDetailTicketSectionTopPadding = Dimens.spacing10
+private val HistoryDetailTicketSectionBottomPadding = Dimens.spacing16
+private val HistoryDetailTicketDividerToBingoGap = Dimens.spacing12
+private val HistoryDetailTicketGridToDividerGap = Dimens.spacing10
+private val HistoryDetailTicketDividerToFooterGap = Dimens.spacing8
+private const val HistoryDetailTicketDividerAlpha = 0.22f
 private val HistoryDetailBottomContentPadding = Dimens.spacing32
 private val HistoryDetailSectionSpacing = Dimens.spacing12
 private val HistoryDetailHeroVerticalSpacing = Dimens.spacing8
@@ -181,6 +191,13 @@ fun HistoryDetailScreen(
     session: HistorySession?,
     calledNumbers: List<Int> = emptyList(),
     cells: List<BingoCellUi>? = null,
+    playLogs: List<TicketPlayLog> = emptyList(),
+    testDateMillis: Long? = null,
+    testDrawDateLabel: String? = null,
+    testDateInfoMessage: String? = null,
+    isTestDateLoading: Boolean = false,
+    onChangeTestDate: (Long) -> Unit = {},
+    onClearTestDate: () -> Unit = {},
     assignedRoomId: String? = null,
     sheetStatus: SheetStatus = SheetStatus.IDLE,
     isLoading: Boolean = false,
@@ -209,6 +226,7 @@ fun HistoryDetailScreen(
     val scope = rememberCoroutineScope()
     var showLeaveLiveDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTestDatePicker by remember { mutableStateOf(false) }
     var showQrDialog by remember { mutableStateOf(false) }
     var showRoomPicker by remember { mutableStateOf(false) }
     var qrErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -238,6 +256,10 @@ fun HistoryDetailScreen(
     }
     val almostBingoInfo = remember(displayCells) {
         displayCells?.take(25)?.let { BingoWinChecker.bestAlmostBingo(it.map { it.isMarked }) }
+    }
+    val playableMarkedProgress = remember(displayCells) {
+        displayCells?.let { BingoPlayableNumbers.formatMarkedProgress(BingoPlayableNumbers.countMarkedPlayableCells(it)) }
+            ?: BingoPlayableNumbers.formatMarkedProgress(0)
     }
     val displaySheetStatus = if (deletedAwaitingSnackbar) cachedSheetStatus else sheetStatus
 
@@ -400,6 +422,33 @@ fun HistoryDetailScreen(
             }
         )
     }
+    if (showTestDatePicker) {
+        val initialMillis = testDateMillis ?: sessionForDisplay.effectivePlayedAtMillis()
+        val datePickerState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = initialMillis,
+            initialDisplayedMonthMillis = initialMillis,
+        )
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showTestDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let(onChangeTestDate)
+                        showTestDatePicker = false
+                    }
+                ) {
+                    Text(stringResource(R.string.history_detail_test_date_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTestDatePicker = false }) {
+                    Text(stringResource(R.string.settings_cancel))
+                }
+            },
+        ) {
+            androidx.compose.material3.DatePicker(state = datePickerState)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -517,10 +566,23 @@ fun HistoryDetailScreen(
                                 },
                             )
                             HistoryDetailStatsRow(
-                                drawDate = formatHistoryDetailDate(sessionForDisplay.effectivePlayedAtMillis()),
+                                drawDate = formatHistoryDetailDate(
+                                    testDateMillis ?: sessionForDisplay.effectivePlayedAtMillis()
+                                ),
                                 sheetsCount = sessionForDisplay.sheetsCount,
                                 calledCount = displayCalledNumbers.size,
+                                markedProgress = playableMarkedProgress,
                             )
+                            if (displayAssignedRoomId.isNullOrBlank()) {
+                                HistoryDetailTestDateDebugSection(
+                                    testDateMillis = testDateMillis,
+                                    testDrawDateLabel = testDrawDateLabel,
+                                    testDateInfoMessage = testDateInfoMessage,
+                                    isTestDateLoading = isTestDateLoading,
+                                    onChangeTestDateClick = { showTestDatePicker = true },
+                                    onClearTestDateClick = onClearTestDate,
+                                )
+                            }
                         }
                     }
                     item {
@@ -550,37 +612,34 @@ fun HistoryDetailScreen(
                     item {
                         HistoryDetailSectionCard(
                             contentPadding = PaddingValues(
-                                horizontal = HistoryDetailCardPadding,
-                                vertical = HistoryDetailGridVerticalPadding,
+                                start = HistoryDetailCardPadding,
+                                end = HistoryDetailCardPadding,
+                                top = HistoryDetailTicketSectionTopPadding,
+                                bottom = HistoryDetailTicketSectionBottomPadding,
                             ),
                         ) {
-                            BoxWithConstraints(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = Dimens.spacing4),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BingoDetailGridCard(
-                                    cells = displayCells,
-                                    winningCells = if (winResult?.isWin == true) {
-                                        winResult.winningCells
-                                    } else {
-                                        emptySet()
-                                    },
-                                    historyDetailOuterMaxWidth = maxWidth,
-                                    historyDetailOuterMaxHeight = null,
-                                    emphasized = true,
-                                    historyDetailPlainGrid = true,
-                                )
-                            }
+                            HistoryDetailGridWithMetaStrip(
+                                losNumber = sessionForDisplay.losNumber,
+                                serialNumber = sessionForDisplay.serialNumber,
+                                cells = displayCells,
+                                winningCells = if (winResult?.isWin == true) {
+                                    winResult.winningCells
+                                } else {
+                                    emptySet()
+                                },
+                                createdAtMillis = ticketMeta?.createdAt
+                                    ?: sessionForDisplay.effectivePlayedAtMillis(),
+                                updatedAtMillis = sessionForDisplay.effectivePlayedAtMillis(),
+                            )
                         }
                     }
-                    item {
-                        HistoryDetailMetaFooter(
-                            createdAtMillis = ticketMeta?.createdAt
-                                ?: sessionForDisplay.effectivePlayedAtMillis(),
-                            updatedAtMillis = sessionForDisplay.effectivePlayedAtMillis(),
-                        )
+                    if (playLogs.isNotEmpty()) {
+                        item {
+                            TicketPlayLogSection(
+                                playLogs = playLogs,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
                 AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
@@ -781,10 +840,256 @@ private fun HistoryDetailStatusChip(status: SheetStatus) {
 }
 
 @Composable
+private fun HistoryDetailTestDateDebugSection(
+    testDateMillis: Long?,
+    testDrawDateLabel: String?,
+    testDateInfoMessage: String?,
+    isTestDateLoading: Boolean,
+    onChangeTestDateClick: () -> Unit,
+    onClearTestDateClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+    ) {
+        Text(
+            text = stringResource(R.string.history_detail_test_date_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+        )
+        if (testDateMillis != null) {
+            Text(
+                text = stringResource(
+                    R.string.history_detail_test_date_active,
+                    formatHistoryDetailDate(testDateMillis),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            testDrawDateLabel?.takeIf { it.isNotBlank() }?.let { drawDate ->
+                Text(
+                    text = stringResource(R.string.history_detail_test_date_draw, drawDate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        if (isTestDateLoading) {
+            Text(
+                text = stringResource(R.string.history_detail_test_date_loading),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+            )
+        }
+        testDateInfoMessage?.takeIf { it.isNotBlank() }?.let { message ->
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onChangeTestDateClick) {
+                Text(stringResource(R.string.history_detail_change_test_date))
+            }
+            if (testDateMillis != null) {
+                TextButton(onClick = onClearTestDateClick) {
+                    Text(stringResource(R.string.history_detail_test_date_clear))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailGridWithMetaStrip(
+    losNumber: String?,
+    serialNumber: String?,
+    cells: List<BingoCellUi>?,
+    winningCells: Set<Int>,
+    createdAtMillis: Long,
+    updatedAtMillis: Long,
+) {
+    val gap = Dimens.spacing8
+    val maxCellSize = 52.dp
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        val rawFromWidth = (maxWidth - gap * 4) / 5f
+        val compactCellSize = rawFromWidth.coerceIn(22.dp, maxCellSize)
+        val bingoGridWidth = gap * 4 + compactCellSize * 5
+        Column(
+            modifier = Modifier.width(bingoGridWidth),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            HistoryDetailTicketMetaBlock(
+                losNumber = losNumber,
+                serialNumber = serialNumber,
+                gridWidth = bingoGridWidth,
+            )
+            HistoryDetailTicketSectionDivider(gridWidth = bingoGridWidth)
+            Spacer(modifier = Modifier.height(HistoryDetailTicketDividerToBingoGap))
+            BingoDetailGridCard(
+                cells = cells,
+                winningCells = winningCells,
+                historyDetailOuterMaxWidth = bingoGridWidth,
+                historyDetailOuterMaxHeight = null,
+                emphasized = true,
+                historyDetailPlainGrid = true,
+            )
+            Spacer(modifier = Modifier.height(HistoryDetailTicketGridToDividerGap))
+            HistoryDetailTicketSectionDivider(gridWidth = bingoGridWidth)
+            Spacer(modifier = Modifier.height(HistoryDetailTicketDividerToFooterGap))
+            HistoryDetailTicketDatesFooter(
+                createdAtMillis = createdAtMillis,
+                updatedAtMillis = updatedAtMillis,
+                gridWidth = bingoGridWidth,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailTicketSectionDivider(gridWidth: Dp) {
+    HorizontalDivider(
+        modifier = Modifier.width(gridWidth),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = HistoryDetailTicketDividerAlpha),
+    )
+}
+
+@Composable
+private fun HistoryDetailTicketDatesFooter(
+    createdAtMillis: Long,
+    updatedAtMillis: Long,
+    gridWidth: Dp,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val labelColor = scheme.onSurfaceVariant.copy(alpha = 0.52f)
+    val valueColor = scheme.onSurfaceVariant.copy(alpha = 0.82f)
+    Row(
+        modifier = Modifier
+            .width(gridWidth)
+            .height(IntrinsicSize.Max),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        HistoryDetailTicketMetaColumn(
+            label = stringResource(R.string.history_detail_label_created).uppercase(Locale.getDefault()),
+            value = formatHistoryDetailTimestamp(createdAtMillis),
+            labelColor = labelColor,
+            valueColor = valueColor,
+            horizontalAlignment = Alignment.Start,
+            labelFontSize = 10.sp,
+            valueFontSize = 13.sp,
+            valueFontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        HistoryDetailTicketMetaColumn(
+            label = stringResource(R.string.history_detail_label_updated).uppercase(Locale.getDefault()),
+            value = formatHistoryDetailTimestamp(updatedAtMillis),
+            labelColor = labelColor,
+            valueColor = valueColor,
+            horizontalAlignment = Alignment.End,
+            labelFontSize = 10.sp,
+            valueFontSize = 13.sp,
+            valueFontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailTicketMetaBlock(
+    losNumber: String?,
+    serialNumber: String?,
+    gridWidth: Dp,
+) {
+    val placeholderDash = stringResource(R.string.common_placeholder_dash)
+    val losValue = losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val serialValue = serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val scheme = MaterialTheme.colorScheme
+    val labelColor = scheme.onSurfaceVariant.copy(alpha = 0.62f)
+    val valueColor = scheme.onSurfaceVariant.copy(alpha = 0.88f)
+    Row(
+        modifier = Modifier
+            .width(gridWidth)
+            .height(IntrinsicSize.Max)
+            .padding(vertical = Dimens.spacing4),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HistoryDetailTicketMetaColumn(
+            label = stringResource(R.string.ocr_stat_los_nr),
+            value = losValue,
+            labelColor = labelColor,
+            valueColor = valueColor,
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier.weight(1f),
+        )
+        HistoryDetailTicketMetaColumn(
+            label = stringResource(R.string.ocr_stat_serie),
+            value = serialValue,
+            labelColor = labelColor,
+            valueColor = valueColor,
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun HistoryDetailTicketMetaColumn(
+    label: String,
+    value: String,
+    labelColor: Color,
+    valueColor: Color,
+    horizontalAlignment: Alignment.Horizontal,
+    modifier: Modifier = Modifier,
+    labelFontSize: TextUnit = 11.sp,
+    valueFontSize: TextUnit = 19.sp,
+    valueFontWeight: FontWeight = FontWeight.Bold,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = horizontalAlignment,
+    ) {
+        Text(
+            text = label.uppercase(Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = labelFontSize,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.5.sp,
+            ),
+            color = labelColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = valueFontWeight,
+                fontSize = valueFontSize,
+                lineHeight = (valueFontSize.value + 3).sp,
+            ),
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
 private fun HistoryDetailStatsRow(
     drawDate: String,
     sheetsCount: Int,
     calledCount: Int,
+    markedProgress: String,
 ) {
     Row(
         modifier = Modifier
@@ -810,6 +1115,13 @@ private fun HistoryDetailStatsRow(
         HistoryDetailStatCard(
             label = stringResource(R.string.history_detail_stat_called),
             value = calledCount.toString(),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+        HistoryDetailStatCard(
+            label = stringResource(R.string.history_detail_stat_marked),
+            value = markedProgress,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
@@ -870,45 +1182,6 @@ private fun HistoryDetailNumbersCalledCard(
             latestCircleSize = HistoryDetailLatestCallSize,
             recentChipSize = HistoryDetailRecentChipSize,
             panelContext = CalledHistoryPanelContext.HistoryDetail,
-        )
-    }
-}
-
-@Composable
-private fun HistoryDetailMetaFooter(
-    createdAtMillis: Long,
-    updatedAtMillis: Long,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Dimens.spacing4),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(
-                R.string.history_detail_created_at,
-                formatHistoryDetailTimestamp(createdAtMillis),
-            ),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(modifier = Modifier.width(Dimens.spacing8))
-        Text(
-            text = stringResource(
-                R.string.history_detail_updated_at,
-                formatHistoryDetailTimestamp(updatedAtMillis),
-            ),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f),
         )
     }
 }

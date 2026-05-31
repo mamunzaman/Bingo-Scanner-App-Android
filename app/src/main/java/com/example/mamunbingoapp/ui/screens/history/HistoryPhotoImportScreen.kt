@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +51,6 @@ import com.example.mamunbingoapp.ui.screens.ImportTicketMainContent
 import com.example.mamunbingoapp.ui.screens.rememberImportTicketGalleryImagePickLauncher
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.ScanResultUiState
-import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 
 /**
  * **Route:** `historyPhotoImport` — **Take photo** / **Gallery** = scan-type sheet first; camera or picker follows.
@@ -93,13 +93,17 @@ fun HistoryPhotoImportScreen(
     val scanResult by importVm.scanResult.collectAsState()
     val isAnalyzingUi = scanResult is ScanResultUiState.Loading
     val ocrProgress by importVm.ocrProgress.collectAsState()
-    val successState = scanResult as? ScanResultUiState.Success
-    val finalUiGrid = successState?.let { finalUiGridRowMajor(it.numbers) }
-    val detectedCountUi = finalUiGrid?.count { it != 0 } ?: 0
+    val hasActiveSession = importVm.hasActiveImportSession()
     var showDiscardDialog by remember { mutableStateOf(false) }
     var pendingLeaveAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val isLocked = isAnalyzingUi || (detectedCountUi > 0) || (displayUri != null)
     var showScanTipsDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(hasActiveSession) {
+        if (!hasActiveSession) {
+            showDiscardDialog = false
+            pendingLeaveAction = null
+        }
+    }
 
     val pickImageFromGallery = rememberImportTicketGalleryImagePickLauncher { uri ->
         importVm.setGalleryPendingEdit(uri)
@@ -110,7 +114,7 @@ fun HistoryPhotoImportScreen(
             importVm.cancelGalleryPendingEdit()
             return
         }
-        if (isLocked) {
+        if (importVm.hasActiveImportSession()) {
             showDiscardDialog = true
             pendingLeaveAction = onExit
         } else {

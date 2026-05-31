@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
         DatabaseProvider.init(applicationContext)
         com.example.mamunbingoapp.data.SettingsRepository.init(applicationContext)
         com.example.mamunbingoapp.data.AccountRepository.init(applicationContext)
+        com.example.mamunbingoapp.data.HistoryTestDateRepository.init(applicationContext)
         com.example.mamunbingoapp.data.projects.ProjectsRepository.init(applicationContext)
         AuthRepository.startup(applicationContext)
         dispatchIncomingIntent(intent)

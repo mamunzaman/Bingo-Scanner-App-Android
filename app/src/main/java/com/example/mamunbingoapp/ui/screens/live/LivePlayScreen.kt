@@ -175,6 +175,7 @@ import com.example.mamunbingoapp.theme.WarningIcon
 import com.example.mamunbingoapp.theme.WarningText
 import com.example.mamunbingoapp.theme.LiveFonts
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -184,6 +185,7 @@ import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
 import com.example.mamunbingoapp.ui.core.interaction.appClickable
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.core.BingoWinChecker
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.ui.components.BingoCardGrid
 import com.example.mamunbingoapp.ui.components.BingoGridMode
 import com.example.mamunbingoapp.ui.components.AlmostBingoAlertRowV2
@@ -723,7 +725,9 @@ fun LivePlayScreen(
                         ) {
                             ListSheetRow(
                                 title = sheet.title,
-                                marked = "${sheet.markedCount}/25",
+                                marked = BingoPlayableNumbers.formatMarkedProgress(
+                                    BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+                                ),
                                 serialNumber = sheet.serialNumber,
                                 losNumber = sheet.losNumber,
                                 scannedDate = formatPlayDate(sheet.playedAtMillis),
@@ -898,6 +902,7 @@ private fun LivePlayBottomArea(
                             onInputChange("")
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
+                            onInputChange("")
                             val alreadyCalledMessage = context.getString(
                                 R.string.live_play_snackbar_already_called,
                                 bingoLetter(n),
@@ -1875,7 +1880,11 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
                         softWrap = false
                     )
                     Text(
-                        text = stringResource(R.string.live_play_marked_count, sheet.markedCount),
+                        text = stringResource(
+                            R.string.live_play_marked_count,
+                            BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+                            BingoPlayableNumbers.PLAYABLE_COUNT,
+                        ),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = if (isWin) WarningText else MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -2282,7 +2291,11 @@ private fun SheetDetailBottomSheet(
                                 )
                             }
                             Text(
-                                text = stringResource(R.string.live_play_marked_count_compact, sheet.markedCount),
+                                text = stringResource(
+                                    R.string.live_play_marked_count_compact,
+                                    BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+                                    BingoPlayableNumbers.PLAYABLE_COUNT,
+                                ),
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier

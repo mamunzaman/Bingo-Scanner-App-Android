@@ -135,6 +135,12 @@ private fun resolveSundayFeaturedRoom(
     rooms: List<RoomWithStats>,
     sundayTitle: String,
 ): RoomWithStats? = rooms.find { it.room.name.equals(sundayTitle, ignoreCase = true) }
+import com.example.mamunbingoapp.ui.components.BingoSessionCard_V3
+import com.example.mamunbingoapp.ui.components.iosElevatedShadow
+import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
+import com.example.mamunbingoapp.core.RoomStatusResolver
+import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 
 @Composable
 fun LiveRoomsScreen(
@@ -283,7 +289,7 @@ fun LiveRoomsScreen(
                 onOpenRoom = { ensureSundayRoom(onEnterRoom) },
             )
             QuickActionsSection(
-                onScanSheet = onScanSheet,
+                onScanSheet = { showScanTypeSheet = true },
                 onHistory = onHistory,
                 onManualEntry = onManualEntry
             )
@@ -296,6 +302,15 @@ fun LiveRoomsScreen(
         }
         }
     )
+    if (showScanTypeSheet) {
+        ScanTypeSelectionSheet(
+            onDismiss = { showScanTypeSheet = false },
+            onScanTypeSelected = { type ->
+                showScanTypeSheet = false
+                onLaunchCamera(type)
+            },
+        )
+    }
     }
 
     if (showAddOptionsSheet) {

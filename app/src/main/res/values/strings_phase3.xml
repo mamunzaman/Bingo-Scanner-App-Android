@@ -43,6 +43,11 @@
     <string name="ticket_detail_snackbar_add_failed">Could not add ticket</string>
     <string name="ticket_detail_snackbar_moved">Ticket moved to room</string>
     <string name="ticket_detail_snackbar_move_failed">Could not move ticket</string>
+    <string name="ticket_play_log_title">Play history</string>
+    <string name="ticket_play_log_room">Room: %1$s</string>
+    <string name="ticket_play_log_added">Added: %1$s</string>
+    <string name="ticket_play_log_played">Played: %1$s</string>
+    <string name="ticket_play_log_result_marked">%1$d marked</string>
 
     <!-- Ticket QR dialog -->
     <string name="ticket_qr_title">Ticket QR</string>

@@ -9,6 +9,7 @@ import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.LiveRoom
+import com.example.mamunbingoapp.data.TicketPlayLogRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.ui.model.SheetStatus
@@ -144,8 +145,9 @@ class HistoryViewModel : ViewModel() {
             TicketRepository.cellsByTicketFlow()
         ) { markedCountsByTicket, cellsByTicket ->
             HistoryMarkedCellsBundle(markedCountsByTicket, cellsByTicket)
-        }
-    ) { core, called, markedBundle ->
+        },
+        TicketPlayLogRepository.observeLatestCalledNumbersByTicket(),
+    ) { core, called, markedBundle, archivedCalledByTicket ->
         val sessionsList = core.sessionsList
         val ticketToRoom = core.ticketToRoom
         val rooms = core.rooms
@@ -156,15 +158,19 @@ class HistoryViewModel : ViewModel() {
         sessionsList.map { session ->
             val roomId = ticketToRoom[session.id]
             val roomName = roomId?.let { id -> rooms.find { it.roomId == id }?.name }
+            val archivedCalled = archivedCalledByTicket[session.id].orEmpty()
             val resolvedCalledCount = if (roomId != null) {
                 calledCountsByRoom[roomId] ?: session.calledNumbersFull.size
             } else {
-                session.calledNumbersFull.size
+                archivedCalled.size.takeIf { it > 0 } ?: session.calledNumbersFull.size
             }
             val resolvedMarkedCount = markedCountsByTicket[session.ticketId]
                 ?: session.sheetsPlayed.firstOrNull()?.markedCount ?: 0
             val cells = cellsByTicket[session.ticketId] ?: emptyList()
-            val calledNumbers = (roomId?.let { calledNumbersByRoom[it] } ?: session.calledNumbersFull).toSet()
+            val calledNumbers = (
+                roomId?.let { calledNumbersByRoom[it] }
+                    ?: archivedCalled.ifEmpty { session.calledNumbersFull }
+                ).toSet()
             val resolvedMarkedCells = List(25) { i ->
                 val cell = cells.getOrNull(i)
                 val num = cell?.value?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()

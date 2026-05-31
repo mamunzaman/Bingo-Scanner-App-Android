@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         RoomCalledNumberEntity::class,
         RoomSettingsEntity::class,
         TicketEntity::class,
-        TicketCellEntity::class
+        TicketCellEntity::class,
+        TicketPlayLogEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,4 +22,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun roomCalledNumberDao(): RoomCalledNumberDao
     abstract fun roomSettingsDao(): RoomSettingsDao
     abstract fun ticketDao(): TicketDao
+    abstract fun ticketPlayLogDao(): TicketPlayLogDao
 }

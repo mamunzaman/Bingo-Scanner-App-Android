@@ -1,5 +1,6 @@
 package com.example.mamunbingoapp.ui.components
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -62,8 +63,140 @@ import kotlin.math.PI
 // Medium green — visible on both light photo backgrounds and dark overlays.
 private val CrosshairGreen = Color(0xFF2E9B5E)
 
+/** Smooth scan sweep — gentle ease at turn-around points. */
+private val ScanSweepEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+
+/** Grid/corner waypoints — spread across ticket preview (xFrac, yFrac). */
+private val ScanFocusWaypoints = arrayOf(
+    0.14f to 0.16f,
+    0.50f to 0.14f,
+    0.86f to 0.18f,
+    0.74f to 0.36f,
+    0.26f to 0.38f,
+    0.58f to 0.54f,
+    0.16f to 0.60f,
+    0.84f to 0.64f,
+)
+
+private data class ScanFocusMarkerSpec(
+    val phaseOffset: Float,
+    val scale: Float,
+    val alphaScale: Float,
+    val showRing: Boolean,
+)
+
+private fun markerPosition(
+    phase: Float,
+    phaseOffset: Float,
+    width: Float,
+    height: Float,
+    maxYFrac: Float = 0.72f,
+): Offset {
+    val p = (phase + phaseOffset) % 1f
+    val segCount = ScanFocusWaypoints.size
+    val seg = (p * segCount).toInt().coerceIn(0, segCount - 1)
+    val segT = p * segCount - seg
+    val next = (seg + 1) % segCount
+    val xFrac = lerp(ScanFocusWaypoints[seg].first, ScanFocusWaypoints[next].first, segT)
+    val yFrac = lerp(ScanFocusWaypoints[seg].second, ScanFocusWaypoints[next].second, segT)
+        .coerceAtMost(maxYFrac)
+    return Offset(xFrac * width, yFrac * height)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawScanFocusMarker(
+    center: Offset,
+    halfBox: Float,
+    arm: Float,
+    strokeWidth: Float,
+    color: Color,
+    showRing: Boolean,
+    ringPhase: Float,
+) {
+    val cc = color
+    // L-brackets (corner focus)
+    drawLine(cc, Offset(center.x - halfBox, center.y - halfBox), Offset(center.x - halfBox + arm, center.y - halfBox), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x - halfBox, center.y - halfBox), Offset(center.x - halfBox, center.y - halfBox + arm), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x + halfBox - arm, center.y - halfBox), Offset(center.x + halfBox, center.y - halfBox), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x + halfBox, center.y - halfBox), Offset(center.x + halfBox, center.y - halfBox + arm), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x + halfBox, center.y + halfBox - arm), Offset(center.x + halfBox, center.y + halfBox), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x + halfBox, center.y + halfBox), Offset(center.x + halfBox - arm, center.y + halfBox), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x - halfBox + arm, center.y + halfBox), Offset(center.x - halfBox, center.y + halfBox), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x - halfBox, center.y + halfBox), Offset(center.x - halfBox, center.y + halfBox - arm), strokeWidth, cap = StrokeCap.Round)
+
+    val crossLen = halfBox * 0.38f
+    drawLine(cc, Offset(center.x - crossLen, center.y), Offset(center.x + crossLen, center.y), strokeWidth, cap = StrokeCap.Round)
+    drawLine(cc, Offset(center.x, center.y - crossLen), Offset(center.x, center.y + crossLen), strokeWidth, cap = StrokeCap.Round)
+
+    if (showRing) {
+        val ringR = halfBox * 0.78f
+        val dashPhase = ringPhase * (2f * PI.toFloat() * ringR)
+        drawCircle(
+            color = cc.copy(alpha = cc.alpha * 0.30f),
+            radius = ringR,
+            center = center,
+            style = Stroke(
+                width = strokeWidth * 0.65f,
+                pathEffect = PathEffect.dashPathEffect(
+                    floatArrayOf(6.dp.toPx(), 9.dp.toPx()),
+                    dashPhase,
+                ),
+            ),
+        )
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCleanScanSweep(
+    scanProgress: Float,
+    primary: Color,
+) {
+    val w = size.width
+    val h = size.height
+    val insetX = w * 0.08f
+    val lineY = scanProgress * h
+    val beamStroke = 1.75.dp.toPx()
+    val softBandH = 20.dp.toPx()
+
+    // One soft faded band behind the beam (no stacked trail lines)
+    val bandTop = (lineY - softBandH).coerceAtLeast(0f)
+    val bandBottom = lineY.coerceAtMost(h)
+    if (bandBottom > bandTop) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    primary.copy(alpha = 0.06f),
+                    primary.copy(alpha = 0.03f),
+                ),
+                startY = bandTop,
+                endY = bandBottom,
+            ),
+            topLeft = Offset(insetX * 0.6f, bandTop),
+            size = Size(w - insetX * 1.2f, bandBottom - bandTop),
+        )
+    }
+
+    // Single clean rounded scan beam
+    drawLine(
+        brush = Brush.horizontalGradient(
+            colors = listOf(
+                Color.Transparent,
+                CrosshairGreen.copy(alpha = 0.38f),
+                primary.copy(alpha = 0.58f),
+                CrosshairGreen.copy(alpha = 0.38f),
+                Color.Transparent,
+            ),
+            startX = insetX,
+            endX = w - insetX,
+        ),
+        start = Offset(insetX, lineY),
+        end = Offset(w - insetX, lineY),
+        strokeWidth = beamStroke,
+        cap = StrokeCap.Round,
+    )
+}
+
 /**
- * Scanner overlay: vertical scan-line sweep + floating crosshair + scanning rectangle.
+ * Scanner overlay: premium vertical sweep + multi focus markers + scanning rectangle.
  * No text — caller handles labels.
  */
 @Composable
@@ -72,74 +205,53 @@ fun ScanningAnalysisAnimation(modifier: Modifier = Modifier) {
     val inf = rememberInfiniteTransition(label = "scan")
 
     val scanLineProgress by inf.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(4000, easing = LinearEasing), RepeatMode.Restart),
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(4400, easing = ScanSweepEasing),
+            RepeatMode.Reverse,
+        ),
         label = "scanLine",
     )
     val crosshairPhase by inf.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(10_000, easing = LinearEasing), RepeatMode.Restart),
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(11_000, easing = ScanSweepEasing),
+            RepeatMode.Restart,
+        ),
         label = "chPhase",
     )
     val pulseGlow by inf.animateFloat(
-        initialValue = 0.3f, targetValue = 0.88f,
-        animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        initialValue = 0.42f,
+        targetValue = 0.72f,
+        animationSpec = infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "pulse",
     )
     val ringPhase by inf.animateFloat(
-        initialValue = 0f, targetValue = 1f,
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing), RepeatMode.Restart),
         label = "ring",
     )
-    val rectLinePulse by inf.animateFloat(
-        initialValue = 0.15f, targetValue = 0.65f,
-        animationSpec = infiniteRepeatable(tween(1500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "rectLine",
-    )
+
+    val focusMarkers = remember {
+        listOf(
+            ScanFocusMarkerSpec(phaseOffset = 0.80f, scale = 0.46f, alphaScale = 0.20f, showRing = false),
+            ScanFocusMarkerSpec(phaseOffset = 0.60f, scale = 0.50f, alphaScale = 0.26f, showRing = false),
+            ScanFocusMarkerSpec(phaseOffset = 0.40f, scale = 0.54f, alphaScale = 0.30f, showRing = false),
+            ScanFocusMarkerSpec(phaseOffset = 0.20f, scale = 0.58f, alphaScale = 0.36f, showRing = false),
+            ScanFocusMarkerSpec(phaseOffset = 0f, scale = 1f, alphaScale = 0.82f, showRing = true),
+        )
+    }
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
 
-        // ── 1. Vertical scan line sweep ────────────────────────────────────────
-        val scanBarH = 4.dp.toPx()
-        val glowH = 22.dp.toPx()
-        val scanY = scanLineProgress * (h + glowH * 2f) - glowH
-        val scanAlpha = when {
-            scanLineProgress < 0.08f -> (scanLineProgress / 0.08f)
-            scanLineProgress > 0.90f -> ((1f - scanLineProgress) / 0.10f)
-            else -> 1f
-        }.coerceIn(0f, 1f)
+        drawCleanScanSweep(scanLineProgress, primary)
 
-        val glowTop = (scanY - glowH).coerceAtLeast(0f)
-        val glowBottom = (scanY + glowH * 0.3f).coerceIn(glowTop, h)
-        if (glowBottom > glowTop) {
-            drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, primary.copy(alpha = 0.16f * scanAlpha)),
-                    startY = glowTop,
-                    endY = glowBottom,
-                ),
-                topLeft = Offset(0f, glowTop),
-                size = Size(w, glowBottom - glowTop),
-            )
-        }
-        val barTop = (scanY - scanBarH / 2f).coerceIn(0f, h - scanBarH)
-        drawRect(
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    primary.copy(alpha = 0.68f * scanAlpha),
-                    primary.copy(alpha = 0.68f * scanAlpha),
-                    Color.Transparent,
-                ),
-                startX = 0f, endX = w,
-            ),
-            topLeft = Offset(0f, barTop),
-            size = Size(w, scanBarH),
-        )
-
-        // ── 2. Scanning rectangle (top-left zone) ──────────────────────────────
+        // Scanning rectangle (top-left zone — ticket grid hint)
         val rectL = w * 0.10f
         val rectT = h * 0.08f
         val rectW = w * 0.48f
@@ -147,74 +259,39 @@ fun ScanningAnalysisAnimation(modifier: Modifier = Modifier) {
         val rectCr = CornerRadius(8.dp.toPx())
 
         drawRoundRect(
-            color = primary.copy(alpha = 0.06f),
+            color = primary.copy(alpha = 0.04f),
             topLeft = Offset(rectL, rectT),
             size = Size(rectW, rectH),
             cornerRadius = rectCr,
         )
         drawRoundRect(
-            color = primary.copy(alpha = 0.24f),
+            color = primary.copy(alpha = 0.14f),
             topLeft = Offset(rectL, rectT),
             size = Size(rectW, rectH),
             cornerRadius = rectCr,
             style = Stroke(1.dp.toPx()),
         )
-        drawLine(
-            color = primary.copy(alpha = rectLinePulse),
-            start = Offset(rectL + 14.dp.toPx(), rectT + rectH / 2f),
-            end = Offset(rectL + rectW - 14.dp.toPx(), rectT + rectH / 2f),
-            strokeWidth = 1.dp.toPx(),
-        )
 
-        // ── 3. Floating crosshair ──────────────────────────────────────────────
-        // Centre-positions as (xFrac, yFrac) of container — matches HTML float-crosshair keyframes.
-        val wps = arrayOf(
-            0.25f to 0.22f,
-            0.72f to 0.30f,
-            0.42f to 0.65f,
-            0.80f to 0.78f,
-        )
-        val seg = (crosshairPhase * 4).toInt().coerceIn(0, 3)
-        val segT = crosshairPhase * 4f - seg
-        val next = (seg + 1) % 4
-        val chX = lerp(wps[seg].first, wps[next].first, segT) * w
-        val chY = lerp(wps[seg].second, wps[next].second, segT) * h
-
-        val halfBox = 56.dp.toPx()
-        val arm = 14.dp.toPx()
-        val sw = 2.dp.toPx()
-        val cc = CrosshairGreen.copy(alpha = pulseGlow)
-
-        // L-brackets
-        drawLine(cc, Offset(chX - halfBox, chY - halfBox), Offset(chX - halfBox + arm, chY - halfBox), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX - halfBox, chY - halfBox), Offset(chX - halfBox, chY - halfBox + arm), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX + halfBox - arm, chY - halfBox), Offset(chX + halfBox, chY - halfBox), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX + halfBox, chY - halfBox), Offset(chX + halfBox, chY - halfBox + arm), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX + halfBox, chY + halfBox - arm), Offset(chX + halfBox, chY + halfBox), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX + halfBox, chY + halfBox), Offset(chX + halfBox - arm, chY + halfBox), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX - halfBox + arm, chY + halfBox), Offset(chX - halfBox, chY + halfBox), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX - halfBox, chY + halfBox), Offset(chX - halfBox, chY + halfBox - arm), sw, cap = StrokeCap.Round)
-
-        // Centre cross
-        val crossLen = 22.dp.toPx()
-        drawLine(cc, Offset(chX - crossLen, chY), Offset(chX + crossLen, chY), sw, cap = StrokeCap.Round)
-        drawLine(cc, Offset(chX, chY - crossLen), Offset(chX, chY + crossLen), sw, cap = StrokeCap.Round)
-
-        // Rotating dashed ring
-        val ringR = halfBox * 0.80f
-        val dashPhase = ringPhase * (2f * PI.toFloat() * ringR)
-        drawCircle(
-            color = CrosshairGreen.copy(alpha = pulseGlow * 0.42f),
-            radius = ringR,
-            center = Offset(chX, chY),
-            style = Stroke(
-                width = 1.2.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(
-                    floatArrayOf(8.dp.toPx(), 10.dp.toPx()),
-                    dashPhase,
-                ),
-            ),
-        )
+        // 5 focus markers — secondaries drawn first, main marker on top
+        val baseHalfBox = 44.dp.toPx().coerceAtMost(w * 0.14f)
+        val baseArm = 12.dp.toPx()
+        val baseSw = 2.dp.toPx()
+        focusMarkers.forEach { spec ->
+            val center = markerPosition(crosshairPhase, spec.phaseOffset, w, h)
+            val halfBox = baseHalfBox * spec.scale
+            val arm = baseArm * spec.scale
+            val sw = (baseSw * spec.scale).coerceAtLeast(1.dp.toPx())
+            val markerAlpha = pulseGlow * spec.alphaScale
+            drawScanFocusMarker(
+                center = center,
+                halfBox = halfBox,
+                arm = arm,
+                strokeWidth = sw,
+                color = CrosshairGreen.copy(alpha = markerAlpha),
+                showRing = spec.showRing,
+                ringPhase = ringPhase,
+            )
+        }
     }
 }
 

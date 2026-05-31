@@ -257,25 +257,18 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             ProfileRepository.deleteAvatar()
                 .onSuccess { dto ->
                     Log.d(TAG, "avatar delete: oldAvatarUrl=$previousUrl")
-                    clearLocalAvatarUrl()
-                    Log.d(TAG, "avatar delete: local avatarUrl cleared")
-                    applyProfileDto(dto.copy(avatarUrl = null))
                     if (!previousUrl.isNullOrBlank()) {
                         ProfileRepository.evictAvatarFromImageCache(context, previousUrl)
                     }
-                    _profileLoading.value = false
-                    ProfileRepository.loadOrCreateCurrentProfile()
-                        .onSuccess { fresh -> applyProfileDto(fresh.copy(avatarUrl = null)) }
+                    clearLocalAvatarUrl()
+                    applyProfileDto(dto.copy(avatarUrl = null))
                     _uiMessageType.value = AppAuthMessageType.Success
                     _uiMessage.value = app.getString(R.string.profile_success_photo_removed)
                 }
                 .onFailure { error ->
                     showError(error.message ?: app.getString(R.string.profile_error_photo_remove_failed))
-                    _profileLoading.value = false
                 }
-            if (_profileLoading.value) {
-                _profileLoading.value = false
-            }
+            _profileLoading.value = false
         }
     }
 

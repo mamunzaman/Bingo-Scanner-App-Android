@@ -9,14 +9,25 @@ import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketDetailData
+import com.example.mamunbingoapp.data.TicketPlayLogRepository
+import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.ui.components.RoomConflictUi
+import com.example.mamunbingoapp.ui.model.BingoCellUi
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TicketDetailViewModel(
     application: Application,
     savedStateHandle: SavedStateHandle
@@ -27,8 +38,28 @@ class TicketDetailViewModel(
     val state: StateFlow<TicketDetailData?> = _state.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            _state.value = HistoryRepository.getTicketData(ticketId)
+        if (ticketId.isNotBlank()) {
+            combine(
+                TicketRepository.observeTicket(ticketId),
+                TicketRepository.ticketCellsFlow(ticketId),
+                RoomRepository.assignedRoomIdFlow(ticketId),
+                TicketPlayLogRepository.observeForTicket(ticketId),
+            ) { ticket, cells, assignedRoomId, playLogs ->
+                TicketDetailSnapshot(ticket, cells, assignedRoomId, playLogs)
+            }.flatMapLatest { snapshot ->
+                val ticket = snapshot.ticket
+                if (ticket == null) {
+                    flowOf(null)
+                } else if (snapshot.assignedRoomId != null) {
+                    RoomRepository.calledNumbersFlow(snapshot.assignedRoomId).map { called ->
+                        snapshot.toDetailData(called)
+                    }
+                } else {
+                    val archivedCalled = snapshot.playLogs.maxByOrNull { it.archivedAt }?.calledNumbers.orEmpty()
+                    flowOf(snapshot.toDetailData(archivedCalled))
+                }
+            }.onEach { _state.value = it }
+                .launchIn(viewModelScope)
         }
     }
 
@@ -115,5 +146,30 @@ class TicketDetailViewModel(
 
     fun clearPendingNavigate() {
         _pendingNavigateToRoomId.value = null
+    }
+
+    private data class TicketDetailSnapshot(
+        val ticket: com.example.mamunbingoapp.data.db.TicketEntity?,
+        val cells: List<BingoCellUi>,
+        val assignedRoomId: String?,
+        val playLogs: List<com.example.mamunbingoapp.data.TicketPlayLog>,
+    ) {
+        fun toDetailData(calledNumbers: List<Int>): TicketDetailData? {
+            val entity = ticket ?: return null
+            val calledSet = calledNumbers.toSet()
+            val mergedCells = cells.map { cell ->
+                val num = cell.number?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
+                cell.copy(isMarked = (num != null && num in calledSet) || cell.isMarked)
+            }
+            return TicketDetailData(
+                sheetName = entity.sheetName,
+                playedAtMillis = entity.playedAtMillis,
+                cells = mergedCells,
+                calledNumbers = calledNumbers,
+                losNumber = entity.losNumber,
+                serialNumber = entity.serialNumber,
+                playLogs = playLogs,
+            )
+        }
     }
 }

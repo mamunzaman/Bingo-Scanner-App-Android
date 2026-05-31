@@ -481,8 +481,9 @@ private fun TicketRowCard(
         inRoomSuffix,
         actionLabel
     )
-    val serialValue = ticket.id.takeLast(6).uppercase()
-    val losValue = ticket.sessionId.takeLast(6).uppercase()
+    val placeholderDash = stringResource(R.string.common_placeholder_dash)
+    val serialValue = ticket.serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
+    val losValue = ticket.losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
     val markedValue = ticket.status?.takeIf { it.isNotBlank() } ?: "--"
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
     Row(
