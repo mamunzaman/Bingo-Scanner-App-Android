@@ -32,11 +32,7 @@ fun TicketPlayLogSection(
                 .padding(Dimens.spacing16),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing12),
         ) {
-            AppSectionTitle(
-                text = stringResource(R.string.ticket_play_log_title),
-                uppercase = false,
-                usePrimaryColor = false,
-            )
+            AppSectionTitle(text = stringResource(R.string.ticket_play_log_title))
             playLogs.forEachIndexed { index, log ->
                 if (index > 0) {
                     HorizontalDivider(

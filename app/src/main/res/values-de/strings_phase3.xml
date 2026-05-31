@@ -200,6 +200,10 @@
     <string name="live_play_room_conflict_message">Dieses Ticket ist bereits %1$s zugewiesen.</string>
     <string name="live_play_go_to_existing_room">Zum bestehenden Raum</string>
     <string name="live_play_move_to_selected_room">In ausgewählten Raum verschieben</string>
+    <string name="live_play_share_called_numbers_cd">Gerufene Zahlen als Bild teilen</string>
+    <string name="live_play_share_called_numbers_title">BINGO – Gerufene Zahlen</string>
+    <string name="live_play_share_called_numbers_chooser">Gerufene Zahlen teilen</string>
+    <string name="live_play_share_called_numbers_empty">Ruf mindestens eine Zahl, bevor du teilst.</string>
     <string name="live_play_no_numbers_called">Noch keine Zahlen gerufen</string>
     <string name="live_play_called_numbers_hint">Gerufene Zahlen erscheinen hier während des Spiels.</string>
     <string name="live_play_round_complete_all_calls">Runde abgeschlossen — alle Aufrufe angezeigt</string>

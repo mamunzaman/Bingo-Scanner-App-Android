@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +44,7 @@ fun CalledNumbersDetailSheet(
     countPillText: String? = null,
     footerText: String? = null,
     onOverflowMenuClick: (() -> Unit)? = null,
+    onShareCalledNumbers: (() -> Unit)? = null,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val resolvedTitle = title ?: stringResource(R.string.live_play_called_numbers_label)
@@ -64,16 +67,40 @@ fun CalledNumbersDetailSheet(
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                if (onOverflowMenuClick != null) {
-                    IconButton(
-                        onClick = onOverflowMenuClick,
+                if (onShareCalledNumbers != null || onOverflowMenuClick != null) {
+                    Row(
                         modifier = Modifier.align(Alignment.TopEnd),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null,
-                            tint = scheme.onSurfaceVariant,
-                        )
+                        if (onShareCalledNumbers != null) {
+                            val canShare = calledNumbers.isNotEmpty()
+                            IconButton(
+                                onClick = onShareCalledNumbers,
+                                enabled = canShare,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Share,
+                                    contentDescription = stringResource(
+                                        R.string.live_play_share_called_numbers_cd,
+                                    ),
+                                    tint = if (canShare) {
+                                        scheme.primary.copy(alpha = 0.82f)
+                                    } else {
+                                        scheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                    },
+                                )
+                            }
+                        }
+                        if (onOverflowMenuClick != null) {
+                            IconButton(onClick = onOverflowMenuClick) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = null,
+                                    tint = scheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
                 Column(

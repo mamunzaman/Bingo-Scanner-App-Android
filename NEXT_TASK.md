@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA — Jackpot Quick Actions + room list polish.
+**Goal:** Device QA — share called numbers image from Live Play.
 
-**Verify:** Quick Action cards taller/green tint; Join/Sort unchanged; actions still work. `./gradlew :app:assembleDebug` OK.
+**Verify:** Live Play header + called-numbers bottom sheet share (no calls = disabled/snackbar; with calls = PNG share sheet). `./gradlew :app:assembleDebug` OK.
 
 **Previous:** Sunday live lock banner in LivePlayScreen.

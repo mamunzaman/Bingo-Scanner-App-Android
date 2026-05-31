@@ -97,6 +97,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ButtonDefaults
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.SundayBingoSchedule
+import com.example.mamunbingoapp.core.RoomStatusResolver
+import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.ui.components.BingoSessionCard_V3
+import com.example.mamunbingoapp.ui.components.iosElevatedShadow
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.theme.DarkPrimary
@@ -125,8 +130,6 @@ import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
 import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.RoomRepository
-import com.example.mamunbingoapp.domain.model.BingoScanType
-import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import androidx.compose.ui.unit.dp
 
 private val berlinZone: ZoneId = SundayBingoSchedule.berlinZone
@@ -135,19 +138,13 @@ private fun resolveSundayFeaturedRoom(
     rooms: List<RoomWithStats>,
     sundayTitle: String,
 ): RoomWithStats? = rooms.find { it.room.name.equals(sundayTitle, ignoreCase = true) }
-import com.example.mamunbingoapp.ui.components.BingoSessionCard_V3
-import com.example.mamunbingoapp.ui.components.iosElevatedShadow
-import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
-import com.example.mamunbingoapp.core.RoomStatusResolver
-import com.example.mamunbingoapp.domain.model.BingoScanType
-import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 
 @Composable
 fun LiveRoomsScreen(
     onEnterRoom: (String) -> Unit,
     onCreateRoom: (String) -> Unit,
-    onScanSheet: () -> Unit,
-    onLaunchCamera: (BingoScanType) -> Unit = { _ -> onScanSheet() },
+    onScanSheet: (BingoScanType) -> Unit,
+    onLaunchCamera: (BingoScanType) -> Unit = onScanSheet,
     onManualEntry: () -> Unit,
     onHistory: () -> Unit,
     onGoLivePlay: () -> Unit,
@@ -344,16 +341,6 @@ fun LiveRoomsScreen(
         )
     }
 
-    if (showScanTypeSheet) {
-        ScanTypeSelectionSheet(
-            onDismiss = { showScanTypeSheet = false },
-            onScanTypeSelected = { type ->
-                showScanTypeSheet = false
-                onLaunchCamera(type)
-            },
-        )
-    }
-
     MyTicketsBottomSheet(
         visible = showExistingTicketsSheet,
         onDismiss = { showExistingTicketsSheet = false },
@@ -388,7 +375,7 @@ fun LiveRoomsScreen(
         },
         onCreateTicket = {
             showExistingTicketsSheet = false
-            onScanSheet()
+            showScanTypeSheet = true
         },
     )
 }

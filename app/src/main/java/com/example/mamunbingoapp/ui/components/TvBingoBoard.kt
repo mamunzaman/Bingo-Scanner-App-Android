@@ -1,5 +1,10 @@
 package com.example.mamunbingoapp.ui.components
 
+import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
+import android.graphics.Color as AndroidColor
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +34,10 @@ import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
 
 private val BingoColumnLetters = listOf("B", "I", "N", "G", "O")
+
+private const val ShareImageWidthPx = 1080
+private const val ShareBoardGreen: Int = 0xFF4C8C00.toInt()
+private const val ShareBoardFill: Int = 0xFFD9E9B4.toInt()
 private const val MatrixColumnCount = 5
 private val ChipMinSize = 30.dp
 private val ChipMaxSize = 44.dp
@@ -280,3 +289,113 @@ private fun columnKeyForNumber(number: Int): String =
         in 46..60 -> "G"
         else -> "O"
     }
+
+/**
+ * Renders a shareable PNG of the current called-number board (B/I/N/G/O matrix).
+ */
+fun createCalledNumbersShareBitmap(
+    calledNumbers: List<Int>,
+    title: String,
+    timestamp: String,
+): Bitmap {
+    val numbersByColumn = groupCalledNumbersByColumn(calledNumbers)
+    val rowCount = numbersByColumn.values.maxOfOrNull { it.size } ?: 0
+    val padding = 56f
+    val titleSize = 52f
+    val subtitleSize = 30f
+    val headerGap = 36f
+    val chipSize = 76f
+    val rowGap = 18f
+    val colGap = 14f
+    val boardTop = padding + titleSize + subtitleSize + headerGap
+    val boardHeight = chipSize + rowGap + (chipSize + rowGap) * rowCount
+    val height = (boardTop + boardHeight + padding).toInt().coerceAtLeast(720)
+
+    val bitmap = Bitmap.createBitmap(ShareImageWidthPx, height, Bitmap.Config.ARGB_8888)
+    val canvas = AndroidCanvas(bitmap)
+    canvas.drawColor(AndroidColor.WHITE)
+
+    val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.BLACK
+        textSize = titleSize
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
+    val subtitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF616161.toInt()
+        textSize = subtitleSize
+    }
+    canvas.drawText(title, padding, padding + titleSize * 0.82f, titlePaint)
+    canvas.drawText(timestamp, padding, padding + titleSize + subtitleSize * 0.9f, subtitlePaint)
+
+    val columnWidth = (ShareImageWidthPx - padding * 2 - colGap * (MatrixColumnCount - 1)) / MatrixColumnCount
+    var y = boardTop
+
+    BingoColumnLetters.forEachIndexed { columnIndex, letter ->
+        val cx = padding + columnIndex * (columnWidth + colGap) + columnWidth / 2f
+        drawShareLetterChip(canvas, letter, cx, y + chipSize / 2f, chipSize / 2f)
+    }
+    y += chipSize + rowGap
+
+    for (row in 0 until rowCount) {
+        BingoColumnLetters.forEachIndexed { columnIndex, letter ->
+            val number = numbersByColumn[letter]?.getOrNull(row) ?: return@forEachIndexed
+            val cx = padding + columnIndex * (columnWidth + colGap) + columnWidth / 2f
+            val isLatest = tvCallVisualTier(number, calledNumbers) == TvCallVisualTier.Latest
+            drawShareNumberChip(canvas, number, cx, y + chipSize / 2f, chipSize / 2f, isLatest)
+        }
+        y += chipSize + rowGap
+    }
+
+    return bitmap
+}
+
+private fun drawShareLetterChip(canvas: AndroidCanvas, letter: String, cx: Float, cy: Float, radius: Float) {
+    val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ShareBoardGreen }
+    canvas.drawCircle(cx, cy, radius, fillPaint)
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.WHITE
+        textSize = radius * 0.95f
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        textAlign = Paint.Align.CENTER
+    }
+    val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2f
+    canvas.drawText(letter, cx, textY, textPaint)
+}
+
+private fun drawShareNumberChip(
+    canvas: AndroidCanvas,
+    number: Int,
+    cx: Float,
+    cy: Float,
+    radius: Float,
+    isLatest: Boolean,
+) {
+    val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ShareBoardFill }
+    canvas.drawCircle(cx, cy, radius, fillPaint)
+    if (isLatest) {
+        val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = ShareBoardGreen
+            style = Paint.Style.STROKE
+            strokeWidth = radius * 0.14f
+        }
+        canvas.drawCircle(cx, cy, radius - ringPaint.strokeWidth / 2f, ringPaint)
+    } else {
+        val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0x33000000.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+        canvas.drawCircle(cx, cy, radius - 1f, ringPaint)
+    }
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.BLACK
+        textSize = radius * 0.72f
+        typeface = Typeface.create(
+            Typeface.DEFAULT,
+            if (isLatest) Typeface.BOLD else Typeface.NORMAL,
+        )
+        textAlign = Paint.Align.CENTER
+    }
+    val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2f
+    canvas.drawText(number.toString(), cx, textY, textPaint)
+}

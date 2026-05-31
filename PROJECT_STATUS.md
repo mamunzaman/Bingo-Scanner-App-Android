@@ -1,6 +1,12 @@
 # Project status
 
-**Last update:** 2026-05-30 - **Jackpot Quick Actions polish:** Taller green-tint action cards, larger icon container, bolder titles. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Called-numbers sheet share:** Share icon in `CalledNumbersDetailSheet` header; reuses Live Play `onShareCalledNumbers` / PNG helper. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Live Play share called numbers:** Share icon on history card; PNG via `createCalledNumbersShareBitmap` + FileProvider `ACTION_SEND`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Post-merge compile fix:** `AppSectionTitle` API in Ticket Play Log; `LiveRoomsScreen` imports + `onScanSheet(BingoScanType)`; restored `RoomRepository.archiveAndResetRoom`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-30 - **Jackpot Quick Actions polish:** Taller green-tint action cards, larger icon container, bolder titles. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-30 - **Sunday live lock banner:** Prominent warning card + dimmed keypad when locked.
 

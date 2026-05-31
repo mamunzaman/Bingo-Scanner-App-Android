@@ -311,6 +311,48 @@ object RoomRepository {
         scope.launch { ensureSundayFeaturedRoomCallsResetAll() }
     }
 
+    suspend fun archiveAndResetRoom(roomId: String) = withContext(Dispatchers.IO) {
+        db().withTransaction {
+            val room = roomDao().observeRoom(roomId).first() ?: return@withTransaction
+            val roomName = room.name
+            val tickets = ticketDao().observeTickets(roomId).first()
+            val calledNumbers = calledDao().observeCalled(roomId).first().map { it.number }
+            val archivedAt = System.currentTimeMillis()
+            if (tickets.isNotEmpty()) {
+                val playLogs = tickets.map { assignment ->
+                    val cells = mainTicketDao().observeTicketCells(assignment.ticketId).first()
+                        .sortedBy { it.cellIndex }
+                        .map { BingoCellUi(it.value, it.isMarked, false, false, false) }
+                    val cells25 = if (cells.size >= 25) cells else {
+                        cells + List(25 - cells.size.coerceAtMost(25)) {
+                            BingoCellUi(null, false, false, false, false)
+                        }
+                    }
+                    val (markedCount, bingoLineCount) = TicketPlayLogStats.compute(cells25, calledNumbers)
+                    TicketPlayLogEntity(
+                        id = UUID.randomUUID().toString(),
+                        ticketId = assignment.ticketId,
+                        roomId = roomId,
+                        roomName = roomName,
+                        addedAt = assignment.addedAt,
+                        archivedAt = archivedAt,
+                        drawDate = null,
+                        calledNumbersSnapshot = calledNumbers.toCalledNumbersSnapshot(),
+                        markedCount = markedCount,
+                        bingoLineCount = bingoLineCount,
+                    )
+                }
+                playLogDao().insertAll(playLogs)
+            }
+            ticketDao().clearTickets(roomId)
+            calledDao().clearCalled(roomId)
+            val updated = settingsDao().updateArchived(roomId, false)
+            if (updated == 0) {
+                settingsDao().upsertSettings(RoomSettingsEntity(roomId = roomId, isArchived = false))
+            }
+        }
+    }
+
     fun clearRoomTickets(roomId: String) {
         scope.launch { ticketDao().clearTickets(roomId) }
     }

@@ -200,6 +200,10 @@
     <string name="live_play_room_conflict_message">This ticket is already assigned to %1$s.</string>
     <string name="live_play_go_to_existing_room">Go to existing room</string>
     <string name="live_play_move_to_selected_room">Move to selected room</string>
+    <string name="live_play_share_called_numbers_cd">Share called numbers as image</string>
+    <string name="live_play_share_called_numbers_title">BINGO Called Numbers</string>
+    <string name="live_play_share_called_numbers_chooser">Share called numbers</string>
+    <string name="live_play_share_called_numbers_empty">Call at least one number before sharing.</string>
     <string name="live_play_no_numbers_called">No numbers called yet</string>
     <string name="live_play_called_numbers_hint">Called numbers will appear here during the game.</string>
     <string name="live_play_round_complete_all_calls">Round complete — all calls shown</string>

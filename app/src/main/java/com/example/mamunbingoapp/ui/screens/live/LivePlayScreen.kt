@@ -163,7 +163,12 @@ import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
 import com.example.mamunbingoapp.ui.components.qr.TicketQrDialog
 import com.example.mamunbingoapp.ui.components.qr.cellsToQrGrid5x5
+import android.content.Intent
 import android.graphics.Bitmap
+import androidx.core.content.FileProvider
+import com.example.mamunbingoapp.ui.components.createCalledNumbersShareBitmap
+import java.io.File
+import java.io.FileOutputStream
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.mamunbingoapp.theme.Dimens
@@ -308,6 +313,19 @@ fun LivePlayScreen(
     val newRoundSnackbarMessage = stringResource(R.string.live_play_snackbar_new_round)
     val removedFromRoomSnackbarMessage = stringResource(R.string.history_snackbar_removed_from_room)
     val deletedFromHistorySnackbarMessage = stringResource(R.string.history_snackbar_deleted)
+    val shareCalledNumbersEmptyMessage = stringResource(R.string.live_play_share_called_numbers_empty)
+    val onShareCalledNumbers: () -> Unit = {
+        if (calledNumbers.isEmpty()) {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    shareCalledNumbersEmptyMessage,
+                    duration = SnackbarDuration.Short,
+                )
+            }
+        } else {
+            shareCalledNumbersImage(context, calledNumbers)
+        }
+    }
     val keepScreenOnDuringGame by SettingsRepository.keepScreenOnDuringGameFlow
         .collectAsStateWithLifecycle(initialValue = true)
     DisposableEffect(keepScreenOnDuringGame) {
@@ -699,6 +717,7 @@ fun LivePlayScreen(
                                     ),
                                     isCallLimitReached = isCallLimitReached,
                                     onOpenCalledNumbers = { showCalledNumbersSheet = true },
+                                    onShareCalledNumbers = onShareCalledNumbers,
                                     lastCalled = lastCalled,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -769,6 +788,7 @@ fun LivePlayScreen(
                         ),
                         isCallLimitReached = isCallLimitReached,
                         onOpenCalledNumbers = { showCalledNumbersSheet = true },
+                        onShareCalledNumbers = onShareCalledNumbers,
                         lastCalled = lastCalled,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -810,6 +830,7 @@ fun LivePlayScreen(
         CalledNumbersDetailSheet(
             onDismiss = { showCalledNumbersSheet = false },
             calledNumbers = calledNumbers,
+            onShareCalledNumbers = onShareCalledNumbers,
         )
     }
     }
@@ -2682,6 +2703,33 @@ private fun LiveResetCalledNumbersDialog(
             }
         }
     }
+}
+
+private fun shareCalledNumbersImage(
+    context: android.content.Context,
+    calledNumbers: List<Int>,
+) {
+    val title = context.getString(R.string.live_play_share_called_numbers_title)
+    val timestamp = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
+    val bitmap = createCalledNumbersShareBitmap(calledNumbers, title, timestamp)
+    val shareDir = File(context.cacheDir, "share").apply { mkdirs() }
+    val file = File(shareDir, "called_numbers.png")
+    FileOutputStream(file).use { out ->
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+    }
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(
+        Intent.createChooser(intent, context.getString(R.string.live_play_share_called_numbers_chooser)),
+    )
 }
 
 @Preview(showBackground = true)
