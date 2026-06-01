@@ -48,7 +48,10 @@ object Dimens {
     val screenHorizontalPadding = spacing16
     val topBarHeight = 64.dp
 
-    /** Hairlines / borders (outlineVariant); matches info rows & cards */
-    const val outlineDividerAlpha = 0.28f
-    const val outlineBorderAlpha = 0.34f
+    /**
+     * Divider/border opacity on outlineVariant — delegates to [AppAlpha] (canonical source).
+     * Names retained for backward compatibility at existing call sites.
+     */
+    const val outlineDividerAlpha = AppAlpha.AlphaDivider
+    const val outlineBorderAlpha = AppAlpha.AlphaBorder
 }
