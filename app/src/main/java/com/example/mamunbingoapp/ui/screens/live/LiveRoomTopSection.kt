@@ -99,6 +99,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
+import com.example.mamunbingoapp.theme.AppAlpha
 import com.example.mamunbingoapp.theme.Background
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.LiveFonts
@@ -117,7 +118,7 @@ private object NewVariantSpacing {
     val footerPaddingTop = Dimens.spacing12
     val footerPaddingBottom = Dimens.spacing12
     val dividerThickness = Dimens.cardBorderDefault
-    val dividerAlpha = 0.45f
+    val dividerAlpha = AppAlpha.AlphaBorderStrong
     val compactThreshold = 140.dp
     val compactTopPaddingV = Dimens.spacing4
     val compactCenterPaddingV = Dimens.spacing4
@@ -1351,7 +1352,7 @@ fun LiveRoomWithHistoryCard(
         color = colorScheme.surface,
         border = BorderStroke(
             Dimens.cardBorderDefault,
-            colorScheme.outlineVariant.copy(alpha = 0.28f)
+            colorScheme.outlineVariant.copy(alpha = AppAlpha.AlphaDivider)
         ),
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
@@ -1616,7 +1617,7 @@ private fun GreenCardCompact(
         modifier = modifier.fillMaxWidth(),
         color = colorScheme.surface,
         shape = RoundedCornerShape(0.dp),
-        border = BorderStroke(Dimens.cardBorderDefault, colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(Dimens.cardBorderDefault, colorScheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorderStrong)),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
@@ -1641,7 +1642,7 @@ private fun GreenCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Dimens.radiusXL),
         color = colorScheme.surface,
-        border = BorderStroke(Dimens.cardBorderDefault, colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(Dimens.cardBorderDefault, colorScheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorderStrong)),
         shadowElevation = 0.dp,
         tonalElevation = 0.dp
     ) {

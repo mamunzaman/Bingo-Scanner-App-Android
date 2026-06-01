@@ -1,10 +1,12 @@
 ﻿# Next task
 
-**Goal:** Supabase: deploy `scrape-bingo`, invoke once, confirm `scraper_logs` + `bingo_draws.updated_at` (see `supabase/README.md`).
+**Goal:** Alpha Phase 4B — tokenize disabled / text / scrim alphas (not divider/border); start with highest-drift screens from audit.
 
-**Verify:** Cron scheduled; Home jackpot matches DB after cold start.
+**Verify:** `./gradlew :app:assembleDebug`; spot-check Live Play + Settings unchanged aside from intended divider tweaks.
 
-**Previous:** `supabase/README.md` — deploy, env vars, SQL checks, cron; `.env.local` gitignored.
+**Previous:** **AppAlpha Phase 4A** — `AlphaDivider` / `AlphaBorder` / `AlphaBorderStrong`; migrated `AppInsetDivider`, `HistorySheetCard`, `SettingsScreen`, `LiveRoomTopSection`. Build OK.
+
+**Previous:** Supabase `scrape-bingo` deploy + cron (see `supabase/README.md`).
 
 **Verify:** Live Play — top scan + create icons; Quick Actions 4 tiles (incl. Archived); horizontal scroll on narrow width. `./gradlew :app:assembleDebug` OK.
 

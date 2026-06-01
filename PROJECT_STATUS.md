@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Live Rooms UI polish:** Top bar scan + create icons; Archived Games in Quick Actions row (4 tiles). `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **AppAlpha Phase 4A:** `theme/AppAlpha.kt` (`AlphaDivider` 0.28, `AlphaBorder` 0.34, `AlphaBorderStrong` 0.45); divider/border migration in `AppInsetDivider`, `HistorySheetCard`, `SettingsScreen`, `LiveRoomTopSection`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Live Rooms UI polish:** Top bar scan + create icons; Archived Games in Quick Actions row (4 tiles). `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **Nav label Jackpot → Live Play:** `tab_jackpot` + `live_nav_title` (EN/DE); `AppTab.Jackpot` / routes unchanged. `./gradlew :app:assembleDebug` OK.
 

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.core.BingoPlayableNumbers
+import com.example.mamunbingoapp.theme.AppAlpha
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.theme.Primary
@@ -99,8 +100,8 @@ fun HistorySheetCard(
     val cs = MaterialTheme.colorScheme
     val borderColor = when {
         selectionMode && selected -> cs.primary.copy(alpha = 0.55f)
-        inRoom -> cs.primary.copy(alpha = 0.45f)
-        else -> cs.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
+        inRoom -> cs.primary.copy(alpha = AppAlpha.AlphaBorderStrong)
+        else -> cs.outlineVariant.copy(alpha = AppAlpha.AlphaBorder)
     }
     val selectedTintBg: Modifier = if (selectionMode && selected) {
         Modifier.background(cs.primaryContainer.copy(alpha = 0.10f))

@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
+import com.example.mamunbingoapp.theme.AppAlpha
 
 /**
  * Full-width divider with optional leading/trailing inset (e.g. align with row text past an icon tile).
@@ -18,7 +19,7 @@ fun AppInsetDivider(
     startInset: Dp = 0.dp,
     endInset: Dp = 0.dp,
     thickness: Dp = 1.dp,
-    color: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+    color: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = AppAlpha.AlphaDivider),
 ) {
     HorizontalDivider(
         modifier = modifier.padding(start = startInset, end = endInset),

@@ -194,10 +194,7 @@ fun SettingsScreen(
                     onClick = { themeViewModel.setThemeMode(ThemeMode.SYSTEM) },
                     groupedInCard = true,
                 )
-                AppInsetDivider(
-                    startInset = settingsInsetDividerStart,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
-                )
+                AppInsetDivider(startInset = settingsInsetDividerStart)
                 SettingsThemeRow(
                     icon = Icons.Default.LightMode,
                     title = stringResource(R.string.settings_theme_light),
@@ -205,10 +202,7 @@ fun SettingsScreen(
                     onClick = { themeViewModel.setThemeMode(ThemeMode.LIGHT) },
                     groupedInCard = true,
                 )
-                AppInsetDivider(
-                    startInset = settingsInsetDividerStart,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
-                )
+                AppInsetDivider(startInset = settingsInsetDividerStart)
                 SettingsThemeRow(
                     icon = Icons.Default.DarkMode,
                     title = stringResource(R.string.settings_theme_dark),
@@ -216,10 +210,7 @@ fun SettingsScreen(
                     onClick = { themeViewModel.setThemeMode(ThemeMode.DARK) },
                     groupedInCard = true,
                 )
-                AppInsetDivider(
-                    startInset = settingsInsetDividerStart,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
-                )
+                AppInsetDivider(startInset = settingsInsetDividerStart)
                 SettingsLanguageRow(
                     selectedLanguage = appLanguage,
                     onLanguageSelected = appLanguageViewModel::setAppLanguage,
@@ -236,10 +227,7 @@ fun SettingsScreen(
                     groupedInCard = true,
                     comingSoon = true,
                 )
-                AppInsetDivider(
-                    startInset = settingsInsetDividerStart,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
-                )
+                AppInsetDivider(startInset = settingsInsetDividerStart)
                 SettingsToggleRow(
                     icon = Icons.Default.Alarm,
                     title = stringResource(R.string.settings_daily_reminders),
@@ -259,10 +247,7 @@ fun SettingsScreen(
                     groupedInCard = true,
                     comingSoon = true,
                 )
-                AppInsetDivider(
-                    startInset = settingsInsetDividerStart,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
-                )
+                AppInsetDivider(startInset = settingsInsetDividerStart)
                 SettingsNavRow(
                     icon = Icons.Default.Lock,
                     title = stringResource(R.string.settings_change_password),
