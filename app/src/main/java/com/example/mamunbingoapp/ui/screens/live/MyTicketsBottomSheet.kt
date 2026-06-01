@@ -55,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -88,6 +89,7 @@ import com.example.mamunbingoapp.ui.components.common.SearchFilterSortHeader
 import com.example.mamunbingoapp.ui.components.common.SearchHeaderVariant
 import com.example.mamunbingoapp.ui.model.TicketUiModel
 import com.example.mamunbingoapp.data.RoomRepository
+import kotlinx.coroutines.flow.flowOf
 import com.example.mamunbingoapp.viewmodel.MyTicketsViewModel
 import com.example.mamunbingoapp.viewmodel.TicketFilter
 import com.example.mamunbingoapp.viewmodel.TicketSort
@@ -106,6 +108,7 @@ fun MyTicketsBottomSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
     roomId: String = "",
+    roomTicketIds: Set<String> = emptySet(),
     onAddToRoom: (String) -> Unit = {},
     onGoLive: (String) -> Unit,
     onCreateTicket: () -> Unit,
@@ -117,6 +120,7 @@ fun MyTicketsBottomSheet(
     emptyCtaRes: Int = R.string.live_play_create_new_ticket,
 ) {
     if (!visible) return
+    val pickerVm: MyTicketsViewModel = viewModel(key = "live_my_tickets_${roomId.ifBlank { "none" }}")
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val config = LocalConfiguration.current
@@ -136,12 +140,14 @@ fun MyTicketsBottomSheet(
                 .imePadding()
         ) {
             TicketsBottomSheetContent(
+                vm = pickerVm,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(sheetHeight)
                     .padding(horizontal = Dimens.spacing24)
                     .padding(top = Dimens.spacing24),
                 roomId = roomId,
+                roomTicketIds = roomTicketIds,
                 emptyTitleRes = emptyTitleRes,
                 emptySubtitleRes = emptySubtitleRes,
                 emptyCtaRes = emptyCtaRes,
@@ -171,8 +177,10 @@ fun MyTicketsBottomSheet(
 
 @Composable
 private fun TicketsBottomSheetContent(
+    vm: MyTicketsViewModel,
     modifier: Modifier = Modifier,
     roomId: String = "",
+    roomTicketIds: Set<String> = emptySet(),
     emptyTitleRes: Int = R.string.live_play_no_tickets_title,
     emptySubtitleRes: Int = R.string.live_play_no_tickets_subtitle,
     emptyCtaRes: Int = R.string.live_play_create_new_ticket,
@@ -193,13 +201,28 @@ private fun TicketsBottomSheetContent(
     val removedSnackbarMessage = stringResource(R.string.history_snackbar_removed_from_room)
     val deletedSnackbarMessage = stringResource(R.string.history_snackbar_deleted)
     val addedSnackbarMessage = stringResource(R.string.live_play_snackbar_added_to_room)
-    val vm: MyTicketsViewModel = viewModel()
-    LaunchedEffect(roomId) { vm.setRoomId(roomId) }
+    val repoRoomTicketIds by remember(roomId) {
+        if (roomId.isBlank()) flowOf(emptyList()) else RoomRepository.roomTicketsFlow(roomId)
+    }.collectAsState(initial = emptyList())
+    val rawRoomOccupantIds = remember(roomTicketIds, repoRoomTicketIds, roomId) {
+        if (roomId.isBlank()) emptySet()
+        else roomTicketIds + repoRoomTicketIds.toSet()
+    }
+    SideEffect {
+        vm.setRoomId(roomId)
+        vm.setRoomOccupantIds(rawRoomOccupantIds)
+    }
     val query by vm.query.collectAsState()
     val selectedFilter by vm.selectedFilter.collectAsState()
     val selectedSort by vm.selectedSort.collectAsState()
     val filtered by vm.filteredTickets.collectAsState()
     val filterCounts by vm.filterCounts.collectAsState()
+    val allPickerTickets by vm.allPickerTickets.collectAsState()
+    val availablePickerTickets by vm.availablePickerTickets.collectAsState()
+    // No unassigned sheets left (all in this or another live room).
+    val allTicketsAlreadyInRoom = roomId.isNotBlank() &&
+        allPickerTickets.isNotEmpty() &&
+        availablePickerTickets.isEmpty()
     val sortNewestLabel = stringResource(R.string.history_sort_newest)
     val sortOldestLabel = stringResource(R.string.history_sort_oldest)
     val sortNameAzLabel = stringResource(R.string.history_sort_name_az)
@@ -315,9 +338,18 @@ private fun TicketsBottomSheetContent(
             ) {
                 TicketsEmptyState(
                     modifier = Modifier.fillMaxSize(),
-                    titleRes = emptyTitleRes,
-                    subtitleRes = emptySubtitleRes,
+                    titleRes = if (allTicketsAlreadyInRoom) {
+                        R.string.live_play_all_tickets_in_room_title
+                    } else {
+                        emptyTitleRes
+                    },
+                    subtitleRes = if (allTicketsAlreadyInRoom) {
+                        R.string.live_play_all_tickets_in_room_subtitle
+                    } else {
+                        emptySubtitleRes
+                    },
                     ctaRes = emptyCtaRes,
+                    showCreateCta = !allTicketsAlreadyInRoom,
                     onCreateTicket = onCreateTicket,
                 )
             }
@@ -647,6 +679,7 @@ private fun TicketsEmptyState(
     titleRes: Int = R.string.live_play_no_tickets_title,
     subtitleRes: Int = R.string.live_play_no_tickets_subtitle,
     ctaRes: Int = R.string.live_play_create_new_ticket,
+    showCreateCta: Boolean = true,
     onCreateTicket: () -> Unit,
 ) {
     Column(
@@ -662,19 +695,21 @@ private fun TicketsEmptyState(
             subtitle = stringResource(subtitleRes),
             modifier = Modifier.fillMaxWidth()
         )
-        AppPrimaryButton(
-            text = stringResource(ctaRes),
-            onClick = onCreateTicket,
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimens.iconCompact),
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        )
+        if (showCreateCta) {
+            AppPrimaryButton(
+                text = stringResource(ctaRes),
+                onClick = onCreateTicket,
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.iconCompact),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                },
+            )
+        }
     }
 }
 

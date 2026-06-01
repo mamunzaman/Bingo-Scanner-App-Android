@@ -1,6 +1,10 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Live Play list rows match History:** `ListSheetRow` uses `ActiveTicketCompactSheetPreview` + `ActiveTicketLosSerieRow`; `AppSectionSurface`; marked cells in grid. Carousel/sheet detail unchanged. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **My Tickets one-sheet-per-room:** Picker hides tickets assigned to any live room (`assignedRoomId` + global `room_tickets` ids); current-room fallback kept. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **My Tickets add sheet:** Hides tickets already in current room; filter counts on available pool. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Live Play list rows match History:** `ListSheetRow` uses `ActiveTicketCompactSheetPreview` + `ActiveTicketLosSerieRow`; carousel/sheet detail unchanged. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **History cards match Active Ticket:** B–O mini grid, sheet name, LOS/SERIE row, room + date rows; removed SERIAL/LOS/MARKED strip. `./gradlew :app:assembleDebug` OK.
 

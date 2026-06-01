@@ -169,6 +169,8 @@
     <string name="live_play_room_prefix">Raum: %1$s</string>
     <string name="live_play_snackbar_added_to_room">Zum Raum hinzugefügt</string>
     <string name="live_play_no_tickets_title">Keine Tickets gefunden</string>
+    <string name="live_play_all_tickets_in_room_title">Alle Tickets sind diesem Raum bereits hinzugefügt.</string>
+    <string name="live_play_all_tickets_in_room_subtitle">Erstelle ein neues Ticket oder entferne eines aus dem Raum, um ein weiteres hinzuzufügen.</string>
     <string name="live_play_no_tickets_subtitle">Erstelle ein Ticket, um es zu diesem Raum hinzuzufügen oder live zu spielen.</string>
     <string name="live_play_create_new_ticket">Neues Ticket erstellen</string>
     <string name="live_play_a11y_ticket_in_room">, in %1$s</string>

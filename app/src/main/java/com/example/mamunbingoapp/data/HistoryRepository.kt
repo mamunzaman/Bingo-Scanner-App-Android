@@ -63,7 +63,7 @@ object HistoryRepository {
             val ticketToRoom = RoomRepository.ticketToRoomFlow().first()
             _sessionsFlow.value.map { session ->
                 val ticketId = session.ticketId
-                val assignedRoomId = ticketToRoom[ticketId]
+                val assignedRoomId = ticketToRoom[ticketId] ?: ticketToRoom[session.id]
                 com.example.mamunbingoapp.ui.model.TicketUiModel(
                     id = ticketId,
                     sessionId = session.id,
@@ -81,7 +81,7 @@ object HistoryRepository {
         combine(_sessionsFlow, RoomRepository.ticketToRoomFlow()) { sessions, ticketToRoom ->
             sessions.map { session ->
                 val ticketId = session.ticketId
-                val assignedRoomId = ticketToRoom[ticketId]
+                val assignedRoomId = ticketToRoom[ticketId] ?: ticketToRoom[session.id]
                 com.example.mamunbingoapp.ui.model.TicketUiModel(
                     id = ticketId,
                     sessionId = session.id,

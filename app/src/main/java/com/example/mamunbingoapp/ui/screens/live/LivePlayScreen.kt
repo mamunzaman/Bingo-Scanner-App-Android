@@ -642,6 +642,7 @@ fun LivePlayScreen(
             visible = isMyTicketsSheetOpen,
             onDismiss = { isMyTicketsSheetOpen = false },
             roomId = roomId,
+            roomTicketIds = displaySheets.map { it.ticketId }.toSet(),
             onAddToRoom = { sessionId ->
                 isMyTicketsSheetOpen = false
                 onAddToRoom(sessionId)

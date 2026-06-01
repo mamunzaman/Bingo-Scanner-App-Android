@@ -171,6 +171,8 @@
     <string name="live_play_snackbar_added_to_room">Added to room</string>
     <string name="live_play_no_tickets_title">No tickets found</string>
     <string name="live_play_no_tickets_subtitle">Create a ticket to add to this room or go live.</string>
+    <string name="live_play_all_tickets_in_room_title">All tickets are already added to this room.</string>
+    <string name="live_play_all_tickets_in_room_subtitle">Create a new ticket or remove one from the room to add another.</string>
     <string name="live_play_create_new_ticket">Create New Ticket</string>
     <string name="live_play_a11y_ticket_in_room">, in %1$s</string>
     <string name="live_play_a11y_ticket_summary">%1$s, %2$s%3$s. %4$s button.</string>

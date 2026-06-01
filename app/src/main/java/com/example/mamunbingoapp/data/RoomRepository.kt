@@ -113,6 +113,7 @@ object RoomRepository {
         }
     }
 
+    /** Every [room_tickets.ticketId] across all rooms — used by My Tickets picker (one sheet per room). */
     fun liveTicketIdsFlow(): Flow<Set<String>> =
         ticketDao().observeAllTickets().map { list -> list.map { it.ticketId }.toSet() } 
 
@@ -519,8 +520,8 @@ object RoomRepository {
         demoRooms.forEach { room ->
             roomDao().upsertRoom(LiveRoomEntity(room.roomId, room.name, room.createdAt, room.createdAt))
             settingsDao().upsertSettings(RoomSettingsEntity(roomId = room.roomId))
-            ticketDao().addTicket(RoomTicketEntity(room.roomId, DemoDataFactory.SESSION_1))
-            ticketDao().addTicket(RoomTicketEntity(room.roomId, DemoDataFactory.SESSION_2))
+            ticketDao().addTicket(RoomTicketEntity(room.roomId, DemoDataFactory.TICKET_1))
+            ticketDao().addTicket(RoomTicketEntity(room.roomId, DemoDataFactory.TICKET_2))
         }
         DemoDataFactory.createDemoCalledNumbers().forEach { n ->
             calledDao().insertCalled(RoomCalledNumberEntity(DemoDataFactory.ROOM_1, n))

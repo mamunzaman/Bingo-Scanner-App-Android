@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.data.HistoryRepository
+import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.ui.model.TicketUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,7 +54,11 @@ class MyTicketsViewModel : ViewModel() {
     val selectedFilter: StateFlow<TicketFilter> = _selectedFilter.asStateFlow()
     val selectedSort: StateFlow<TicketSort> = _selectedSort.asStateFlow()
 
+    /** Ticket/session ids in the current room — extra fallback if [ticketToRoomFlow] lags (legacy row ids). */
+    private val _currentRoomOccupantIds = MutableStateFlow<Set<String>>(emptySet())
+
     fun setRoomId(roomId: String) { _roomId.value = roomId }
+    fun setRoomOccupantIds(ids: Set<String>) { _currentRoomOccupantIds.value = ids }
     fun setQuery(s: String) { _query.value = s }
     fun setFilter(option: TicketFilter) { _selectedFilter.value = option }
     fun setSort(option: TicketSort) { _selectedSort.value = option }
@@ -62,7 +67,42 @@ class MyTicketsViewModel : ViewModel() {
         HistoryRepository.ticketsForPickerFlow(id.ifBlank { null })
     }
 
-    val filterCounts: StateFlow<Map<String, Int>> = ticketsFlow.map { list ->
+    private val expandedCurrentRoomOccupantIds = combine(ticketsFlow, _currentRoomOccupantIds) { tickets, raw ->
+        expandRoomOccupantIds(raw, tickets)
+    }
+
+    /** All ticket ids assigned to any live room ([room_tickets]), expanded for legacy session/ticket id pairs. */
+    private val expandedAllRoomOccupantIds = combine(
+        ticketsFlow,
+        RoomRepository.liveTicketIdsFlow(),
+    ) { tickets, allRoomTicketIds ->
+        expandRoomOccupantIds(allRoomTicketIds, tickets)
+    }
+
+    /** One bingo sheet → one room: only tickets with no room assignment are addable. */
+    private val availableTicketsFlow = combine(
+        ticketsFlow,
+        expandedCurrentRoomOccupantIds,
+        expandedAllRoomOccupantIds,
+    ) { tickets, currentRoomOccupantIds, allRoomOccupantIds ->
+        tickets.filter { ticket ->
+            !ticket.shouldHideFromPicker(currentRoomOccupantIds, allRoomOccupantIds)
+        }
+    }
+
+    val allPickerTickets: StateFlow<List<TicketUiModel>> = ticketsFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
+
+    val availablePickerTickets: StateFlow<List<TicketUiModel>> = availableTicketsFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList(),
+    )
+
+    val filterCounts: StateFlow<Map<String, Int>> = availableTicketsFlow.map { list ->
         mapOf(
             "All" to list.size,
             "Today" to list.count { it.createdAt.isToday() },
@@ -75,7 +115,7 @@ class MyTicketsViewModel : ViewModel() {
     )
 
     val filteredTickets: StateFlow<List<TicketUiModel>> = combine(
-        ticketsFlow,
+        availableTicketsFlow,
         _query,
         _selectedFilter,
         _selectedSort
@@ -101,4 +141,39 @@ class MyTicketsViewModel : ViewModel() {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+}
+
+/** Room rows may store [TicketUiModel.id] or legacy [TicketUiModel.sessionId] — match both. */
+internal fun expandRoomOccupantIds(
+    occupantIds: Set<String>,
+    pickerTickets: List<TicketUiModel>,
+): Set<String> {
+    if (occupantIds.isEmpty()) return emptySet()
+    val expanded = occupantIds.toMutableSet()
+    pickerTickets.forEach { ticket ->
+        if (ticket.id in occupantIds || ticket.sessionId in occupantIds) {
+            if (ticket.id.isNotBlank()) expanded.add(ticket.id)
+            if (ticket.sessionId.isNotBlank()) expanded.add(ticket.sessionId)
+        }
+    }
+    return expanded
+}
+
+/**
+ * My Tickets add picker: a sheet may only be assigned to one live room at a time.
+ * Hide if [assignedRoomId] is set, if listed under any room in [room_tickets], or if listed
+ * under the current room occupant fallback (legacy id shapes).
+ */
+private fun TicketUiModel.shouldHideFromPicker(
+    currentRoomOccupantIds: Set<String>,
+    allRoomOccupantIds: Set<String>,
+): Boolean {
+    if (!assignedRoomId.isNullOrBlank()) return true
+    if (id in allRoomOccupantIds || sessionId in allRoomOccupantIds) return true
+    if (currentRoomOccupantIds.isNotEmpty() &&
+        (id in currentRoomOccupantIds || sessionId in currentRoomOccupantIds)
+    ) {
+        return true
+    }
+    return false
 }
