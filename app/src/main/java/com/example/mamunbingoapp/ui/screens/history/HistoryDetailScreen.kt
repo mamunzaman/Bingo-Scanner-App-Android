@@ -217,7 +217,8 @@ fun HistoryDetailScreen(
     onDuplicateSession: (sessionId: String) -> Unit = {},
     onLeaveFromLive: () -> Unit = { onBack() },
     performSoftDelete: suspend () -> Unit = {},
-    onRestoreSession: () -> Unit = {}
+    onRestoreSession: () -> Unit = {},
+    showBottomBar: Boolean = true,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(snackbarMessage) {
@@ -312,6 +313,10 @@ fun HistoryDetailScreen(
     val ticketId = sessionForDisplay.sheetsPlayed.firstOrNull()?.ticketId ?: sessionForDisplay.id
     val roomsViewModel: LiveRoomsViewModel = viewModel()
     val liveRooms by roomsViewModel.rooms.collectAsState()
+    val roomTicketCounts by RoomRepository.roomTicketCountsFlow().collectAsState(initial = emptyMap())
+    val pickerRooms = remember(liveRooms, roomTicketCounts) {
+        RoomRepository.roomsVisibleInRoomPicker(liveRooms, roomTicketCounts)
+    }
     val roomAction = resolveHistoryDetailRoomAction(displayAssignedRoomId)
     val showLiveBadge = displaySheetStatus == SheetStatus.ACTIVE
     val defaultRoomName = stringResource(R.string.live_room_default_name, 1)
@@ -325,7 +330,7 @@ fun HistoryDetailScreen(
 
     if (showRoomPicker) {
         HistoryDetailRoomPickerSheet(
-            rooms = liveRooms,
+            rooms = pickerRooms,
             changingRoom = roomAction == HistoryDetailRoomAction.ChangeRoom,
             currentRoomId = displayAssignedRoomId,
             onRoomSelected = { roomId ->
@@ -642,7 +647,9 @@ fun HistoryDetailScreen(
                         }
                     }
                 }
-                AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
+                if (showBottomBar) {
+                    AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
+                }
             }
         }
     }
@@ -1164,11 +1171,16 @@ private fun HistoryDetailStatCard(
 private fun HistoryDetailNumbersCalledCard(
     calledNumbers: List<Int>,
     isCallLimitReached: Boolean,
+    showLiveFeedTrailing: Boolean = true,
 ) {
     HistoryDetailSectionCard {
         HistoryDetailSectionTitle(
             title = stringResource(R.string.history_detail_numbers_called),
-            trailing = stringResource(R.string.history_detail_live_feed),
+            trailing = if (showLiveFeedTrailing) {
+                stringResource(R.string.history_detail_live_feed)
+            } else {
+                null
+            },
         )
         Spacer(modifier = Modifier.height(Dimens.spacing8))
         CalledHistoryPanel(
@@ -1323,6 +1335,199 @@ private fun HistoryDetailRoomPickerSheet(
                 Text(stringResource(R.string.settings_cancel))
             }
             Spacer(modifier = Modifier.height(Dimens.spacing8))
+        }
+    }
+}
+
+/**
+ * Read-only ticket body (grid + called numbers) shared by archived ticket detail hosts.
+ */
+@Composable
+fun HistoryReadOnlyTicketDetailContent(
+    sheetName: String,
+    sessionRoomLabel: String,
+    archivedAtMillis: Long,
+    losNumber: String?,
+    serialNumber: String?,
+    cells: List<BingoCellUi>?,
+    calledNumbers: List<Int>,
+    createdAtMillis: Long,
+    updatedAtMillis: Long,
+    modifier: Modifier = Modifier,
+) {
+    val timestampFormat = remember {
+        SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault())
+    }
+    val displayCells = cells?.take(25)
+    val markedSetForAlert = remember(displayCells, calledNumbers) {
+        val calledSet = calledNumbers.toSet()
+        displayCells?.mapIndexed { index, cell ->
+            val num = cell.number?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
+            index.takeIf { (num != null && num in calledSet) || cell.isMarked }
+        }?.filterNotNull()?.toSet() ?: emptySet()
+    }
+    val winResult = remember(displayCells, markedSetForAlert) {
+        displayCells?.let { BingoWinChecker.check(markedSetForAlert) }
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(
+            start = Dimens.screenHorizontalPadding,
+            top = Dimens.spacing8,
+            end = Dimens.screenHorizontalPadding,
+            bottom = HistoryDetailBottomContentPadding,
+        ),
+        verticalArrangement = Arrangement.spacedBy(HistoryDetailSectionSpacing),
+    ) {
+        item {
+            HistoryDetailSectionCard {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                ) {
+                    Text(
+                        text = stringResource(R.string.archived_game_detail_archived_pill),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = sheetName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.archived_game_ticket_detail_session,
+                            sessionRoomLabel,
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.archived_game_detail_archived_at,
+                            timestampFormat.format(Date(archivedAtMillis)),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        item {
+            HistoryDetailNumbersCalledCard(
+                calledNumbers = calledNumbers.takeLast(MAX_LIVE_CALLS),
+                isCallLimitReached = calledNumbers.size >= MAX_LIVE_CALLS,
+                showLiveFeedTrailing = false,
+            )
+        }
+        if (winResult != null && winResult.isWin && displayCells != null) {
+            item {
+                BingoWinBanner(
+                    lineCount = winResult.winningLines.size,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        item {
+            HistoryDetailSectionCard(
+                contentPadding = PaddingValues(
+                    start = HistoryDetailCardPadding,
+                    end = HistoryDetailCardPadding,
+                    top = HistoryDetailTicketSectionTopPadding,
+                    bottom = HistoryDetailTicketSectionBottomPadding,
+                ),
+            ) {
+                HistoryDetailGridWithMetaStrip(
+                    losNumber = losNumber,
+                    serialNumber = serialNumber,
+                    cells = displayCells,
+                    winningCells = winResult?.winningCells ?: emptySet(),
+                    createdAtMillis = createdAtMillis,
+                    updatedAtMillis = updatedAtMillis,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Standalone read-only ticket detail (no app bottom navigation). Prefer [HistoryReadOnlyTicketDetailContent]
+ * inside archived full-screen hosts.
+ */
+@Composable
+fun HistoryReadOnlyTicketDetailScreen(
+    onBack: () -> Unit,
+    isLoading: Boolean,
+    notFound: Boolean,
+    sheetName: String,
+    sessionRoomLabel: String,
+    archivedAtMillis: Long,
+    losNumber: String?,
+    serialNumber: String?,
+    cells: List<BingoCellUi>?,
+    calledNumbers: List<Int>,
+    createdAtMillis: Long,
+    updatedAtMillis: Long,
+) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+        ) {
+            AppTopBar(
+                title = stringResource(R.string.archived_game_ticket_detail_title),
+                showBack = true,
+                onBackClick = onBack,
+            )
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
+                }
+                notFound -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.screenHorizontalPadding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.archived_game_ticket_detail_not_found),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                else -> {
+                    HistoryReadOnlyTicketDetailContent(
+                        sheetName = sheetName,
+                        sessionRoomLabel = sessionRoomLabel,
+                        archivedAtMillis = archivedAtMillis,
+                        losNumber = losNumber,
+                        serialNumber = serialNumber,
+                        cells = cells,
+                        calledNumbers = calledNumbers,
+                        createdAtMillis = createdAtMillis,
+                        updatedAtMillis = updatedAtMillis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }

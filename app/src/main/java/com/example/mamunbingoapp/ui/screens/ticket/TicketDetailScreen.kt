@@ -111,6 +111,11 @@ fun TicketDetailScreen(
     val qrImageFailedMessage = stringResource(R.string.history_detail_qr_image_failed)
     val roomsViewModel: LiveRoomsViewModel = viewModel()
     val rooms by roomsViewModel.rooms.collectAsState()
+    val roomTicketCounts by com.example.mamunbingoapp.data.RoomRepository.roomTicketCountsFlow()
+        .collectAsState(initial = emptyMap())
+    val pickerRooms = remember(rooms, roomTicketCounts) {
+        com.example.mamunbingoapp.data.RoomRepository.roomsVisibleInRoomPicker(rooms, roomTicketCounts)
+    }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val isLoadingFlow = viewModel?.isLoading ?: remember { MutableStateFlow(false).asStateFlow() }
@@ -176,7 +181,7 @@ fun TicketDetailScreen(
     }
     if (showRoomPicker) {
         TicketRoomPickerDialog(
-            rooms = rooms,
+            rooms = pickerRooms,
             onRoomSelected = { room ->
                 showRoomPicker = false
                 if (viewModel != null) viewModel.addToRoom(room.roomId)

@@ -207,6 +207,7 @@ fun ManualEntryScreen(
     losNumber: String? = null,
     serialNumber: String? = null,
     initialSheetName: String? = null,
+    showBottomBar: Boolean = true,
     viewModel: ManualEntryViewModel = viewModel()
 ) {
     Log.d(MANUAL_ENTRY_TAG, "ManualEntryScreen composed, scannedNumbers.size=${scannedNumbers.size}")
@@ -215,6 +216,11 @@ fun ManualEntryScreen(
     }
     val state = viewModel.state.collectAsState().value
     val rooms = viewModel.rooms.collectAsState().value
+    val roomTicketCounts by com.example.mamunbingoapp.data.RoomRepository.roomTicketCountsFlow()
+        .collectAsState(initial = emptyMap())
+    val pickerRooms = remember(rooms, roomTicketCounts) {
+        com.example.mamunbingoapp.data.RoomRepository.roomsVisibleInRoomPicker(rooms, roomTicketCounts)
+    }
     val anotherRoomFallback = stringResource(R.string.history_detail_another_room_fallback)
     val partialScanTitle = stringResource(R.string.manual_entry_partial_title)
     val partialScanMessage = stringResource(R.string.manual_entry_partial_message)
@@ -355,7 +361,7 @@ fun ManualEntryScreen(
 
     if (state.isRoomPickerOpen) {
         RoomPickerBottomSheet(
-            rooms = rooms,
+            rooms = pickerRooms,
             onRoomSelected = { roomId -> viewModel.onAction(ManualEntryUiAction.RoomSelected(roomId)) },
             onDismiss = { viewModel.onAction(ManualEntryUiAction.DismissRoomPicker) }
         )
@@ -451,18 +457,20 @@ fun ManualEntryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = { },
         bottomBar = {
-            AppBottomBar(
-                selectedTab = AppTab.Scan,
-                onTabSelected = { tab ->
-                    if (hasEnteredValues) {
-                        Log.d(MANUAL_ENTRY_TAG, "discard dialog shown")
-                        showDiscardDialog = true
-                        pendingNavigateAction = { onBack(); onTabSelected(tab) }
-                    } else {
-                        onTabSelected(tab)
-                    }
-                }
-            )
+            if (showBottomBar) {
+                AppBottomBar(
+                    selectedTab = AppTab.Scan,
+                    onTabSelected = { tab ->
+                        if (hasEnteredValues) {
+                            Log.d(MANUAL_ENTRY_TAG, "discard dialog shown")
+                            showDiscardDialog = true
+                            pendingNavigateAction = { onBack(); onTabSelected(tab) }
+                        } else {
+                            onTabSelected(tab)
+                        }
+                    },
+                )
+            }
         }
     ) { paddingValues ->
         val bottomInsetDp = paddingValues.calculateBottomPadding()

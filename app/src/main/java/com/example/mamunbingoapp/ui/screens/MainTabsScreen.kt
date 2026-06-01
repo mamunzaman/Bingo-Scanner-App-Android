@@ -1,16 +1,12 @@
 package com.example.mamunbingoapp.ui.screens
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.example.mamunbingoapp.domain.model.BingoScanType
-import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.screens.scan.ScanScreen
 import com.example.mamunbingoapp.viewmodel.AccountViewModel
@@ -28,6 +24,7 @@ fun MainTabsScreen(
     onNavigateToManualEntry: () -> Unit,
     onNavigateToManualEntryWithScannedNumbers: (List<Int>) -> Unit = {},
     onNavigateToHistory: () -> Unit,
+    onNavigateToArchivedGames: () -> Unit = {},
     onNavigateToSettings: () -> Unit,
     onNavigateToMyAccount: () -> Unit,
     onNavigateToPaymentMethods: () -> Unit,
@@ -52,16 +49,8 @@ fun MainTabsScreen(
     isProfileRefreshing: Boolean = false,
     onProfileRefresh: () -> Unit = {},
 ) {
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = Color.Transparent,
-        bottomBar = { AppBottomBar(selectedTab = selectedTab, onTabSelected = onTabSelected) }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = paddingValues.calculateBottomPadding())
-        ) {
+    // Bottom navigation is provided by [MainShellScaffold] in NavGraph for all main-graph routes.
+    Column(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
             AppTab.Home -> HomeScreen(
                 onLaunchCamera = onNavigateToBingoLiveCamera,
@@ -96,6 +85,7 @@ fun MainTabsScreen(
                 onLaunchCamera = onNavigateToBingoLiveCamera,
                 onManualEntry = onNavigateToManualEntry,
                 onHistory = onNavigateToHistory,
+                onArchivedGames = onNavigateToArchivedGames,
                 onGoLivePlay = onNavigateToLiveRooms,
                 onTabSelected = onTabSelected,
                 showBottomBar = false
@@ -128,6 +118,5 @@ fun MainTabsScreen(
                 profileMessageType = profileMessageType,
             )
             }
-        }
     }
 }

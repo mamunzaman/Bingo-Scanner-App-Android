@@ -89,6 +89,7 @@ fun HistoryListScreen(
     onBulkDeleteSessions: (Collection<String>) -> Unit = { ids -> ids.forEach { onDeleteSession(it) } },
     onBulkLeaveSessions: (Collection<String>) -> Unit = { ids -> ids.forEach { onLeaveRoom(it) } },
     onBulkAddToRoom: (roomId: String, sessionIds: Collection<String>) -> Unit = { _, _ -> },
+    showBottomBar: Boolean = true,
     viewModel: HistoryViewModel = viewModel()
 ) {
     var selectionMode by remember { mutableStateOf(false) }
@@ -97,6 +98,11 @@ fun HistoryListScreen(
     var showBulkLeaveConfirm by remember { mutableStateOf(false) }
     var showRoomPicker by remember { mutableStateOf(false) }
     val liveRooms by viewModel.liveRooms.collectAsState()
+    val roomTicketCounts by com.example.mamunbingoapp.data.RoomRepository.roomTicketCountsFlow()
+        .collectAsState(initial = emptyMap())
+    val pickerRooms = remember(liveRooms, roomTicketCounts) {
+        com.example.mamunbingoapp.data.RoomRepository.roomsVisibleInRoomPicker(liveRooms, roomTicketCounts)
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val filteredSessions by viewModel.filteredSessions.collectAsState()
@@ -239,7 +245,7 @@ fun HistoryListScreen(
                     onRemoveFromRoomClick = { showBulkLeaveConfirm = true },
                     onDeleteFromHistoryClick = { showBulkDeleteConfirm = true }
                 )
-            } else {
+            } else if (showBottomBar) {
                 AppBottomBar(selectedTab = AppTab.Jackpot, onTabSelected = onTabSelected)
             }
         }
@@ -364,7 +370,7 @@ fun HistoryListScreen(
                 if (showRoomPicker) {
                     val pendingIds = selectedSessionsNotInRoom.map { it.session.id }
                     AddToRoomPickerSheet(
-                        rooms = liveRooms,
+                        rooms = pickerRooms,
                         onRoomSelected = { roomId ->
                             onBulkAddToRoom(roomId, pendingIds)
                             showRoomPicker = false

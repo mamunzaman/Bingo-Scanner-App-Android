@@ -98,6 +98,7 @@ fun SettingsScreen(
     onPrivacyPolicy: () -> Unit,
     onLogout: () -> Unit,
     onTabSelected: (AppTab) -> Unit = {},
+    showBottomBar: Boolean = true,
     viewModel: SettingsViewModel = viewModel(),
     appLanguageViewModel: AppLanguageViewModel = viewModel(),
 ) {
@@ -142,7 +143,11 @@ fun SettingsScreen(
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = MaterialTheme.colorScheme.surface,
-        bottomBar = { AppBottomBar(selectedTab = AppTab.Profile, onTabSelected = onTabSelected) }
+        bottomBar = {
+            if (showBottomBar) {
+                AppBottomBar(selectedTab = AppTab.Profile, onTabSelected = onTabSelected)
+            }
+        }
     ) { paddingValues ->
         AppHeaderPageLayout(
             modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding()),

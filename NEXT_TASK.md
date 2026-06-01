@@ -1,7 +1,9 @@
 ﻿# Next task
 
-**Goal:** Device QA — share called numbers image from Live Play.
+**Goal:** Optional: persist full grid snapshot on archive (true point-in-time ticket without live DB).
 
-**Verify:** Live Play header + called-numbers bottom sheet share (no calls = disabled/snackbar; with calls = PNG share sheet). `./gradlew :app:assembleDebug` OK.
+**Verify:** Archived game → ticket row → read-only grid; `./gradlew :app:assembleDebug` OK.
 
-**Previous:** Sunday live lock banner in LivePlayScreen.
+**Previous:** Bottom nav audit — tab highlight via route/VM/handle; `stageMainShellTab` on entry routes; shell `onMainBottomBarTabSelected` wired on pushed screens.
+
+**Verify:** All tabs from Home/archived/history/live/settings; back + camera; `./gradlew :app:assembleDebug` OK.

@@ -48,6 +48,7 @@
     <string name="ticket_play_log_added">Hinzugefügt: %1$s</string>
     <string name="ticket_play_log_played">Gespielt: %1$s</string>
     <string name="ticket_play_log_result_marked">%1$d markiert</string>
+    <string name="sunday_session_archive_display_name">Sonntag Bingo • %1$s • 17:00 Uhr</string>
 
     <!-- Ticket QR dialog -->
     <string name="ticket_qr_title">Ticket-QR</string>
@@ -224,6 +225,36 @@
     <string name="live_play_auto_call">Auto-Ruf</string>
     <string name="live_play_last_label">ZULETZT</string>
     <string name="live_play_open_called_numbers_cd">Gerufene Zahlen öffnen</string>
+    <string name="settings_sunday_test_time_enabled">Sonntags-Testmodus aktivieren</string>
+    <string name="settings_sunday_test_start_in_minutes">Start in (Minuten)</string>
+    <string name="live_play_sunday_test_live_duration_hint">Live-Fenster dauert %1$d Minuten nach Start.</string>
+    <string name="live_play_sunday_test_time_title">Sonntags-Testmodus</string>
+    <string name="live_play_sunday_test_time_helper">Nur zum Testen. Kurzes Live-Fenster, danach wieder So 17:00–18:05.</string>
+    <string name="live_nav_archived_games">Archivierte Spiele</string>
+    <string name="live_nav_archived_games_subtitle">%1$d beendete Sitzungen</string>
+    <string name="live_nav_archived_games_subtitle_empty">Beendete Bingo-Sitzungen ansehen</string>
+    <string name="archived_games_title">Archivierte Spiele</string>
+    <string name="archived_games_empty">Noch keine archivierten Spiele. Beende eine Live-Sitzung, um sie hier zu sehen.</string>
+    <string name="archived_games_session_subtitle">%1$s · %2$d Karten · %3$d gezogen</string>
+    <string name="archived_games_sunday_jackpot_chip">Sonntags-Jackpot</string>
+    <string name="archived_games_stat_calls">%1$d Ziehungen</string>
+    <string name="archived_games_stat_tickets">%1$d Karten</string>
+    <string name="archived_game_detail_title">Archiviertes Spiel</string>
+    <string name="archived_game_detail_not_found">Archiviertes Spiel nicht gefunden.</string>
+    <string name="archived_game_detail_archived_pill">ARCHIVIERT</string>
+    <string name="archived_game_detail_archive_id">Archiv-ID %1$s</string>
+    <string name="archived_game_detail_archived_at">Archiviert %1$s</string>
+    <string name="archived_game_detail_tickets_title">Karten</string>
+    <string name="archived_game_detail_tickets_read_only_hint">Tippe auf eine Karte, um das archivierte Blatt anzuzeigen.</string>
+    <string name="archived_game_detail_view_ticket_cd">Archivierte Karte ansehen</string>
+    <string name="archived_game_ticket_detail_title">Archivierte Karte</string>
+    <string name="archived_game_ticket_detail_not_found">Archivierte Karte nicht gefunden.</string>
+    <string name="archived_game_ticket_detail_session">%1$s</string>
+    <string name="archived_game_detail_no_tickets">Für diese Sitzung wurden keine Karten gespeichert.</string>
+    <string name="archived_game_detail_unnamed_ticket">Unbenannte Karte</string>
+    <string name="archived_game_detail_ticket_meta">LOS %1$s · Serien-Nr. %2$s</string>
+    <string name="archived_game_detail_ticket_los">LOS %1$s</string>
+    <string name="archived_game_detail_ticket_serial">Serien-Nr. %1$s</string>
     <string name="live_play_round_progress_title">RUNDENFORTSCHRITT</string>
     <string name="profile_coming_soon">Demnächst</string>
     <string name="profile_coming_soon_body">Demnächst verfügbar</string>

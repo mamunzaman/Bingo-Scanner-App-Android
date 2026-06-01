@@ -13,6 +13,7 @@ import com.example.mamunbingoapp.data.toCalledNumbersSnapshot
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.RoomStatusResolver
 import com.example.mamunbingoapp.core.SundayBingoSchedule
+import java.time.ZonedDateTime
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import androidx.room.withTransaction
 import java.util.UUID
@@ -55,6 +58,7 @@ private data class RoomCalledNumbersEntry(val roomId: String, val numbers: List<
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 object RoomRepository {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val sundayFeaturedRoomMutex = Mutex()
 
     private fun db() = DatabaseProvider.db
     private fun roomDao() = db().liveRoomDao()
@@ -63,6 +67,12 @@ object RoomRepository {
     private fun settingsDao() = db().roomSettingsDao()
     private fun playLogDao() = db().ticketPlayLogDao()
     private fun mainTicketDao() = db().ticketDao()
+
+    private suspend fun sundayScheduleContext(): Pair<ZonedDateTime, com.example.mamunbingoapp.core.SundayTestTimeSettings> {
+        val test = SettingsRepository.getSundayTestTimeSettings()
+        val now = ZonedDateTime.now(SundayBingoSchedule.berlinZone)
+        return now to test
+    }
 
     fun roomsFlow(): Flow<List<LiveRoom>> =
         roomDao().observeRooms().map { it.map { e -> e.toLiveRoom() } }
@@ -169,6 +179,89 @@ object RoomRepository {
         roomId
     }
 
+    private suspend fun validTicketCountsByRoom(): Map<String, Int> =
+        ticketDao().observeValidTicketCountsByRoom().first().associate { it.roomId to it.count }
+
+    private suspend fun listSundayFeaturedRoomEntities(): List<LiveRoomEntity> =
+        roomDao().observeRooms().first().filter { SundayBingoSchedule.isSundayFeaturedRoom(it.name) }
+
+    /** Canonical Sunday featured room: highest ticket count, then newest [LiveRoom.createdAt]. */
+    fun pickCanonicalLiveRoom(
+        rooms: List<LiveRoom>,
+        ticketCountByRoomId: Map<String, Int> = emptyMap(),
+    ): LiveRoom? {
+        val featured = rooms.filter { SundayBingoSchedule.isSundayFeaturedRoom(it.name) }
+        if (featured.isEmpty()) return null
+        return featured.maxWithOrNull(
+            compareBy<LiveRoom> { ticketCountByRoomId[it.roomId] ?: 0 }
+                .thenBy { it.createdAt },
+        )
+    }
+
+    /** Room pickers/lists: one Sunday featured row (canonical), hide duplicate Sunday rooms. */
+    fun roomsVisibleInRoomPicker(
+        rooms: List<LiveRoom>,
+        ticketCountByRoomId: Map<String, Int> = emptyMap(),
+    ): List<LiveRoom> {
+        val featured = rooms.filter { SundayBingoSchedule.isSundayFeaturedRoom(it.name) }
+        if (featured.size <= 1) return rooms
+        val canonical = pickCanonicalLiveRoom(rooms, ticketCountByRoomId) ?: return rooms
+        val duplicateIds = featured.map { it.roomId }.toSet() - canonical.roomId
+        return rooms.filter { it.roomId !in duplicateIds }
+    }
+
+    private fun pickCanonicalSundayRoomEntity(
+        featured: List<LiveRoomEntity>,
+        ticketCountsByRoom: Map<String, Int>,
+    ): LiveRoomEntity? {
+        val canonical = pickCanonicalLiveRoom(
+            featured.map { LiveRoom(it.roomId, it.name, it.createdAt, true) },
+            ticketCountsByRoom,
+        ) ?: return null
+        return featured.firstOrNull { it.roomId == canonical.roomId }
+    }
+
+    /**
+     * Moves tickets from duplicate Sunday featured rooms into the canonical room (most tickets, then newest).
+     * Empty duplicate rooms are left in DB; UI hides them from Other Rooms.
+     */
+    suspend fun consolidateSundayFeaturedRoomTickets(): String? = withContext(Dispatchers.IO) {
+        val featured = listSundayFeaturedRoomEntities()
+        if (featured.isEmpty()) return@withContext null
+        val ticketCounts = validTicketCountsByRoom()
+        val canonical = pickCanonicalSundayRoomEntity(featured, ticketCounts) ?: return@withContext null
+        val canonicalId = canonical.roomId
+        db().withTransaction {
+            featured.filter { it.roomId != canonicalId }.forEach { duplicate ->
+                val assignments = ticketDao().observeTickets(duplicate.roomId).first()
+                assignments.forEach { assignment ->
+                    val ticketId = assignment.ticketId
+                    when (ticketDao().getRoomIdForTicket(ticketId)) {
+                        duplicate.roomId -> ticketDao().moveTicket(ticketId, duplicate.roomId, canonicalId)
+                        canonicalId -> ticketDao().removeTicket(duplicate.roomId, ticketId)
+                        else -> Unit
+                    }
+                }
+            }
+        }
+        canonicalId
+    }
+
+    suspend fun resolveCanonicalSundayFeaturedRoomId(): String? = withContext(Dispatchers.IO) {
+        val featured = listSundayFeaturedRoomEntities()
+        pickCanonicalSundayRoomEntity(featured, validTicketCountsByRoom())?.roomId
+    }
+
+    /** Returns canonical Sunday room id, creating one only when no featured room exists (any locale). */
+    suspend fun getOrCreateSundayFeaturedRoom(displayName: String): String = sundayFeaturedRoomMutex.withLock {
+        withContext(Dispatchers.IO) {
+            consolidateSundayFeaturedRoomTickets()?.let { return@withContext it }
+            val featured = listSundayFeaturedRoomEntities()
+            pickCanonicalSundayRoomEntity(featured, validTicketCountsByRoom())?.roomId
+                ?: createRoom(displayName.trim().ifBlank { "Room" })
+        }
+    }
+
     fun renameRoom(roomId: String, name: String) {
         scope.launch {
             val current = roomDao().observeRoom(roomId).first() ?: return@launch
@@ -208,7 +301,8 @@ object RoomRepository {
         if (number !in 1..75) return@withContext false
         val room = roomDao().observeRoom(roomId).first()
         if (room != null && SundayBingoSchedule.isSundayFeaturedRoom(room.name)) {
-            if (!SundayBingoSchedule.isLiveCallingUnlocked()) return@withContext false
+            val (now, test) = sundayScheduleContext()
+            if (!SundayBingoSchedule.isLiveCallingUnlocked(now, test)) return@withContext false
         }
         val existing = calledDao().observeCalled(roomId).first().map { it.number }
         if (existing.size >= MAX_LIVE_CALLS) return@withContext false
@@ -291,33 +385,52 @@ object RoomRepository {
         calledDao().clearCalled(roomId)
     }
 
-    suspend fun ensureSundayFeaturedRoomCallsReset(roomId: String, roomName: String) =
-        withContext(Dispatchers.IO) {
-            if (!SundayBingoSchedule.isSundayFeaturedRoom(roomName)) return@withContext
-            if (!SundayBingoSchedule.shouldResetStaleSundayCalls()) return@withContext
-            val count = calledDao().observeCalled(roomId).first().size
-            if (count == 0) return@withContext
-            calledDao().clearCalled(roomId)
-            setRoomArchived(roomId, false)
+    /**
+     * After Sunday 18:05 Berlin: archive canonical Sunday room once per session (play logs + clear room).
+     * Triggered from Jackpot tab / Live Play entry — no background scheduler.
+     */
+    suspend fun ensureSundayFeaturedSessionAutoArchived() = withContext(Dispatchers.IO) {
+        val (now, test) = sundayScheduleContext()
+        if (!SundayBingoSchedule.isAfterLastCompletedSundaySessionEnd(now, test)) return@withContext
+        val sessionStart = SundayBingoSchedule.lastCompletedSundaySessionStart(now, test) ?: return@withContext
+        val sessionStartMillis = sessionStart.toInstant().toEpochMilli()
+        if (SettingsRepository.getLastArchivedSundaySessionStartMillis() == sessionStartMillis) {
+            return@withContext
         }
-
-    suspend fun ensureSundayFeaturedRoomCallsResetAll() = withContext(Dispatchers.IO) {
-        roomDao().observeRooms().first().forEach { entity ->
-            ensureSundayFeaturedRoomCallsReset(entity.roomId, entity.name)
-        }
+        consolidateSundayFeaturedRoomTickets()
+        val canonicalId = resolveCanonicalSundayFeaturedRoomId() ?: return@withContext
+        val ticketCount = ticketDao().observeTickets(canonicalId).first().size
+        val callCount = calledDao().observeCalled(canonicalId).first().size
+        if (ticketCount == 0 && callCount == 0) return@withContext
+        val sessionDisplayName = SundayBingoSchedule.formatArchivedSessionDisplayName(sessionStart)
+        val archived = archiveAndResetRoom(canonicalId, playLogSessionName = sessionDisplayName)
+        if (!archived) return@withContext
+        listSundayFeaturedRoomEntities()
+            .filter { it.roomId != canonicalId }
+            .forEach { duplicate ->
+                if (calledDao().observeCalled(duplicate.roomId).first().isNotEmpty()) {
+                    calledDao().clearCalled(duplicate.roomId)
+                    setRoomArchived(duplicate.roomId, false)
+                }
+            }
+        SettingsRepository.setLastArchivedSundaySessionStartMillis(sessionStartMillis)
     }
 
     fun scheduleSundayFeaturedRoomMaintenance() {
-        scope.launch { ensureSundayFeaturedRoomCallsResetAll() }
+        scope.launch { ensureSundayFeaturedSessionAutoArchived() }
     }
 
-    suspend fun archiveAndResetRoom(roomId: String) = withContext(Dispatchers.IO) {
+    suspend fun archiveAndResetRoom(
+        roomId: String,
+        playLogSessionName: String? = null,
+    ): Boolean = withContext(Dispatchers.IO) {
         db().withTransaction {
-            val room = roomDao().observeRoom(roomId).first() ?: return@withTransaction
-            val roomName = room.name
+            val room = roomDao().observeRoom(roomId).first() ?: return@withTransaction false
+            val logRoomLabel = playLogSessionName ?: room.name
             val tickets = ticketDao().observeTickets(roomId).first()
             val calledNumbers = calledDao().observeCalled(roomId).first().map { it.number }
             val archivedAt = System.currentTimeMillis()
+            var wrotePlayLog = false
             if (tickets.isNotEmpty()) {
                 val playLogs = tickets.map { assignment ->
                     val cells = mainTicketDao().observeTicketCells(assignment.ticketId).first()
@@ -333,16 +446,35 @@ object RoomRepository {
                         id = UUID.randomUUID().toString(),
                         ticketId = assignment.ticketId,
                         roomId = roomId,
-                        roomName = roomName,
+                        roomName = logRoomLabel,
                         addedAt = assignment.addedAt,
                         archivedAt = archivedAt,
-                        drawDate = null,
+                        drawDate = playLogSessionName,
                         calledNumbersSnapshot = calledNumbers.toCalledNumbersSnapshot(),
                         markedCount = markedCount,
                         bingoLineCount = bingoLineCount,
                     )
                 }
                 playLogDao().insertAll(playLogs)
+                wrotePlayLog = true
+            } else if (calledNumbers.isNotEmpty()) {
+                playLogDao().insertAll(
+                    listOf(
+                        TicketPlayLogEntity(
+                            id = UUID.randomUUID().toString(),
+                            ticketId = ARCHIVED_CALLS_ONLY_TICKET_ID,
+                            roomId = roomId,
+                            roomName = logRoomLabel,
+                            addedAt = archivedAt,
+                            archivedAt = archivedAt,
+                            drawDate = playLogSessionName,
+                            calledNumbersSnapshot = calledNumbers.toCalledNumbersSnapshot(),
+                            markedCount = 0,
+                            bingoLineCount = 0,
+                        ),
+                    ),
+                )
+                wrotePlayLog = true
             }
             ticketDao().clearTickets(roomId)
             calledDao().clearCalled(roomId)
@@ -350,6 +482,7 @@ object RoomRepository {
             if (updated == 0) {
                 settingsDao().upsertSettings(RoomSettingsEntity(roomId = roomId, isArchived = false))
             }
+            wrotePlayLog
         }
     }
 

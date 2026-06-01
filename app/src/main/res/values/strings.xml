@@ -134,6 +134,8 @@
     <string name="live_nav_sunday_live_now">Live now</string>
     <string name="live_nav_sunday_starts_in">Starts in %1$s</string>
     <string name="live_nav_countdown_starts_in_label">STARTS IN</string>
+    <string name="live_nav_countdown_ends_in_label">Live will end in</string>
+    <string name="live_nav_countdown_day">DAY</string>
     <string name="live_nav_countdown_hr">HR</string>
     <string name="live_nav_countdown_min">MIN</string>
     <string name="live_nav_countdown_sec">SEC</string>

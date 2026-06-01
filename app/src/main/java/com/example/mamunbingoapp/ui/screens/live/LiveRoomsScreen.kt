@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -92,6 +93,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -1004,12 +1007,38 @@ private fun formatSundaySessionCountdown(remaining: Duration): String {
     }
 }
 
-private sealed interface SundayHeroCountdownState {
-    data object LiveNow : SundayHeroCountdownState
-    data class StartsIn(val hours: Int, val minutes: Int, val seconds: Int) : SundayHeroCountdownState
+private data class SundayHeroCountdownDigits(
+    val first: Int,
+    val second: Int,
+    val third: Int,
+    val showDays: Boolean,
+)
+
+private fun remainingToSundayHeroCountdownDigits(remaining: Duration): SundayHeroCountdownDigits {
+    val totalSeconds = remaining.seconds.coerceAtLeast(0)
+    return if (totalSeconds >= 86_400) {
+        SundayHeroCountdownDigits(
+            first = (totalSeconds / 86_400).toInt().coerceIn(0, 99),
+            second = ((totalSeconds % 86_400) / 3_600).toInt().coerceIn(0, 23),
+            third = ((totalSeconds % 3_600) / 60).toInt().coerceIn(0, 59),
+            showDays = true,
+        )
+    } else {
+        SundayHeroCountdownDigits(
+            first = (totalSeconds / 3_600).toInt().coerceIn(0, 23),
+            second = ((totalSeconds % 3_600) / 60).toInt().coerceIn(0, 59),
+            third = (totalSeconds % 60).toInt().coerceIn(0, 59),
+            showDays = false,
+        )
+    }
 }
 
-private data class SundayHeroEndsIn(val hours: Int, val minutes: Int, val seconds: Int)
+private sealed interface SundayHeroCountdownState {
+    data object LiveNow : SundayHeroCountdownState
+    data class StartsIn(val digits: SundayHeroCountdownDigits) : SundayHeroCountdownState
+}
+
+private typealias SundayHeroEndsIn = SundayHeroCountdownDigits
 
 private fun resolveSundayHeroEndsIn(
     now: ZonedDateTime,
@@ -1020,12 +1049,7 @@ private fun resolveSundayHeroEndsIn(
     val end = SundayBingoSchedule.heroSessionEndExclusive(now, test, useDemoFallback) ?: return null
     val remaining = Duration.between(now, end).coerceAtLeast(Duration.ZERO)
     if (remaining.isZero) return null
-    val totalSeconds = remaining.seconds
-    return SundayHeroEndsIn(
-        hours = (totalSeconds / 3_600).toInt().coerceIn(0, 99),
-        minutes = ((totalSeconds % 3_600) / 60).toInt().coerceIn(0, 59),
-        seconds = (totalSeconds % 60).toInt().coerceIn(0, 59),
-    )
+    return remainingToSundayHeroCountdownDigits(remaining)
 }
 
 @Composable
@@ -1061,11 +1085,7 @@ private fun resolveSundayHeroCountdown(
     }
     val remaining = Duration.between(now, SundayBingoSchedule.nextSessionStartBerlin(now, test))
         .coerceAtLeast(Duration.ZERO)
-    val totalSeconds = remaining.seconds
-    val hours = (totalSeconds / 3_600).toInt().coerceIn(0, 99)
-    val minutes = ((totalSeconds % 3_600) / 60).toInt().coerceIn(0, 59)
-    val seconds = (totalSeconds % 60).toInt().coerceIn(0, 59)
-    return SundayHeroCountdownState.StartsIn(hours, minutes, seconds)
+    return SundayHeroCountdownState.StartsIn(remainingToSundayHeroCountdownDigits(remaining))
 }
 
 @Composable
@@ -1096,41 +1116,51 @@ private fun SundayHeroCountdownFocus(
     when (state) {
         is SundayHeroCountdownState.LiveNow -> SundayHeroLiveNowBadge(modifier = modifier)
         is SundayHeroCountdownState.StartsIn -> SundayHeroCountdownBoxes(
-            hours = state.hours,
-            minutes = state.minutes,
-            seconds = state.seconds,
+            digits = state.digits,
             modifier = modifier,
         )
     }
 }
 
+private val SundayHeroCountdownSegmentMinHeight = 88.dp
+
 @Composable
 private fun SundayHeroCountdownDigitsRow(
-    hours: Int,
-    minutes: Int,
-    seconds: Int,
+    digits: SundayHeroCountdownDigits,
     segmentModifier: Modifier,
 ) {
+    val firstLabel = if (digits.showDays) {
+        R.string.live_nav_countdown_day
+    } else {
+        R.string.live_nav_countdown_hr
+    }
+    val thirdLabel = if (digits.showDays) {
+        R.string.live_nav_countdown_min
+    } else {
+        R.string.live_nav_countdown_sec
+    }
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
     ) {
         SundayHeroCountdownSegment(
-            value = "%02d".format(hours),
+            value = "%02d".format(digits.first),
+            label = stringResource(firstLabel),
+            modifier = segmentModifier,
+        )
+        SundayHeroCountdownSeparator()
+        SundayHeroCountdownSegment(
+            value = "%02d".format(digits.second),
             label = stringResource(R.string.live_nav_countdown_hr),
             modifier = segmentModifier,
         )
         SundayHeroCountdownSeparator()
         SundayHeroCountdownSegment(
-            value = "%02d".format(minutes),
-            label = stringResource(R.string.live_nav_countdown_min),
-            modifier = segmentModifier,
-        )
-        SundayHeroCountdownSeparator()
-        SundayHeroCountdownSegment(
-            value = "%02d".format(seconds),
-            label = stringResource(R.string.live_nav_countdown_sec),
+            value = "%02d".format(digits.third),
+            label = stringResource(thirdLabel),
             modifier = segmentModifier,
         )
     }
@@ -1138,9 +1168,7 @@ private fun SundayHeroCountdownDigitsRow(
 
 @Composable
 private fun SundayHeroCountdownBoxes(
-    hours: Int,
-    minutes: Int,
-    seconds: Int,
+    digits: SundayHeroCountdownDigits,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -1155,9 +1183,7 @@ private fun SundayHeroCountdownBoxes(
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             SundayHeroCountdownDigitsRow(
-                hours = hours,
-                minutes = minutes,
-                seconds = seconds,
+                digits = digits,
                 segmentModifier = Modifier.weight(1f),
             )
         }
@@ -1200,14 +1226,14 @@ private fun SundayHeroEndsInPanel(
                     color = Color.White,
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.End,
                 ) {
                     SundayHeroCountdownDigitsRow(
-                        hours = endsIn.hours,
-                        minutes = endsIn.minutes,
-                        seconds = endsIn.seconds,
-                        segmentModifier = Modifier.widthIn(min = 52.dp, max = 72.dp),
+                        digits = endsIn,
+                        segmentModifier = Modifier.widthIn(min = 52.dp, max = 80.dp),
                     )
                 }
             }
@@ -1238,17 +1264,23 @@ private fun SundayHeroCountdownSegment(
     val fillColor = PrimaryDark.copy(alpha = 0.2f)
     val borderColor = PrimaryBorder.copy(alpha = 0.72f)
     val labelColor = OnDarkPrimaryContainer
+    val labelPlatformStyle = PlatformTextStyle(includeFontPadding = false)
     Box(
         modifier = modifier
-            .height(72.dp)
+            .fillMaxHeight()
+            .defaultMinSize(minHeight = SundayHeroCountdownSegmentMinHeight)
             .clip(shape)
             .background(fillColor)
             .border(Dimens.cardBorderDefault, borderColor, shape),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing10),
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(
+                    horizontal = Dimens.spacing8,
+                    vertical = Dimens.spacing10,
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -1256,21 +1288,29 @@ private fun SundayHeroCountdownSegment(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = 31.sp,
-                    lineHeight = 32.sp,
+                    lineHeight = 34.sp,
+                    platformStyle = labelPlatformStyle,
                 ),
                 fontWeight = FontWeight.Black,
                 color = Color.White,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing4))
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
             Text(
                 text = label.uppercase(),
+                modifier = Modifier.padding(bottom = Dimens.spacing4),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontSize = 12.5.sp,
-                    lineHeight = 14.sp,
-                    letterSpacing = 1.4.sp,
+                    lineHeight = 18.sp,
+                    letterSpacing = 1.2.sp,
+                    platformStyle = labelPlatformStyle,
                 ),
                 fontWeight = FontWeight.SemiBold,
                 color = labelColor,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Clip,
             )
         }
     }

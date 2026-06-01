@@ -389,6 +389,8 @@
     <string name="live_nav_sunday_live_now">Jetzt live</string>
     <string name="live_nav_sunday_starts_in">Startet in %1$s</string>
     <string name="live_nav_countdown_starts_in_label">STARTET IN</string>
+    <string name="live_nav_countdown_ends_in_label">Live endet in</string>
+    <string name="live_nav_countdown_day">TAG</string>
     <string name="live_nav_countdown_hr">STD</string>
     <string name="live_nav_countdown_min">MIN</string>
     <string name="live_nav_countdown_sec">SEK</string>

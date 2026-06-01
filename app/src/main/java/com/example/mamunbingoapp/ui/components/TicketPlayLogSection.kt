@@ -53,7 +53,10 @@ private fun TicketPlayLogEntry(log: TicketPlayLog) {
         verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
     ) {
         Text(
-            text = stringResource(R.string.ticket_play_log_room, log.roomName),
+            text = stringResource(
+                R.string.ticket_play_log_room,
+                log.drawDate?.takeIf { it.isNotBlank() } ?: log.roomName,
+            ),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,

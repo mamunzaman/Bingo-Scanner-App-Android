@@ -1,6 +1,42 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Called-numbers sheet share:** Share icon in `CalledNumbersDetailSheet` header; reuses Live Play `onShareCalledNumbers` / PNG helper. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Global bottom navigation:** `MainShellScaffold` wraps app routes; `main` graph hosts tabs + archived/history/live/manual/settings; camera/auth fullscreen. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Archived navigation stabilized:** Single route constants, encoded args, relative nested child routes, safe invalid-arg/back. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Archived Games calls-only:** Placeholder play-log row when calls & no tickets; Sunday DataStore only if persist succeeds; detail empty-tickets copy. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Hero countdown ≥24h:** DAY/HR/MIN vs HR/MIN/SEC; `live_nav_countdown_day` EN/DE. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Hero countdown label clip fix:** `SundayHeroCountdownSegment` min 88dp height, intrinsic row; STARTS IN + ends-in. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Archived Games MVP:** Grouped `ticket_play_logs` by roomId+archivedAt; Live Bingo entry, list + read-only detail (called board, tickets → ticket detail). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday test mode simplified:** Enable + start-in 1–10 min; 2 min live window; post-test hero uses prod Sun 17:00–18:05 countdown. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday schedule single source:** Removed Profile hero-only `force_sunday_jackpot_live_now`; Jackpot hero uses test settings (Live Play room settings) or prod Sun 17:00–18:05. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday test window QA fixes:** Duration 1–60; hero countdown via `nextSessionStartBerlin`; test `lastCompleted` today-only (no early archive); prod next session uses `sessionAt`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday test duration:** Start time picker + minutes; end calculated (midnight-safe); schedule uses start+duration. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday test time in Live Play settings:** Moved from Profile Settings to room settings sheet; same DataStore. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday custom test time:** Enable + HH:mm start/end (Berlin); shared `SundayTestTimeSettings` for hero, calling, auto-archive. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday test time (Settings):** Normal / Force 17:30 / Force 18:10 Berlin via `effectiveNow`; hero, calling lock, auto-archive. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday auto-archive:** After 18:05, Jackpot/Live Play open runs `ensureSundayFeaturedSessionAutoArchived` once per session (play logs + clear room); DataStore session key. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday live window 65 min:** `activeSessionStart` Sun 17:00–18:05 Berlin only (was 24h); hero/calling/reset share same schedule. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday room pickers + force-live fix:** `roomsVisibleInRoomPicker`; hero countdown keys on force flag; pickers filtered in history/ticket/manual entry. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Dev: force Sunday LIVE NOW:** Settings toggle (default OFF, DataStore); Sunday hero countdown override for testing. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Sunday canonical room:** `RoomRepository` consolidate + get-or-create (EN/DE names); hero/other-rooms use canonical id; tickets merged from duplicates. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Called-numbers sheet share:** Share icon in `CalledNumbersDetailSheet` header; reuses Live Play `onShareCalledNumbers` / PNG helper. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **Live Play share called numbers:** Share icon on history card; PNG via `createCalledNumbersShareBitmap` + FileProvider `ACTION_SEND`. `./gradlew :app:assembleDebug` OK.
 
@@ -358,7 +394,7 @@
 
 ## Completed features
 
-- **Live Rooms Sunday window + reset:** Hero tap opens room; calling Sun 17:00–Mon 17:00 Berlin; 24h auto-reset of calls (sheets kept); `SundayBingoSchedule` + `RoomRepository` maintenance.
+- **Live Rooms Sunday window + auto-archive:** Sun 17:00–18:05 Berlin; after 18:05, opening Jackpot archives once (play logs `Sonntag Bingo • dd.MM.yyyy • 17:00 Uhr`, clears tickets/calls); same canonical room next week.
 - **Live Rooms Sunday add-sheet (prior):** No embedded bottom bar; FAB reserved for custom rooms; blocks duplicate Sunday name.
 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket chips; ticket filters All/Today/Week; called-numbers sheet title; home jackpot load errors; QR paths never show raw `Throwable.message`.
 - **Phase 3 i18n (complete):** Import/scan/OCR, manual entry, ticket detail, live sheets, shared dialogs/bottom sheets, home jackpot cards, profile VM messages, account form validation — `stringResource` / `getString` + DE in `strings_phase3.xml`.

@@ -4,6 +4,12 @@ import com.example.mamunbingoapp.data.db.TicketPlayLogEntity
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.core.BingoWinChecker
 
+/** Placeholder [TicketPlayLog.ticketId] when a session is archived with calls but no tickets. */
+const val ARCHIVED_CALLS_ONLY_TICKET_ID = "__archived_calls_only__"
+
+fun String.isArchivedCallsOnlyPlaceholderTicketId(): Boolean =
+    this == ARCHIVED_CALLS_ONLY_TICKET_ID
+
 data class TicketPlayLog(
     val id: String,
     val ticketId: String,
@@ -34,6 +40,17 @@ fun String.toCalledNumbersSnapshot(): List<Int> =
     split(",").mapNotNull { it.trim().toIntOrNull() }
 
 fun List<Int>.toCalledNumbersSnapshot(): String = joinToString(",")
+
+fun mergeTicketCellsWithArchivedCalledNumbers(
+    cells: List<BingoCellUi>,
+    calledNumbers: List<Int>,
+): List<BingoCellUi> {
+    val calledSet = calledNumbers.toSet()
+    return cells.map { cell ->
+        val num = cell.number?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
+        cell.copy(isMarked = (num != null && num in calledSet) || cell.isMarked)
+    }
+}
 
 object TicketPlayLogStats {
     fun compute(cells: List<BingoCellUi>, calledNumbers: List<Int>): Pair<Int, Int> {

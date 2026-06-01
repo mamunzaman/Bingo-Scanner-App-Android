@@ -2,6 +2,7 @@ package com.example.mamunbingoapp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.core.SundayTestTimeSettings
 import com.example.mamunbingoapp.data.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,10 @@ class SettingsViewModel : ViewModel() {
     val dataSharing: StateFlow<Boolean> = SettingsRepository.dataSharingFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val sundayTestTimeSettings: StateFlow<SundayTestTimeSettings> =
+        SettingsRepository.sundayTestTimeSettingsFlow
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SundayTestTimeSettings())
+
     fun setShowDemoData(value: Boolean) {
         viewModelScope.launch { SettingsRepository.setShowDemoData(value) }
     }
@@ -49,5 +54,13 @@ class SettingsViewModel : ViewModel() {
 
     fun setDataSharing(value: Boolean) {
         viewModelScope.launch { SettingsRepository.setDataSharing(value) }
+    }
+
+    fun setSundayTestTimeEnabled(value: Boolean) {
+        viewModelScope.launch { SettingsRepository.setSundayTestTimeEnabled(value) }
+    }
+
+    fun setSundayTestStartInMinutes(value: Int) {
+        viewModelScope.launch { SettingsRepository.setSundayTestStartInMinutes(value) }
     }
 }

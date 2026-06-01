@@ -21,8 +21,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
@@ -55,6 +57,9 @@ import com.example.mamunbingoapp.ui.screens.legal.TermsOfServiceScreen
 import com.example.mamunbingoapp.ui.screens.profile.EnvironmentalImpactScreen
 import com.example.mamunbingoapp.ui.screens.profile.LocationServicesScreen
 import com.example.mamunbingoapp.ui.screens.ticket.TicketDetailScreen
+import com.example.mamunbingoapp.ui.screens.live.ArchivedGamesScreen
+import com.example.mamunbingoapp.ui.screens.live.ArchivedGameDetailScreen
+import com.example.mamunbingoapp.ui.screens.live.ArchivedGameTicketDetailScreen
 import com.example.mamunbingoapp.viewmodel.ThemeViewModel
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.ui.screens.profile.SettingsScreen
@@ -69,8 +74,15 @@ import com.example.mamunbingoapp.viewmodel.MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
 import com.example.mamunbingoapp.viewmodel.validFilledCellCount
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
+import com.example.mamunbingoapp.ui.components.AppBottomBarShellHeight
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -102,13 +114,15 @@ import com.example.mamunbingoapp.history.HistoryOcrSource
  * Legacy `directScan` / `directDocumentScan` routes removed from the graph.
  */
 private const val SCAN_ENTRY_HANDOFF_TAG = "scan-entry-handoff"
+private const val MAIN_GRAPH_ROUTE = "main"
+private const val MAIN_TABS_ROUTE = "tabs"
 
 private fun stagePendingHistoryPhotoImportScanType(
     navController: NavHostController,
     scanType: BingoScanType,
 ) {
     runCatching {
-        navController.getBackStackEntry("main").savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] =
+        navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] =
             scanType.name
     }.onFailure {
         Log.w(SCAN_ENTRY_HANDOFF_TAG, "failed to stage scanType=${scanType.name}: ${it.message}")
@@ -365,9 +379,190 @@ private fun ImportTicketDeepLinkHandler(
     }
 }
 
+// --- Archived routes (inside [MAIN_GRAPH_ROUTE]; relative paths, encoded args) ---
+private const val ARCHIVED_LIST_ROUTE = "archivedGames"
+private const val ARCHIVED_DETAIL_ROUTE = "archivedGameDetail/{roomId}/{archivedAt}"
+private const val ARCHIVED_TICKET_ROUTE = "archivedGameTicket/{roomId}/{archivedAt}/{ticketId}"
+
+private data class ArchivedDetailNavArgs(val roomId: String, val archivedAt: Long)
+
+private data class ArchivedTicketNavArgs(
+    val roomId: String,
+    val archivedAt: Long,
+    val ticketId: String,
+)
+
+private fun decodeArchivedRouteArg(raw: String?): String? =
+    raw?.let { Uri.decode(it).trim() }?.takeIf { it.isNotEmpty() }
+
+private fun parseArchivedDetailArgs(entry: NavBackStackEntry): ArchivedDetailNavArgs? {
+    val bundle = entry.arguments ?: return null
+    val roomId = decodeArchivedRouteArg(bundle.getString("roomId")) ?: return null
+    if (!bundle.containsKey("archivedAt")) return null
+    val archivedAt = bundle.getLong("archivedAt")
+    if (archivedAt <= 0L) return null
+    return ArchivedDetailNavArgs(roomId, archivedAt)
+}
+
+private fun parseArchivedTicketArgs(entry: NavBackStackEntry): ArchivedTicketNavArgs? {
+    val bundle = entry.arguments ?: return null
+    val roomId = decodeArchivedRouteArg(bundle.getString("roomId")) ?: return null
+    if (!bundle.containsKey("archivedAt")) return null
+    val archivedAt = bundle.getLong("archivedAt")
+    if (archivedAt <= 0L) return null
+    val ticketId = decodeArchivedRouteArg(bundle.getString("ticketId")) ?: return null
+    return ArchivedTicketNavArgs(roomId, archivedAt, ticketId)
+}
+
+private fun buildArchivedDetailRoute(roomId: String, archivedAt: Long): String =
+    "archivedGameDetail/${Uri.encode(roomId.trim())}/$archivedAt"
+
+private fun buildArchivedTicketRoute(roomId: String, archivedAt: Long, ticketId: String): String =
+    "archivedGameTicket/${Uri.encode(roomId.trim())}/$archivedAt/${Uri.encode(ticketId.trim())}"
+
+private fun NavHostController.navigateArchivedRoute(route: String) {
+    runCatching { navigate(route) }.onFailure {
+        Log.w("ArchivedNav", "navigate failed: $route", it)
+    }
+}
+
+private fun NavHostController.popArchivedBackOrToTabs() {
+    if (popBackStack()) return
+    runCatching { popBackStack(MAIN_TABS_ROUTE, inclusive = false) }
+}
+
+/**
+ * Fullscreen routes (no app bottom navigation):
+ * - splash, onboarding
+ * - auth/login, auth/register, auth/forgot
+ * - bingoLiveCameraImport (CameraX live scanner)
+ */
+private fun shouldHideMainBottomBar(route: String?): Boolean {
+    if (route == null) return true
+    if (route == "splash" || route == "onboarding") return true
+    if (route == "auth/login" || route == "auth/register" || route == "auth/forgot") return true
+    if (route.startsWith("auth/")) return true
+    if (route.startsWith("bingoLiveCameraImport")) return true
+    return false
+}
+
+/** Live/manual only; archived/profile/history use [MainTabsViewModel] so bar taps update highlight. */
+private fun appTabHighlightForRoute(route: String?): AppTab? = when {
+    route == null || route == MAIN_TABS_ROUTE -> null
+    route.startsWith("livePlay") || route.startsWith("liveSheet") -> AppTab.Jackpot
+    route.startsWith("manualEntry") || route.startsWith("historyPhotoImport") -> AppTab.Scan
+    else -> null
+}
+
+private fun stageMainShellTab(tabsViewModel: MainTabsViewModel?, tab: AppTab) {
+    tabsViewModel?.setSelectedTab(tab)
+}
+
+private fun parseMainShellTabHint(raw: String?): AppTab? =
+    raw?.takeIf { it.isNotBlank() }?.let { runCatching { AppTab.valueOf(it) }.getOrNull() }
+
+/** Pop pushed routes above [MAIN_TABS_ROUTE], then show the selected tab root in [MainTabsScreen]. */
+private fun NavHostController.navigateToMainTabRoot(
+    tab: AppTab,
+    tabsViewModel: MainTabsViewModel?,
+) {
+    stageMainShellTab(tabsViewModel, tab)
+    runCatching {
+        getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle["selectedTab"] = tab.name
+    }
+    if (currentDestination?.route == MAIN_TABS_ROUTE) return
+    var pops = 0
+    while (
+        currentDestination?.route != MAIN_TABS_ROUTE &&
+        currentDestination?.route != null &&
+        pops < 48
+    ) {
+        if (!popBackStack()) break
+        pops++
+    }
+    if (currentDestination?.route != MAIN_TABS_ROUTE) {
+        runCatching {
+            navigate(MAIN_TABS_ROUTE) {
+                popUpTo(MAIN_GRAPH_ROUTE) { inclusive = false }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }.onFailure {
+            Log.w("MainShellNav", "tab root navigate failed: ${tab.name}", it)
+        }
+    }
+}
+
+private fun NavHostController.onMainBottomBarTabSelected(
+    tab: AppTab,
+    tabsViewModel: MainTabsViewModel?,
+) {
+    navigateToMainTabRoot(tab, tabsViewModel)
+}
+
+@Composable
+private fun rememberShellTabsViewModel(navController: NavHostController): MainTabsViewModel? {
+    val mainEntry = remember(navController) {
+        runCatching { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }.getOrNull()
+    }
+    return mainEntry?.let { viewModel(it) }
+}
+
+@Composable
+private fun MainShellScaffold(
+    navController: NavHostController,
+    content: @Composable (Modifier) -> Unit,
+) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomBar = !shouldHideMainBottomBar(currentRoute)
+    val mainGraphEntry = remember(navBackStackEntry?.id) {
+        runCatching { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }.getOrNull()
+    }
+    val tabsViewModel: MainTabsViewModel? =
+        if (showBottomBar) mainGraphEntry?.let { viewModel(it) } else null
+    val vmSelectedTab by tabsViewModel?.selectedTab?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf(AppTab.Home) }
+    val tabHintFlow = remember(mainGraphEntry?.id) {
+        mainGraphEntry?.savedStateHandle?.getStateFlow("selectedTab", "")
+    }
+    val tabHintRaw by tabHintFlow?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf("") }
+    val highlightedTab = appTabHighlightForRoute(currentRoute)
+        ?: parseMainShellTabHint(tabHintRaw)
+        ?: vmSelectedTab
+    val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val contentBottomInset =
+        if (showBottomBar) AppBottomBarShellHeight + navBarInset else 0.dp
+    Box(modifier = Modifier.fillMaxSize()) {
+        content(
+            Modifier
+                .fillMaxSize()
+                .padding(bottom = contentBottomInset),
+        )
+        if (showBottomBar) {
+            AppBottomBar(
+                selectedTab = highlightedTab,
+                onTabSelected = { tab ->
+                    navController.navigateToMainTabRoot(tab, tabsViewModel)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .zIndex(100f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ArchivedNavInvalidArgs(onDismiss: () -> Unit) {
+    LaunchedEffect(Unit) { onDismiss() }
+}
+
 private fun clearPendingHistoryPhotoImportHandoff(navController: NavHostController) {
     runCatching {
-        val mainHandle = navController.getBackStackEntry("main").savedStateHandle
+        val mainHandle = navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
         mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
         mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
     }
@@ -420,9 +615,11 @@ fun NavGraph(
             }
         }
     }
+    MainShellScaffold(navController = navController) { shellModifier ->
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        modifier = shellModifier,
     ) {
         composable("splash") {
             var splashFinished by remember { mutableStateOf(false) }
@@ -540,8 +737,15 @@ fun NavGraph(
                 errorMessage = errorMessage,
             )
         }
-        composable(route = "main") { backStackEntry ->
-            val tabsViewModel: MainTabsViewModel = viewModel(backStackEntry)
+        navigation(
+            route = MAIN_GRAPH_ROUTE,
+            startDestination = MAIN_TABS_ROUTE,
+        ) {
+            composable(route = MAIN_TABS_ROUTE) { backStackEntry ->
+            val mainGraphEntry = remember(backStackEntry) {
+                navController.getBackStackEntry(MAIN_GRAPH_ROUTE)
+            }
+            val tabsViewModel: MainTabsViewModel = viewModel(mainGraphEntry)
             val accountViewModel: AccountViewModel = viewModel(backStackEntry)
             val profileViewModel: ProfileViewModel = viewModel(backStackEntry)
             val selectedTab by tabsViewModel.selectedTab.collectAsState()
@@ -564,28 +768,38 @@ fun NavGraph(
                 profileViewModel.refreshAuthProfile()
             }
             LaunchedEffect(backStackEntry) {
-                backStackEntry.savedStateHandle.get<String>("selectedTab")?.let { tabName ->
+                val mainHandle = navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
+                mainHandle.get<String>("selectedTab")?.let { tabName ->
                     runCatching { AppTab.valueOf(tabName) }.getOrNull()?.let { tab ->
                         tabsViewModel.setSelectedTab(tab)
-                        backStackEntry.savedStateHandle.remove<String>("selectedTab")
+                        mainHandle.remove<String>("selectedTab")
                     }
                 }
             }
             MainTabsScreen(
                 selectedTab = selectedTab,
                 onTabSelected = { tabsViewModel.setSelectedTab(it) },
-                onNavigateToLiveRoom = { roomId -> navController.navigate("livePlayRoom/$roomId") },
+                onNavigateToLiveRoom = { roomId ->
+                    stageMainShellTab(tabsViewModel, AppTab.Jackpot)
+                    navController.navigate("livePlayRoom/$roomId")
+                },
                 onNavigateToLiveRooms = {},
                 onNavigateToBingoLiveCamera = { scanType ->
+                    stageMainShellTab(tabsViewModel, AppTab.Scan)
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
                     navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                 },
                 onJackpotScanSheet = { scanType ->
+                    stageMainShellTab(tabsViewModel, AppTab.Jackpot)
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
                     navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                 },
-                onNavigateToManualEntry = { navController.navigate("manualEntry") },
+                onNavigateToManualEntry = {
+                    stageMainShellTab(tabsViewModel, AppTab.Scan)
+                    navController.navigate("manualEntry")
+                },
                 onNavigateToManualEntryWithScannedNumbers = { numbers ->
+                    stageMainShellTab(tabsViewModel, AppTab.Scan)
                     val roomId = lastActiveRoomId
                     if (!roomId.isNullOrBlank()) {
                         navController.navigate(buildManualEntryForRoomRoute(roomId, numbers))
@@ -594,11 +808,32 @@ fun NavGraph(
                     }
                 },
                 onNavigateToHistory = { navController.navigate("history") },
-                onNavigateToSettings = { navController.navigate("settings") },
-                onNavigateToMyAccount = { navController.navigate("myAccount") },
-                onNavigateToPaymentMethods = { navController.navigate("paymentMethods") },
-                onNavigateToSupport = { navController.navigate("support") },
-                onNavigateToChangePassword = { navController.navigate("changePassword") },
+                onNavigateToArchivedGames = {
+                    stageMainShellTab(tabsViewModel, AppTab.Jackpot)
+                    navController.navigate(ARCHIVED_LIST_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToSettings = {
+                    stageMainShellTab(tabsViewModel, AppTab.Profile)
+                    navController.navigate("settings")
+                },
+                onNavigateToMyAccount = {
+                    stageMainShellTab(tabsViewModel, AppTab.Profile)
+                    navController.navigate("myAccount")
+                },
+                onNavigateToPaymentMethods = {
+                    stageMainShellTab(tabsViewModel, AppTab.Profile)
+                    navController.navigate("paymentMethods")
+                },
+                onNavigateToSupport = {
+                    stageMainShellTab(tabsViewModel, AppTab.Profile)
+                    navController.navigate("support")
+                },
+                onNavigateToChangePassword = {
+                    stageMainShellTab(tabsViewModel, AppTab.Profile)
+                    navController.navigate("changePassword")
+                },
                 onNavigateToTicketDetail = { id -> navController.navigate("ticket/$id") },
                 onNavigateToHistoryDetail = { sessionId ->
                     val id = sessionId.trim()
@@ -628,81 +863,6 @@ fun NavGraph(
                 onAvatarDelete = { profileViewModel.deleteAvatar(context) },
                 profileMessage = profileMessage,
                 profileMessageType = profileMessageType,
-            )
-        }
-        composable(
-            route = "bingoLiveCameraImport?scanType={scanType}",
-            arguments = listOf(
-                navArgument("scanType") {
-                    type = NavType.StringType
-                    defaultValue = BingoScanType.PLAY_PAPER.name
-                },
-            ),
-        ) { backStackEntry ->
-            val scanType = BingoScanType.fromRouteValue(backStackEntry.arguments?.getString("scanType"))
-            val mainEntry = runCatching { navController.getBackStackEntry("main") }.getOrNull()
-            LaunchedEffect(scanType) {
-                stagePendingHistoryPhotoImportScanType(navController, scanType)
-            }
-            val photoImportEntry = navController.previousBackStackEntry?.takeIf { entry ->
-                entry.destination.route?.startsWith("historyPhotoImport") == true
-            }
-            val importVmForCameraCancel = photoImportEntry?.let { viewModel<ImportTicketViewModel>(it) }
-            val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
-            val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
-            val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
-            BingoLiveCameraImportScreen(
-                scanType = scanType,
-                onBingoQrDecoded = { nums, serial, los, sheetName ->
-                    val route = if (!lastActiveRoomId.isNullOrBlank()) {
-                        buildManualEntryForRoomRoute(
-                            lastActiveRoomId!!,
-                            nums,
-                            serialNumber = serial,
-                            losNumber = los,
-                            sheetName = sheetName,
-                            prefillAsRowMajor = true,
-                        )
-                    } else {
-                        buildManualEntryRoute(
-                            nums,
-                            ocrSource = null,
-                            ocrConfidence = null,
-                            prefillAsRowMajor = true,
-                            serialNumber = serial,
-                            losNumber = los,
-                            sheetName = sheetName,
-                        )
-                    }
-                    navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
-                },
-                onFullTicketPhotoCaptured = { uri ->
-                    runCatching {
-                        val mainHandle = navController.getBackStackEntry("main").savedStateHandle
-                        mainHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
-                        mainHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] = scanType.name
-                    }.onFailure {
-                        Log.w(
-                            SCAN_ENTRY_HANDOFF_TAG,
-                            "handoff failed to stage uri+scanType=${scanType.name}: ${it.message}",
-                        )
-                    }
-                    navController.navigate("historyPhotoImport") {
-                        popUpTo("bingoLiveCameraImport") { inclusive = true }
-                    }
-                },
-                onScanFullTicket = {
-                    stagePendingHistoryPhotoImportScanType(navController, scanType)
-                    navController.navigate("historyPhotoImport") {
-                        popUpTo("bingoLiveCameraImport") { inclusive = true }
-                    }
-                },
-                onBack = {
-                    importVmForCameraCancel?.clear()
-                    clearPendingHistoryPhotoImportHandoff(navController)
-                    navController.popBackStack()
-                    Unit
-                },
             )
         }
         composable("livePlayRoom/{roomId}") { backStackEntry ->
@@ -737,7 +897,7 @@ fun NavGraph(
                     navController.navigate("livePlayRoom/$rid") {
                         launchSingleTop = true
                         restoreState = true
-                        popUpTo("main") { inclusive = false }
+                        popUpTo(MAIN_TABS_ROUTE) { inclusive = false }
                     }
                     vm.clearPendingNavigate()
                 }
@@ -747,16 +907,16 @@ fun NavGraph(
                     if (event is LivePlayUiEvent.CallLimitReachedDialog) showCallCompleteDialog = true
                 }
             }
+            val shellTabsVm = rememberShellTabsViewModel(navController)
             LivePlayScreen(
                 onBack = {
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
+                    stageMainShellTab(shellTabsVm, AppTab.Jackpot)
                     navController.popBackStack()
                 },
-                showBottomBar = true,
+                showBottomBar = false,
                 roomId = roomId,
                 onTabSelected = { tab ->
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", tab.name) }
-                    navController.popBackStack("main", inclusive = false)
+                    navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 sheets = uiState.sheets,
                 initialSelectedTicketId = uiState.sheets.getOrNull(uiState.selectedIndex)?.ticketId
@@ -882,6 +1042,7 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val me = parseManualEntryFromNav(backStackEntry)
+            val shellTabsVm = rememberShellTabsViewModel(navController)
             ManualEntryScreen(
                 onBack = { navController.popBackStack() },
                 scannedNumbers = me.scannedNumbers,
@@ -890,12 +1051,12 @@ fun NavGraph(
                 losNumber = me.ticketMeta.losNumber,
                 serialNumber = me.ticketMeta.serialNumber,
                 initialSheetName = me.ticketMeta.sheetName,
+                showBottomBar = false,
                 onSaveOnlySuccess = { _, _ ->
                     navController.popBackStack()
                 },
                 onTabSelected = { tab ->
-                    runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
-                    navController.popBackStack("main", inclusive = false)
+                    navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 onNavigateToLivePlay = { roomId ->
                     navController.navigate("livePlayRoom/$roomId") {
@@ -936,6 +1097,7 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val mer = parseManualEntryForRoomFromNav(backStackEntry)
+            val shellTabsVm = rememberShellTabsViewModel(navController)
             ManualEntryScreen(
                 onBack = { navController.popBackStack() },
                 scannedNumbers = mer.scannedNumbers,
@@ -943,6 +1105,7 @@ fun NavGraph(
                 losNumber = mer.ticketMeta.losNumber,
                 serialNumber = mer.ticketMeta.serialNumber,
                 initialSheetName = mer.ticketMeta.sheetName,
+                showBottomBar = false,
                 onSaveOnlySuccess = { ticketId, savedRoomId ->
                     val targetRoomId = savedRoomId ?: mer.roomId
                     runCatching {
@@ -957,8 +1120,7 @@ fun NavGraph(
                     }
                 },
                 onTabSelected = { tab ->
-                    runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
-                    navController.popBackStack("main", inclusive = false)
+                    navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 onNavigateToLivePlay = { roomId ->
                     navController.navigate("livePlayRoom/$roomId") {
@@ -969,6 +1131,7 @@ fun NavGraph(
         }
         composable("history") { backStackEntry ->
             val historyVm: com.example.mamunbingoapp.viewmodel.HistoryViewModel = viewModel(backStackEntry)
+            val shellTabsVm = rememberShellTabsViewModel(navController)
             HistoryListScreen(
                 onBack = { navController.popBackStack() },
                 onSessionClick = { sessionId, _ ->
@@ -981,8 +1144,7 @@ fun NavGraph(
                     }
                 },
                 onTabSelected = { tab ->
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", tab.name) }
-                    navController.popBackStack("main", inclusive = false)
+                    navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 onDeleteSession = { sessionId ->
                     com.example.mamunbingoapp.data.HistoryRepository.deleteSession(sessionId)
@@ -1002,11 +1164,12 @@ fun NavGraph(
                 },
                 onPlayClick = {
                     runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
-                    navController.popBackStack("main", inclusive = false)
+                    navController.popBackStack(MAIN_TABS_ROUTE, inclusive = false)
                 },
                 onBulkAddToRoom = { roomId, sessionIds ->
                     historyVm.addSessionsToRoom(roomId, sessionIds)
                 },
+                showBottomBar = false,
                 viewModel = historyVm
             )
         }
@@ -1129,27 +1292,7 @@ fun NavGraph(
                     lastOcrConfidence = prefilledOcrConfidence
                 }
             }
-            Scaffold(
-                containerColor = Color.Transparent,
-                bottomBar = {
-                    AppBottomBar(
-                        selectedTab = AppTab.Jackpot,
-                        onTabSelected = { tab ->
-                            val action: () -> Unit = {
-                                navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name)
-                                navController.popBackStack("main", inclusive = false)
-                                Unit
-                            }
-                            photoImportLeaveHandler?.invoke(action) ?: action()
-                        }
-                    )
-                }
-            ) { paddingValues ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = paddingValues.calculateBottomPadding())
-                ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                     val scanResult by importVm.scanResult.collectAsState()
                     val success = scanResult as? com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success
                     val error = scanResult as? com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error
@@ -1237,7 +1380,6 @@ fun NavGraph(
                             photoImportLeaveHandler = register
                         },
                     )
-                }
             }
         }
         composable(
@@ -1245,6 +1387,7 @@ fun NavGraph(
             arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getString("sessionId") ?: return@composable
+            val shellTabsVm = rememberShellTabsViewModel(navController)
             val app = LocalContext.current.applicationContext as android.app.Application
             val scope = rememberCoroutineScope()
             val detailVm: com.example.mamunbingoapp.viewmodel.HistoryDetailViewModel = viewModel(
@@ -1285,8 +1428,7 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onOpenTicketDetail = { ticketId -> navController.navigate("ticket/$ticketId") },
                 onTabSelected = { tab ->
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", tab.name) }
-                    navController.popBackStack("main", inclusive = false)
+                    navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 onLeaveFromLive = { navController.popBackStack() },
                 onAddToLivePlay = { roomId ->
@@ -1314,13 +1456,16 @@ fun NavGraph(
                     }
                 },
                 performSoftDelete = { detailVm.performSoftDelete() },
-                onRestoreSession = { detailVm.restoreSession() }
+                onRestoreSession = { detailVm.restoreSession() },
+                showBottomBar = false,
             )
         }
         composable("settings") {
+            val shellTabsVm = rememberShellTabsViewModel(navController)
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 themeViewModel = themeViewModel,
+                showBottomBar = false,
                 onChangePassword = { navController.navigate("changePassword") },
                 onLocationServices = { navController.navigate("locationServices") },
                 onEnvironmentalImpact = { navController.navigate("environmentalImpact") },
@@ -1330,9 +1475,8 @@ fun NavGraph(
                     authScope.launch { performLogout(navController) }
                 },
                 onTabSelected = { tab ->
-                    runCatching { navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", tab.name) }
-                    navController.popBackStack("main", inclusive = false)
-                }
+                    navController.onMainBottomBarTabSelected(tab, shellTabsVm)
+                },
             )
         }
         composable("myAccount") {
@@ -1427,6 +1571,59 @@ fun NavGraph(
         composable("privacyPolicy") {
             PrivacyPolicyScreen(onBack = { navController.popBackStack() })
         }
+            composable(ARCHIVED_LIST_ROUTE) {
+                ArchivedGamesScreen(
+                    onBack = { navController.popArchivedBackOrToTabs() },
+                    onOpenSession = { session ->
+                        navController.navigateArchivedRoute(
+                            buildArchivedDetailRoute(session.roomId, session.archivedAt),
+                        )
+                    },
+                )
+            }
+            composable(
+                route = ARCHIVED_DETAIL_ROUTE,
+                arguments = listOf(
+                    navArgument("roomId") { type = NavType.StringType },
+                    navArgument("archivedAt") { type = NavType.LongType },
+                ),
+            ) { backStackEntry ->
+                val navArgs = parseArchivedDetailArgs(backStackEntry)
+                if (navArgs == null) {
+                    ArchivedNavInvalidArgs(onDismiss = { navController.popBackStack() })
+                    return@composable
+                }
+                ArchivedGameDetailScreen(
+                    roomId = navArgs.roomId,
+                    archivedAt = navArgs.archivedAt,
+                    onBack = { navController.popBackStack() },
+                    onOpenArchivedTicket = { rid, at, ticketId ->
+                        navController.navigateArchivedRoute(
+                            buildArchivedTicketRoute(rid, at, ticketId),
+                        )
+                    },
+                )
+            }
+            composable(
+                route = ARCHIVED_TICKET_ROUTE,
+                arguments = listOf(
+                    navArgument("roomId") { type = NavType.StringType },
+                    navArgument("archivedAt") { type = NavType.LongType },
+                    navArgument("ticketId") { type = NavType.StringType },
+                ),
+            ) { backStackEntry ->
+                val navArgs = parseArchivedTicketArgs(backStackEntry)
+                if (navArgs == null) {
+                    ArchivedNavInvalidArgs(onDismiss = { navController.popBackStack() })
+                    return@composable
+                }
+                ArchivedGameTicketDetailScreen(
+                    roomId = navArgs.roomId,
+                    archivedAt = navArgs.archivedAt,
+                    ticketId = navArgs.ticketId,
+                    onBack = { navController.popBackStack() },
+                )
+            }
         composable("ticket/{ticketId}") { backStackEntry ->
             val ticketId = backStackEntry.arguments?.getString("ticketId") ?: ""
             val vm: com.example.mamunbingoapp.viewmodel.TicketDetailViewModel = viewModel(backStackEntry)
@@ -1466,5 +1663,82 @@ fun NavGraph(
                 losNumber = ticketData?.losNumber
             )
         }
+        }
+        composable(
+            route = "bingoLiveCameraImport?scanType={scanType}",
+            arguments = listOf(
+                navArgument("scanType") {
+                    type = NavType.StringType
+                    defaultValue = BingoScanType.PLAY_PAPER.name
+                },
+            ),
+        ) { backStackEntry ->
+            val scanType = BingoScanType.fromRouteValue(backStackEntry.arguments?.getString("scanType"))
+            val mainEntry = runCatching { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }.getOrNull()
+            LaunchedEffect(scanType) {
+                stagePendingHistoryPhotoImportScanType(navController, scanType)
+            }
+            val photoImportEntry = navController.previousBackStackEntry?.takeIf { entry ->
+                entry.destination.route?.startsWith("historyPhotoImport") == true
+            }
+            val importVmForCameraCancel = photoImportEntry?.let { viewModel<ImportTicketViewModel>(it) }
+            val tabsViewModel: MainTabsViewModel? = mainEntry?.let { viewModel(it) }
+            val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
+            val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
+            BingoLiveCameraImportScreen(
+                scanType = scanType,
+                onBingoQrDecoded = { nums, serial, los, sheetName ->
+                    val route = if (!lastActiveRoomId.isNullOrBlank()) {
+                        buildManualEntryForRoomRoute(
+                            lastActiveRoomId!!,
+                            nums,
+                            serialNumber = serial,
+                            losNumber = los,
+                            sheetName = sheetName,
+                            prefillAsRowMajor = true,
+                        )
+                    } else {
+                        buildManualEntryRoute(
+                            nums,
+                            ocrSource = null,
+                            ocrConfidence = null,
+                            prefillAsRowMajor = true,
+                            serialNumber = serial,
+                            losNumber = los,
+                            sheetName = sheetName,
+                        )
+                    }
+                    navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
+                },
+                onFullTicketPhotoCaptured = { uri ->
+                    runCatching {
+                        val mainHandle = navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
+                        mainHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()
+                        mainHandle[PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY] = scanType.name
+                    }.onFailure {
+                        Log.w(
+                            SCAN_ENTRY_HANDOFF_TAG,
+                            "handoff failed to stage uri+scanType=${scanType.name}: ${it.message}",
+                        )
+                    }
+                    navController.navigate("historyPhotoImport") {
+                        popUpTo("bingoLiveCameraImport") { inclusive = true }
+                    }
+                },
+                onScanFullTicket = {
+                    stagePendingHistoryPhotoImportScanType(navController, scanType)
+                    navController.navigate("historyPhotoImport") {
+                        popUpTo("bingoLiveCameraImport") { inclusive = true }
+                    }
+                },
+                onBack = {
+                    importVmForCameraCancel?.clear()
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.popBackStack()
+                    Unit
+                },
+            )
+        }
+    }
     }
 }

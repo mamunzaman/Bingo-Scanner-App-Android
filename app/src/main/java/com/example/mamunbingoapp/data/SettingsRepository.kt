@@ -5,8 +5,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.mamunbingoapp.core.SundayTestTimeSettings
 import com.example.mamunbingoapp.data.localization.AppLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -23,6 +26,11 @@ private val FACE_ID_TOUCH_ID = booleanPreferencesKey("face_id_touch_id")
 private val DATA_SHARING = booleanPreferencesKey("data_sharing")
 private val APP_LANGUAGE = stringPreferencesKey("app_language")
 private val APP_LANGUAGE_USER_SET = booleanPreferencesKey("app_language_user_set")
+private val LAST_ARCHIVED_SUNDAY_SESSION_START_MILLIS =
+    longPreferencesKey("last_archived_sunday_session_start_millis")
+private val SUNDAY_TEST_TIME_ENABLED = booleanPreferencesKey("sunday_test_time_enabled")
+private val SUNDAY_TEST_START_IN_MINUTES = intPreferencesKey("sunday_test_start_in_minutes")
+private val SUNDAY_TEST_SCHEDULED_START_MILLIS = longPreferencesKey("sunday_test_scheduled_start_millis")
 
 object SettingsRepository {
     private var _context: Context? = null
@@ -53,6 +61,9 @@ object SettingsRepository {
 
     val dataSharingFlow: Flow<Boolean>
         get() = store().data.map { it[DATA_SHARING] ?: false }
+
+    val sundayTestTimeSettingsFlow: Flow<SundayTestTimeSettings>
+        get() = store().data.map { prefs -> prefs.toSundayTestTimeSettingsInternal() }
 
     val appLanguageFlow: Flow<AppLanguage>
         get() = store().data.map { prefs ->
@@ -103,7 +114,60 @@ object SettingsRepository {
         store().edit { it[DATA_SHARING] = value }
     }
 
+    suspend fun getLastArchivedSundaySessionStartMillis(): Long? =
+        store().data.first()[LAST_ARCHIVED_SUNDAY_SESSION_START_MILLIS]
+
+    suspend fun setLastArchivedSundaySessionStartMillis(epochMillis: Long) {
+        store().edit { it[LAST_ARCHIVED_SUNDAY_SESSION_START_MILLIS] = epochMillis }
+    }
+
+    suspend fun getSundayTestTimeSettings(): SundayTestTimeSettings =
+        store().data.first().toSundayTestTimeSettingsInternal()
+
+    suspend fun setSundayTestTimeEnabled(value: Boolean) {
+        store().edit { prefs ->
+            prefs[SUNDAY_TEST_TIME_ENABLED] = value
+            if (value) {
+                val startIn = SundayTestTimeSettings.coerceStartInMinutes(
+                    prefs[SUNDAY_TEST_START_IN_MINUTES] ?: SundayTestTimeSettings.DEFAULT_START_IN_MINUTES,
+                )
+                prefs[SUNDAY_TEST_START_IN_MINUTES] = startIn
+                prefs[SUNDAY_TEST_SCHEDULED_START_MILLIS] =
+                    SundayTestTimeSettings.scheduleStartFromNow(startIn)
+            } else {
+                prefs.remove(SUNDAY_TEST_SCHEDULED_START_MILLIS)
+            }
+        }
+    }
+
+    suspend fun setSundayTestStartInMinutes(value: Int) {
+        val startIn = SundayTestTimeSettings.coerceStartInMinutes(value)
+        store().edit { prefs ->
+            prefs[SUNDAY_TEST_START_IN_MINUTES] = startIn
+            if (prefs[SUNDAY_TEST_TIME_ENABLED] == true) {
+                prefs[SUNDAY_TEST_SCHEDULED_START_MILLIS] =
+                    SundayTestTimeSettings.scheduleStartFromNow(startIn)
+            }
+        }
+    }
+
     suspend fun clearAll() {
         store().edit { it.clear() }
+    }
+
+    private fun Preferences.toSundayTestTimeSettingsInternal(): SundayTestTimeSettings {
+        val enabled = this[SUNDAY_TEST_TIME_ENABLED] ?: false
+        val startIn = SundayTestTimeSettings.coerceStartInMinutes(
+            this[SUNDAY_TEST_START_IN_MINUTES] ?: SundayTestTimeSettings.DEFAULT_START_IN_MINUTES,
+        )
+        var scheduled = this[SUNDAY_TEST_SCHEDULED_START_MILLIS]
+        if (enabled && scheduled == null) {
+            scheduled = SundayTestTimeSettings.scheduleStartFromNow(startIn)
+        }
+        return SundayTestTimeSettings(
+            enabled = enabled,
+            startInMinutes = startIn,
+            scheduledStartEpochMillis = if (enabled) scheduled else null,
+        )
     }
 }

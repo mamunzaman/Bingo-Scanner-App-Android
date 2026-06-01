@@ -211,6 +211,8 @@ import com.example.mamunbingoapp.engine.RoomTimerManager
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.SundayBingoSchedule
+import com.example.mamunbingoapp.core.SundayTestTimeSettings
+import java.time.ZonedDateTime
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import com.example.mamunbingoapp.viewmodel.LivePlayUiState
 import com.example.mamunbingoapp.viewmodel.LiveSheetUi
@@ -366,26 +368,30 @@ fun LivePlayScreen(
     val room by RoomRepository.roomFlow(roomId).collectAsState(initial = null)
     val sundayFeaturedTitle = stringResource(R.string.live_nav_sunday_featured_title)
     val isSundayRoom = room?.name?.let { SundayBingoSchedule.isSundayFeaturedRoom(it, sundayFeaturedTitle) } == true
-    var sundayCallingUnlocked by remember { mutableStateOf(SundayBingoSchedule.isLiveCallingUnlocked()) }
-    LaunchedEffect(isSundayRoom) {
+    val sundayTestTimeSettings by SettingsRepository.sundayTestTimeSettingsFlow
+        .collectAsState(initial = SundayTestTimeSettings())
+    var sundayCallingUnlocked by remember(isSundayRoom, sundayTestTimeSettings) {
+        val now = ZonedDateTime.now(SundayBingoSchedule.berlinZone)
+        mutableStateOf(
+            !isSundayRoom || SundayBingoSchedule.isLiveCallingUnlocked(now, sundayTestTimeSettings),
+        )
+    }
+    LaunchedEffect(isSundayRoom, sundayTestTimeSettings) {
         if (!isSundayRoom) {
             sundayCallingUnlocked = true
             return@LaunchedEffect
         }
-        sundayCallingUnlocked = SundayBingoSchedule.isLiveCallingUnlocked()
         while (true) {
-            delay(60_000L)
-            sundayCallingUnlocked = SundayBingoSchedule.isLiveCallingUnlocked()
+            val now = ZonedDateTime.now(SundayBingoSchedule.berlinZone)
+            sundayCallingUnlocked = SundayBingoSchedule.isLiveCallingUnlocked(now, sundayTestTimeSettings)
+            delay(1_000L)
         }
     }
     val callingLocked = isSundayRoom && !sundayCallingUnlocked
     val sundayLockedMessage = stringResource(R.string.live_play_sunday_locked_message)
-    LaunchedEffect(roomId, room?.name) {
-        val id = roomId.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
-        val name = room?.name ?: return@LaunchedEffect
-        scope.launch {
-            RoomRepository.ensureSundayFeaturedRoomCallsReset(id, name)
-        }
+    LaunchedEffect(roomId, isSundayRoom) {
+        if (roomId.isBlank() || !isSundayRoom) return@LaunchedEffect
+        scope.launch { RoomRepository.ensureSundayFeaturedSessionAutoArchived() }
     }
     if (showInfoSheet) {
         RoomInfoBottomSheet(
@@ -2470,6 +2476,97 @@ private fun sheetMetaValueTextStyle(): TextStyle =
     )
 
 @Composable
+private fun LivePlaySundayTestTimeSection() {
+    val scope = rememberCoroutineScope()
+    val settings by SettingsRepository.sundayTestTimeSettingsFlow
+        .collectAsState(initial = SundayTestTimeSettings())
+
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing12)) {
+        Text(
+            text = stringResource(R.string.live_play_sunday_test_time_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(R.string.live_play_sunday_test_time_helper),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_sunday_test_time_enabled),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Switch(
+                checked = settings.enabled,
+                onCheckedChange = { enabled ->
+                    scope.launch { SettingsRepository.setSundayTestTimeEnabled(enabled) }
+                },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.settings_sunday_test_start_in_minutes),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (settings.enabled) 1f else 0.5f),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val next = (settings.startInMinutes - 1)
+                            .coerceAtLeast(SundayTestTimeSettings.MIN_START_IN_MINUTES)
+                        scope.launch { SettingsRepository.setSundayTestStartInMinutes(next) }
+                    },
+                    enabled = settings.enabled,
+                    modifier = Modifier.widthIn(min = 48.dp),
+                ) {
+                    Text("−")
+                }
+                Text(
+                    text = settings.startInMinutes.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.widthIn(min = 32.dp),
+                    textAlign = TextAlign.Center,
+                )
+                OutlinedButton(
+                    onClick = {
+                        val next = (settings.startInMinutes + 1)
+                            .coerceAtMost(SundayTestTimeSettings.MAX_START_IN_MINUTES)
+                        scope.launch { SettingsRepository.setSundayTestStartInMinutes(next) }
+                    },
+                    enabled = settings.enabled,
+                    modifier = Modifier.widthIn(min = 48.dp),
+                ) {
+                    Text("+")
+                }
+            }
+        }
+        Text(
+            text = stringResource(
+                R.string.live_play_sunday_test_live_duration_hint,
+                SundayTestTimeSettings.TEST_SESSION_DURATION_MINUTES,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun RoomSettingsBottomSheet(
     roomId: String,
     settings: RoomSettings?,
@@ -2483,11 +2580,13 @@ private fun RoomSettingsBottomSheet(
         shape = BottomSheetDefaults.ExpandedShape,
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .imePadding()
+                .verticalScroll(scrollState)
                 .padding(Dimens.spacing24),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -2514,6 +2613,8 @@ private fun RoomSettingsBottomSheet(
                     }
                 }
             }
+            AppInsetDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            LivePlaySundayTestTimeSection()
             AppInsetDivider(
                 modifier = Modifier.padding(vertical = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
@@ -2535,6 +2636,7 @@ private fun RoomSettingsBottomSheet(
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
+            Spacer(modifier = Modifier.height(Dimens.spacing32))
         }
     }
 }

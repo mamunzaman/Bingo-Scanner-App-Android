@@ -48,6 +48,8 @@
     <string name="ticket_play_log_added">Added: %1$s</string>
     <string name="ticket_play_log_played">Played: %1$s</string>
     <string name="ticket_play_log_result_marked">%1$d marked</string>
+    <!-- Sunday auto-archive play-log session label (date = dd.MM.yyyy, Berlin) -->
+    <string name="sunday_session_archive_display_name">Sunday Bingo • %1$s • 5:00 PM</string>
 
     <!-- Ticket QR dialog -->
     <string name="ticket_qr_title">Ticket QR</string>
@@ -224,6 +226,36 @@
     <string name="live_play_auto_call">Auto-call</string>
     <string name="live_play_last_label">LAST</string>
     <string name="live_play_open_called_numbers_cd">Open called numbers</string>
+    <string name="settings_sunday_test_time_enabled">Enable Sunday test mode</string>
+    <string name="settings_sunday_test_start_in_minutes">Start in (minutes)</string>
+    <string name="live_play_sunday_test_live_duration_hint">Live window lasts %1$d minutes after start.</string>
+    <string name="live_play_sunday_test_time_title">Sunday test mode</string>
+    <string name="live_play_sunday_test_time_helper">Testing only. Schedules a short live window, then returns to Sun 17:00–18:05.</string>
+    <string name="live_nav_archived_games">Archived games</string>
+    <string name="live_nav_archived_games_subtitle">%1$d finished sessions</string>
+    <string name="live_nav_archived_games_subtitle_empty">View finished bingo sessions</string>
+    <string name="archived_games_title">Archived games</string>
+    <string name="archived_games_empty">No archived games yet. Finish a live session to see it here.</string>
+    <string name="archived_games_session_subtitle">%1$s · %2$d tickets · %3$d called</string>
+    <string name="archived_games_sunday_jackpot_chip">Sunday Jackpot</string>
+    <string name="archived_games_stat_calls">%1$d calls</string>
+    <string name="archived_games_stat_tickets">%1$d tickets</string>
+    <string name="archived_game_detail_title">Archived game</string>
+    <string name="archived_game_detail_not_found">Archived game not found.</string>
+    <string name="archived_game_detail_archived_pill">ARCHIVED</string>
+    <string name="archived_game_detail_archive_id">Archive ID %1$s</string>
+    <string name="archived_game_detail_archived_at">Archived %1$s</string>
+    <string name="archived_game_detail_tickets_title">Tickets</string>
+    <string name="archived_game_detail_tickets_read_only_hint">Tap a ticket to view the archived sheet.</string>
+    <string name="archived_game_detail_view_ticket_cd">View archived ticket</string>
+    <string name="archived_game_ticket_detail_title">Archived ticket</string>
+    <string name="archived_game_ticket_detail_not_found">Archived ticket not found.</string>
+    <string name="archived_game_ticket_detail_session">%1$s</string>
+    <string name="archived_game_detail_no_tickets">No tickets were saved for this session.</string>
+    <string name="archived_game_detail_unnamed_ticket">Unnamed sheet</string>
+    <string name="archived_game_detail_ticket_meta">LOS %1$s · Serial %2$s</string>
+    <string name="archived_game_detail_ticket_los">LOS %1$s</string>
+    <string name="archived_game_detail_ticket_serial">Serial %1$s</string>
     <string name="live_play_round_progress_title">ROUND PROGRESS</string>
     <string name="profile_coming_soon">Coming Soon</string>
     <string name="profile_coming_soon_body">Coming soon</string>
