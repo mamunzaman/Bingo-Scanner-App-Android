@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 data class HomeActiveTicketCardState(
@@ -112,8 +113,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = HomeActiveTicketsUiState(),
     )
 
+    private var latestDrawLoadJob: Job? = null
+
     init {
-        loadLatestBingoDraw()
+        refreshLatestBingoDraw()
+    }
+
+    /** Reload jackpot / draw from Supabase (tab return, pull-to-refresh, cold start). */
+    fun refreshLatestBingoDraw() {
+        latestDrawLoadJob?.cancel()
+        latestDrawLoadJob = viewModelScope.launch {
+            loadLatestBingoDraw()
+        }
     }
 
     private suspend fun buildActiveTicketsUi(input: HomeActiveTicketsInput): HomeActiveTicketsUiState {
@@ -182,38 +193,36 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             ?.key
     }
 
-    private fun loadLatestBingoDraw() {
-        viewModelScope.launch {
-            _isRemoteLoading.value = true
-            _remoteError.value = null
-            BingoRemoteRepository.getLatestDraw()
-                .onSuccess { draw ->
-                    if (BuildConfig.DEBUG) {
-                        Log.d(
-                            TAG,
-                            "Home latest draw drawDate=${draw.drawDate} jackpot=${draw.jackpot} " +
-                                "updatedAt=${draw.updatedAt}",
-                        )
-                    }
-                    _latestDraw.value = draw
-                    BingoRemoteRepository.getPrizesForDraw(draw.id)
-                        .onSuccess { prizes -> _latestPrizes.value = prizes }
-                        .onFailure { error ->
-                            Log.w(TAG, "Failed to load prizes", error)
-                            _remoteError.value = getApplication<Application>().getString(
-                                R.string.home_error_load_prizes,
-                            )
-                        }
-                }
-                .onFailure { error ->
-                    Log.w(TAG, "Failed to load latest draw", error)
-                    _latestDraw.value = null
-                    _latestPrizes.value = emptyList()
-                    _remoteError.value = getApplication<Application>().getString(
-                        R.string.home_error_load_latest_draw,
+    private suspend fun loadLatestBingoDraw() {
+        _isRemoteLoading.value = true
+        _remoteError.value = null
+        BingoRemoteRepository.getLatestDraw()
+            .onSuccess { draw ->
+                if (BuildConfig.DEBUG) {
+                    Log.d(
+                        TAG,
+                        "Home latest draw drawDate=${draw.drawDate} jackpot=${draw.jackpot} " +
+                            "updatedAt=${draw.updatedAt}",
                     )
                 }
-            _isRemoteLoading.value = false
-        }
+                _latestDraw.value = draw
+                BingoRemoteRepository.getPrizesForDraw(draw.id)
+                    .onSuccess { prizes -> _latestPrizes.value = prizes }
+                    .onFailure { error ->
+                        Log.w(TAG, "Failed to load prizes", error)
+                        _remoteError.value = getApplication<Application>().getString(
+                            R.string.home_error_load_prizes,
+                        )
+                    }
+            }
+            .onFailure { error ->
+                Log.w(TAG, "Failed to load latest draw", error)
+                _latestDraw.value = null
+                _latestPrizes.value = emptyList()
+                _remoteError.value = getApplication<Application>().getString(
+                    R.string.home_error_load_latest_draw,
+                )
+            }
+        _isRemoteLoading.value = false
     }
 }

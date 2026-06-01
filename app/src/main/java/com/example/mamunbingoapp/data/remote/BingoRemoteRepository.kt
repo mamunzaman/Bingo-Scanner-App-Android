@@ -76,7 +76,7 @@ object BingoRemoteRepository {
         SupabaseClientProvider.requireConfigured()
         val rows: List<BingoDrawDto> = authorizedGet("bingo_draws") {
             parameter("select", "*")
-            parameter("order", "draw_date.desc")
+            parameter("order", "draw_date.desc,updated_at.desc")
             parameter("limit", "1")
         }
         val draw = rows.firstOrNull() ?: error("No bingo draw found.")
@@ -124,6 +124,8 @@ object BingoRemoteRepository {
             header(HttpHeaders.Accept, "application/json")
             header("apikey", anonKey)
             header(HttpHeaders.Authorization, "Bearer $anonKey")
+            header(HttpHeaders.CacheControl, "no-cache")
+            header("Pragma", "no-cache")
             block()
         }.body()
     }

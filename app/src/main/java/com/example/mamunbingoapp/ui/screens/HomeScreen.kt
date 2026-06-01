@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.data.HistoryRepository
@@ -123,6 +124,17 @@ fun HomeScreen(
     val showProfileSummary = profileDisplayName != null
     var showScanTypeSheet by remember { mutableStateOf(false) }
     val requestScan = { showScanTypeSheet = true }
+    val refreshHome = {
+        onProfileRefresh()
+        homeViewModel.refreshLatestBingoDraw()
+    }
+    val isHomeRefreshing = isProfileRefreshing || isRemoteLoading
+
+    LifecycleResumeEffect(Unit) {
+        homeViewModel.refreshLatestBingoDraw()
+        onPauseOrDispose { }
+    }
+
     AppHeaderPageLayout(
         topBar = {
         AppTopBar(
@@ -192,27 +204,11 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(top = Dimens.spacing8)
-            if (showProfileSummary) {
-                AppPullRefresh(
-                    isRefreshing = isProfileRefreshing,
-                    onRefresh = onProfileRefresh,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Column(modifier = scrollModifier) {
-                        HomeScrollBody(
-                            onScanClick = requestScan,
-                            onQuickActionClick = onQuickActionClick,
-                            onTicketClick = onTicketClick,
-                            onViewAllTickets = onViewAllTickets,
-                            latestDraw = latestDraw,
-                            isRemoteLoading = isRemoteLoading,
-                            remoteError = remoteError,
-                            tickets = tickets,
-                            activeTicketsUi = activeTicketsUi,
-                        )
-                    }
-                }
-            } else {
+            AppPullRefresh(
+                isRefreshing = isHomeRefreshing,
+                onRefresh = refreshHome,
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 Column(modifier = scrollModifier) {
                     HomeScrollBody(
                         onScanClick = requestScan,
