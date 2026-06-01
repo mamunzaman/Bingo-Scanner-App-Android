@@ -46,6 +46,9 @@ import com.example.mamunbingoapp.theme.EmptyHistoryCardBg
 import com.example.mamunbingoapp.theme.OnPrimary
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.PrimaryDark
+import com.example.mamunbingoapp.theme.TicketPaperBorder
+import com.example.mamunbingoapp.theme.TicketPaperCell
+import com.example.mamunbingoapp.theme.TicketPaperTop
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 
 private val CARD_WIDTH = 200.dp
@@ -55,14 +58,14 @@ private val PROGRESS_BAR_HEIGHT = 5.dp
 private val STATUS_CHIP_MIN_WIDTH = 72.dp
 private val BINGO_LETTERS = listOf("B", "I", "N", "G", "O")
 private val CENTER_CELL_INDEX = 12
-private val PAPER_TOP = Color(0xFFFFFEF9)
+private val PAPER_TOP = TicketPaperTop
 private val PAPER_BOTTOM = EmptyHistoryCardBg
 private val MINI_GRID_GAP = 3.dp
 private val MINI_CELL_RADIUS = 9.dp
 private val MINI_HEADER_RADIUS = 10.dp
 private val MINI_BORDER = 1.dp
-private val MINI_CELL_PAPER = Color(0xFFFCFCFC)
-private val MINI_CELL_BORDER_COLOR = Color(0xFFE2E2E2)
+private val MINI_CELL_PAPER = TicketPaperCell
+private val MINI_CELL_BORDER_COLOR = TicketPaperBorder
 private val SHEET_PADDING = 7.dp
 private val HEADER_ROW_HEIGHT = 30.dp
 

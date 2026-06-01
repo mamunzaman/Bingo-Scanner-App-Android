@@ -57,3 +57,8 @@ val HeaderGradientEnd = Color(0xFFF0F5EC)
 /** Branded chrome: Live room top badge pill gradient (light theme). */
 val LiveTopBarGreenStart = Color(0xFFE2F0DC)
 val LiveTopBarGreenEnd = Color(0xFFD4E8D0)
+
+/** Bingo sheet preview paper/grid (Home, History, Live list, My Tickets). */
+val TicketPaperTop = Color(0xFFFFFEF9)
+val TicketPaperCell = Color(0xFFFCFCFC)
+val TicketPaperBorder = Color(0xFFE2E2E2)
