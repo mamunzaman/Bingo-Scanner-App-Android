@@ -444,7 +444,7 @@ fun ImportTicketScreen(
         content = {
             val contentPadding = Modifier
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing16, bottom = Dimens.spacing24)
+                .padding(bottom = Dimens.spacing24)
             val scrollModifier = if (allowScroll) Modifier.verticalScroll(scrollState) else Modifier
             Column(
                 modifier = Modifier

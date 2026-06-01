@@ -48,6 +48,12 @@ object Dimens {
     val screenHorizontalPadding = spacing16
     val topBarHeight = 64.dp
 
+    /** Gap between [com.example.mamunbingoapp.ui.components.AppPageTopBar] and scrollable body on main screens. */
+    val pageContentTopPadding = spacing16
+
+    /** Base scroll bottom inset above shell bottom bar; add [com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding] on tab roots. */
+    val pageContentBottomPadding = spacing16
+
     /**
      * Divider/border opacity on outlineVariant — delegates to [AppAlpha] (canonical source).
      * Names retained for backward compatibility at existing call sites.

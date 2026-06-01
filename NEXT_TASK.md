@@ -4,7 +4,7 @@
 
 **Verify:** `./gradlew :app:assembleDebug`; spot-check Live Play + Settings unchanged aside from intended divider tweaks.
 
-**Previous:** **AppAlpha Phase 4A** — `AlphaDivider` / `AlphaBorder` / `AlphaBorderStrong`; migrated `AppInsetDivider`, `HistorySheetCard`, `SettingsScreen`, `LiveRoomTopSection`. Build OK.
+**Previous:** **Home spacing** — `HomeTopBar` aligned with Live Play (`screenHorizontalPadding`); content top/bottom insets match Profile shell; section gaps 16/8. Build OK.
 
 **Previous:** Supabase `scrape-bingo` deploy + cron (see `supabase/README.md`).
 

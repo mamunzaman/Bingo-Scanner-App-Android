@@ -388,7 +388,6 @@ fun HistoryListScreen(
                         Column(
                             modifier = Modifier
                                                                 .fillMaxWidth()
-                                .padding(top = Dimens.spacing8)
                         ) {
                             SearchFilterSortHeader(
                                 variant = SearchHeaderVariant.SearchFilterSort,
@@ -442,7 +441,7 @@ fun HistoryListScreen(
                                                         .fillMaxWidth()
                 ) {
                     val listAreaHeight = maxHeight
-                    val historyHeaderHeight = 148.dp
+                    val historyHeaderHeight = 140.dp
                     val listState = rememberLazyListState()
                     val isScrolled = listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
                     val separatorMaskAlpha by animateFloatAsState(
@@ -453,7 +452,10 @@ fun HistoryListScreen(
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = historyHeaderHeight, bottom = Dimens.spacing24),
+                            contentPadding = PaddingValues(
+                                top = historyHeaderHeight,
+                                bottom = Dimens.pageContentBottomPadding + Dimens.spacing8,
+                            ),
                             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
                         ) {
             if (filteredSessions.isEmpty()) {
@@ -489,7 +491,6 @@ fun HistoryListScreen(
                                     modifier = Modifier
                                                                         .fillMaxWidth()
                                         .padding(horizontal = screenHPad)
-                                        .padding(top = Dimens.spacing8)
                                 ) {
                                     EmptyHistoryState(
                                         title = stringResource(R.string.history_no_results_title),
@@ -555,7 +556,6 @@ fun HistoryListScreen(
                                 modifier = Modifier
                                                                     .fillMaxWidth()
                                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                    .padding(top = Dimens.spacing8)
                             ) {
                                 Box(modifier = Modifier.fillMaxWidth()) {
                                     SearchFilterSortHeader(

@@ -131,6 +131,7 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
+import com.example.mamunbingoapp.ui.components.AppPageTopBar
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
@@ -287,7 +288,7 @@ fun LiveRoomsScreen(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing24, bottom = Dimens.spacing16),
+                .padding(bottom = Dimens.pageContentBottomPadding),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
         ) {
             SundayFeaturedRoomHero(
@@ -709,28 +710,19 @@ private fun LiveRoomsTopBar(
 ) {
     val actionSize = 40.dp
     val actionIconSize = 24.dp
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = Dimens.screenHorizontalPadding)
-            .heightIn(min = 56.dp)
-            .padding(vertical = Dimens.spacing8),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.semantics { heading() },
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    AppPageTopBar(
+        modifier = modifier,
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
+            )
+        },
+        actions = {
             LiveRoomsTopBarAction(
                 onClick = onScanClick,
                 contentDescription = stringResource(R.string.live_nav_direct_scan_cd),
@@ -738,6 +730,7 @@ private fun LiveRoomsTopBar(
                 actionSize = actionSize,
                 iconSize = actionIconSize,
             )
+            Spacer(modifier = Modifier.width(Dimens.spacing8))
             LiveRoomsTopBarAction(
                 onClick = onCreateRoomClick,
                 contentDescription = stringResource(R.string.live_nav_create_room_cd),
@@ -747,8 +740,8 @@ private fun LiveRoomsTopBar(
                 containerColor = MaterialTheme.colorScheme.primary,
                 iconTint = MaterialTheme.colorScheme.onPrimary,
             )
-        }
-    }
+        },
+    )
 }
 
 @Composable

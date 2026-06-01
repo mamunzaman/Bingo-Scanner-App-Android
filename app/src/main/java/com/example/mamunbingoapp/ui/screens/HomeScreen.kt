@@ -53,7 +53,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.AppTextStyles
@@ -61,6 +64,7 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppPullRefresh
 import com.example.mamunbingoapp.ui.components.ProfileAvatar
 import com.example.mamunbingoapp.ui.components.profileAvatarInitials
@@ -68,6 +72,7 @@ import com.example.mamunbingoapp.ui.components.home.HomeQuickScanFab
 import com.example.mamunbingoapp.ui.components.home.QuickActionItem
 import com.example.mamunbingoapp.ui.components.home.QuickActionsScrollRow
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
+import com.example.mamunbingoapp.ui.components.AppPageTopBar
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppSectionHeader
@@ -75,7 +80,6 @@ import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.ui.components.AppTab
-import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCard
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCardModel
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
@@ -96,7 +100,9 @@ private fun dispatchHomeQuickAction(
     runCatching { onQuickActionClick(action) }
 }
 
-private val homeContentBottomMargin = Dimens.spacing24
+private val homeScrollBottomPadding =
+    Dimens.pageContentBottomPadding + AppBottomBarScrollExtraPadding
+private val homeFabBottomPadding = Dimens.spacing24
 
 @Composable
 fun HomeScreen(
@@ -137,61 +143,12 @@ fun HomeScreen(
 
     AppHeaderPageLayout(
         topBar = {
-        AppTopBar(
-            title = "",
-            titleContent = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (showProfileSummary) {
-                        ProfileAvatar(
-                            avatarUrl = profileAvatarUrl,
-                            initials = homeAvatarInitials
-                                ?: profileAvatarInitials(welcomeName),
-                            size = 40.dp,
-                            showEditBadge = false,
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.primary,
-                                    CircleShape,
-                                ),
-                        )
-                    }
-                    Spacer(modifier = Modifier.size(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = timeAwareGreeting(welcomeName),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(modifier = Modifier.height(Dimens.spacing4))
-                        Text(
-                            text = stringResource(R.string.home_ready_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            },
-            actions = {
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Filled.Notifications,
-                        contentDescription = stringResource(R.string.home_notifications_cd),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        )
+            HomeTopBar(
+                welcomeName = welcomeName,
+                showProfileSummary = showProfileSummary,
+                profileAvatarUrl = profileAvatarUrl,
+                homeAvatarInitials = homeAvatarInitials,
+            )
         },
         content = {
         Box(
@@ -203,7 +160,7 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing8)
+                .padding(bottom = homeScrollBottomPadding)
             AppPullRefresh(
                 isRefreshing = isHomeRefreshing,
                 onRefresh = refreshHome,
@@ -229,7 +186,7 @@ fun HomeScreen(
                     .align(Alignment.BottomEnd)
                     .padding(
                         end = Dimens.screenHorizontalPadding,
-                        bottom = homeContentBottomMargin,
+                        bottom = homeFabBottomPadding,
                     ),
             )
         }
@@ -247,6 +204,68 @@ fun HomeScreen(
             },
         )
     }
+}
+
+@Composable
+private fun HomeTopBar(
+    welcomeName: String,
+    showProfileSummary: Boolean,
+    profileAvatarUrl: String?,
+    homeAvatarInitials: String?,
+) {
+    AppPageTopBar(
+        title = {
+            if (showProfileSummary) {
+                ProfileAvatar(
+                    avatarUrl = profileAvatarUrl,
+                    initials = homeAvatarInitials ?: profileAvatarInitials(welcomeName),
+                    size = 40.dp,
+                    showEditBadge = false,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(
+                            2.dp,
+                            MaterialTheme.colorScheme.primary,
+                            CircleShape,
+                        ),
+                )
+            }
+            Spacer(modifier = Modifier.width(Dimens.spacing12))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = timeAwareGreeting(welcomeName),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Spacer(modifier = Modifier.height(Dimens.spacing4))
+                Text(
+                    text = stringResource(R.string.home_ready_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = { }) {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = stringResource(R.string.home_notifications_cd),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        },
+    )
 }
 
 @Composable
@@ -273,9 +292,9 @@ private fun HomeScrollBody(
                     if (latestNumbers.isNotEmpty()) showLatestNumbersSheet = true
                 },
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing24))
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
             AppSectionTitle(text = stringResource(R.string.home_quick_actions))
-            Spacer(modifier = Modifier.height(Dimens.spacing12))
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
             QuickActionsScrollRow(
                 modifier = Modifier.fillMaxWidth(),
                 items = listOf(
@@ -302,13 +321,13 @@ private fun HomeScrollBody(
                     ),
                 ),
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing24))
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
             AppSectionHeader(
                 title = stringResource(R.string.home_active_tickets),
                 actionText = stringResource(R.string.home_view_all),
                 onActionClick = onViewAllTickets,
             )
-            Spacer(modifier = Modifier.height(Dimens.spacing12))
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
             HomeActiveTicketsSummaryRow(
                 activeCount = activeTicketsUi.activeCount,
                 calledCount = activeTicketsUi.calledCount,
@@ -362,7 +381,7 @@ private fun HomeScrollBody(
             }
             Spacer(modifier = Modifier.height(Dimens.spacing32))
             GreenImpactCard(treesPlanted = 120, treesToMilestone = 30)
-            Spacer(modifier = Modifier.height(homeContentBottomMargin))
+            Spacer(modifier = Modifier.height(homeFabBottomPadding))
         }
         if (showLatestNumbersSheet && latestNumbers.isNotEmpty()) {
             CalledNumbersDetailSheet(

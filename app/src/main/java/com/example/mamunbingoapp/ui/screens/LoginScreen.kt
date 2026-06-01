@@ -62,6 +62,7 @@ fun LoginScreen(
 
     AppHeaderPageLayout(
         scrollableContent = true,
+        contentTopPadding = 0.dp,
         topBar = {},
         content = {
             Box(

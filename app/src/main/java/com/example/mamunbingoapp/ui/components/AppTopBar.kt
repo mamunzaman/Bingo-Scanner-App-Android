@@ -1,27 +1,68 @@
 package com.example.mamunbingoapp.ui.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mamunbingoapp.theme.Dimens
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Shared top bar row for main screens: status bar inset, [Dimens.topBarHeight],
+ * [Dimens.screenHorizontalPadding], vertically centered title and actions.
+ */
+@Composable
+fun AppPageTopBar(
+    modifier: Modifier = Modifier,
+    leading: @Composable RowScope.() -> Unit = {},
+    title: @Composable RowScope.() -> Unit,
+    actions: @Composable () -> Unit = {},
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = Dimens.screenHorizontalPadding)
+            .height(Dimens.topBarHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        leading()
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                title()
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            actions()
+        }
+    }
+}
+
 @Composable
 fun AppTopBar(
     title: String,
@@ -29,11 +70,20 @@ fun AppTopBar(
     showBack: Boolean = false,
     onBackClick: (() -> Unit)? = null,
     titleContent: (@Composable () -> Unit)? = null,
-    actions: @Composable () -> Unit = {}
+    actions: @Composable () -> Unit = {},
 ) {
-    TopAppBar(
-        modifier = modifier.fillMaxWidth(),
-        windowInsets = WindowInsets.statusBars,
+    AppPageTopBar(
+        modifier = modifier,
+        leading = {
+            if (showBack && onBackClick != null) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+        },
         title = {
             if (titleContent != null) {
                 titleContent()
@@ -41,27 +91,14 @@ fun AppTopBar(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.semantics { heading() }
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
                 )
             }
         },
-        navigationIcon = {
-            if (showBack && onBackClick != null) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }
-        },
-        actions = { actions() },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurface
-        )
+        actions = actions,
     )
 }
 

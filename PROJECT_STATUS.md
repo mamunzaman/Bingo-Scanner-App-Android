@@ -1,6 +1,12 @@
 # Project status
 
-**Last update:** 2026-05-31 - **AppAlpha canonical:** `Dimens.outlineDividerAlpha` / `outlineBorderAlpha` delegate to `AppAlpha` (backward-compatible names). `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Page shell spacing:** `pageContentTopPadding` / `pageContentBottomPadding` in `Dimens`; `AppHeaderPageLayout` applies body top gap; main tabs deduped local top padding. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Top bar alignment:** shared `AppPageTopBar`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Home spacing rhythm:** content insets + section gaps 16/8. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **AppAlpha canonical:** `Dimens.outlineDividerAlpha` / `outlineBorderAlpha` delegate to `AppAlpha`. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **AppAlpha Phase 4A:** `theme/AppAlpha.kt`; divider/border migration in `AppInsetDivider`, `HistorySheetCard`, `SettingsScreen`, `LiveRoomTopSection`. `./gradlew :app:assembleDebug` OK.
 

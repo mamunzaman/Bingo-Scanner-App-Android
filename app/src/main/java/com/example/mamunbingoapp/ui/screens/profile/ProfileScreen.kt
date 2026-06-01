@@ -191,10 +191,9 @@ fun ProfileScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(bottom = Dimens.spacing16 + AppBottomBarScrollExtraPadding)
+                .padding(bottom = Dimens.pageContentBottomPadding + AppBottomBarScrollExtraPadding)
         ) {
             ProfileSummaryCard(
-                modifier = Modifier.padding(top = Dimens.spacing16),
                 displayName = displayName,
                 avatarUrl = authAvatarUrl,
                 avatarInitials = avatarInitials,
