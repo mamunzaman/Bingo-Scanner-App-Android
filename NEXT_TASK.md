@@ -1,6 +1,10 @@
 ﻿# Next task
 
-**Goal:** Optional: uCrop status bar overlap on device if still reported.
+**Goal:** Supabase: deploy `scrape-bingo`, invoke once, confirm `scraper_logs` + `bingo_draws.updated_at` (see `supabase/README.md`).
+
+**Verify:** Cron scheduled; Home jackpot matches DB after cold start.
+
+**Previous:** `supabase/README.md` — deploy, env vars, SQL checks, cron; `.env.local` gitignored.
 
 **Verify:** Live Play — top scan + create icons; Quick Actions 4 tiles (incl. Archived); horizontal scroll on narrow width. `./gradlew :app:assembleDebug` OK.
 

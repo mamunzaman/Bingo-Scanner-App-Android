@@ -1,4 +1,5 @@
 
+# scrape-bingo: public invoke for cron/manual (anon); writes use SUPABASE_SERVICE_ROLE_KEY in function.
 [functions.scrape-bingo]
 enabled = true
 verify_jwt = false
