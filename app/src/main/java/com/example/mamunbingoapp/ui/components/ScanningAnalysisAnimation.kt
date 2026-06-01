@@ -55,13 +55,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.Success
 import com.example.mamunbingoapp.viewmodel.DetectionStatus
 import com.example.mamunbingoapp.viewmodel.ImportOcrProgressUiState
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 
 // Medium green — visible on both light photo backgrounds and dark overlays.
-private val CrosshairGreen = Color(0xFF2E9B5E)
+private val CrosshairGreen = Success
 
 /** Smooth scan sweep — gentle ease at turn-around points. */
 private val ScanSweepEasing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)

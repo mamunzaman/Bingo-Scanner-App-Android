@@ -116,6 +116,7 @@ import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.GreenImpactBg
 import com.example.mamunbingoapp.theme.DarkPrimary
 import com.example.mamunbingoapp.theme.OnDarkPrimaryContainer
+import com.example.mamunbingoapp.theme.OnSurface
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.theme.PrimaryBorder
@@ -1557,7 +1558,7 @@ private fun SundayFeaturedRoomHero(
             shape = RoundedCornerShape(Dimens.radiusButtonPill),
             colors = ButtonDefaults.buttonColors(
                 containerColor = WarningIcon,
-                contentColor = Color(0xFF1A1A1A),
+                contentColor = OnSurface,
             ),
         ) {
             Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(18.dp))

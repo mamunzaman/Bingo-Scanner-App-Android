@@ -95,6 +95,7 @@ import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.UCropActivity
 import com.yalantis.ucrop.model.AspectRatio
 import com.example.mamunbingoapp.R
+import com.example.mamunbingoapp.theme.Background
 import com.example.mamunbingoapp.theme.CardBorderGreen
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.IconContainerBg
@@ -1016,7 +1017,7 @@ private fun HeroBannerCard(
     val heroContainerBg = when {
         appPreviewStyle -> cs.surface
         dark -> lerp(cs.surface, cs.surfaceVariant, 0.12f)
-        else -> lerp(Color(0xFFF6F8F4), cs.surfaceVariant, 0.06f)
+        else -> lerp(Background, cs.surfaceVariant, 0.06f)
     }
     val outerBorderColor = when {
         appPreviewStyle -> cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA)

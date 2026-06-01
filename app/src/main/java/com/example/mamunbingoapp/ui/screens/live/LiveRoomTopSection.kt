@@ -99,8 +99,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
+import com.example.mamunbingoapp.theme.Background
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.LiveFonts
+import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import com.example.mamunbingoapp.viewmodel.LivePlayUiState
@@ -135,14 +137,14 @@ private fun liveBadgePillBorder(colorScheme: ColorScheme, darkTheme: Boolean): C
     if (darkTheme) {
         colorScheme.primary.copy(alpha = 0.2f)
     } else {
-        Color(0xFF4A8F2A).copy(alpha = 0.16f)
+        Primary.copy(alpha = 0.16f)
     }
 
 private fun liveCountPillBackground(colorScheme: ColorScheme, darkTheme: Boolean): Color =
     if (darkTheme) {
         lerp(colorScheme.surface, colorScheme.surfaceVariant, 0.14f).copy(alpha = 0.88f)
     } else {
-        lerp(Color(0xFFF6F8F4), colorScheme.surfaceVariant, 0.06f).copy(alpha = 0.9f)
+        lerp(Background, colorScheme.surfaceVariant, 0.06f).copy(alpha = 0.9f)
     }
 
 private fun liveCountPillBorder(colorScheme: ColorScheme, darkTheme: Boolean): Color =

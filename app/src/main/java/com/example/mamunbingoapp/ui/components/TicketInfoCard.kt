@@ -24,11 +24,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.IconContainerBg
+import com.example.mamunbingoapp.theme.Primary
 
 private val TicketInfoCardBg = Color(0xFFF7F8F6)
 private val TicketInfoCardBorder = Color.Black.copy(alpha = 0.05f)
-private val LiveStatusPillBg = Color(0xFFEAF6EA)
-private val LiveStatusPillText = Color(0xFF4A8F2A)
+private val LiveStatusPillBg = IconContainerBg
+private val LiveStatusPillText = Primary
 
 /** Green-tint pill aligned with live “recent” styling. */
 @Composable

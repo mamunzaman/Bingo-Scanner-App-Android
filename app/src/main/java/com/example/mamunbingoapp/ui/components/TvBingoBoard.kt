@@ -32,12 +32,15 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.theme.PrimaryContainer
+import androidx.compose.ui.graphics.toArgb
 
 private val BingoColumnLetters = listOf("B", "I", "N", "G", "O")
 
 private const val ShareImageWidthPx = 1080
-private const val ShareBoardGreen: Int = 0xFF4C8C00.toInt()
-private const val ShareBoardFill: Int = 0xFFD9E9B4.toInt()
+private val ShareBoardGreen: Int get() = Primary.toArgb()
+private val ShareBoardFill: Int get() = PrimaryContainer.toArgb()
 private const val MatrixColumnCount = 5
 private val ChipMinSize = 30.dp
 private val ChipMaxSize = 44.dp
