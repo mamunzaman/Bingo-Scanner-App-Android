@@ -7,12 +7,15 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 
 import java.time.DayOfWeek
 import java.time.Instant
@@ -24,13 +27,22 @@ object BingoRemoteRepository {
 
     private const val TAG = "BingoRemoteRepository"
 
+    /** PostgREST: newest draw_date first; client picks max when batching. */
+    private const val LATEST_DRAWS_FETCH_LIMIT = 32
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
     private val http: HttpClient by lazy {
+        val okHttp = OkHttpClient.Builder()
+            .cache(null)
+            .build()
         HttpClient(OkHttp) {
+            engine {
+                preconfigured = okHttp
+            }
             install(ContentNegotiation) {
                 json(json)
             }
@@ -47,14 +59,14 @@ object BingoRemoteRepository {
         val weekStartStr = weekStart.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val weekEndStr = weekEnd.format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-        val exactMatch: List<BingoDrawDto> = authorizedGet("bingo_draws") {
+        val exactMatch: List<BingoDrawDto> = authorizedGet("bingo_draws", "getDrawForWeekExact") {
             parameter("select", "*")
             parameter("draw_date", "eq.$exactDate")
             parameter("limit", "1")
         }
         if (exactMatch.isNotEmpty()) return@runCatching exactMatch.first()
 
-        val weekMatch: List<BingoDrawDto> = authorizedGet("bingo_draws") {
+        val weekMatch: List<BingoDrawDto> = authorizedGet("bingo_draws", "getDrawForWeekRange") {
             parameter("select", "*")
             parameter("and", "(draw_date.gte.$weekStartStr,draw_date.lte.$weekEndStr)")
             parameter("order", "draw_date.desc")
@@ -74,17 +86,23 @@ object BingoRemoteRepository {
 
     suspend fun getLatestDraw(): Result<BingoDrawDto> = runCatching {
         SupabaseClientProvider.requireConfigured()
-        val rows: List<BingoDrawDto> = authorizedGet("bingo_draws") {
+        val rows: List<BingoDrawDto> = authorizedGet("bingo_draws", "getLatestDraw") {
             parameter("select", "*")
-            parameter("order", "draw_date.desc,updated_at.desc")
-            parameter("limit", "1")
+            // Single-column order avoids Ktor encoding commas in multi-sort values.
+            parameter("order", "draw_date.desc")
+            parameter("limit", LATEST_DRAWS_FETCH_LIMIT.toString())
         }
-        val draw = rows.firstOrNull() ?: error("No bingo draw found.")
         if (BuildConfig.DEBUG) {
             Log.d(
                 TAG,
-                "getLatestDraw ok drawDate=${draw.drawDate} jackpot=${draw.jackpot} " +
-                    "numbers=${draw.winningNumbers.size} updatedAt=${draw.updatedAt}",
+                "getLatestDraw responseCount=${rows.size} rows=${rows.joinToString { rowSummary(it) }}",
+            )
+        }
+        val draw = pickNewestDraw(rows) ?: error("No bingo draw found.")
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "getLatestDraw picked ${rowSummary(draw)}",
             )
         }
         draw
@@ -100,7 +118,7 @@ object BingoRemoteRepository {
         val id = drawId.trim()
         if (id.isBlank()) error("Draw id is required.")
         SupabaseClientProvider.requireConfigured()
-        val prizes: List<BingoPrizeDto> = authorizedGet("bingo_prizes") {
+        val prizes: List<BingoPrizeDto> = authorizedGet("bingo_prizes", "getPrizesForDraw") {
             parameter("select", "*")
             parameter("draw_id", "eq.$id")
             parameter("order", "winning_class.asc")
@@ -114,20 +132,38 @@ object BingoRemoteRepository {
         },
     )
 
+    /** Newest by ISO draw_date, then updated_at (handles out-of-order PostgREST rows). */
+    internal fun pickNewestDraw(rows: List<BingoDrawDto>): BingoDrawDto? =
+        rows.maxWithOrNull(
+            compareBy<BingoDrawDto> { it.drawDate }
+                .thenBy { it.updatedAt.orEmpty() },
+        )
+
+    private fun rowSummary(draw: BingoDrawDto): String =
+        "draw_date=${draw.drawDate},jackpot=${draw.jackpot},updated_at=${draw.updatedAt}"
+
     private suspend inline fun <reified T> authorizedGet(
         table: String,
-        crossinline block: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {},
+        requestTag: String,
+        crossinline block: HttpRequestBuilder.() -> Unit = {},
     ): T {
         val anonKey = BuildConfig.SUPABASE_ANON_KEY.trim()
         val baseUrl = BuildConfig.SUPABASE_URL.trim().trimEnd('/')
-        return http.get("$baseUrl/rest/v1/$table") {
+        val response: HttpResponse = http.get("$baseUrl/rest/v1/$table") {
             header(HttpHeaders.Accept, "application/json")
             header("apikey", anonKey)
             header(HttpHeaders.Authorization, "Bearer $anonKey")
-            header(HttpHeaders.CacheControl, "no-cache")
+            header(HttpHeaders.CacheControl, "no-cache, no-store")
             header("Pragma", "no-cache")
+            header(HttpHeaders.Expires, "0")
             block()
-        }.body()
+            if (BuildConfig.DEBUG) {
+                val loggedUrl = url.buildString()
+                    .replace(anonKey, "***")
+                Log.d(TAG, "$requestTag GET $loggedUrl")
+            }
+        }
+        return response.body()
     }
 
     private fun mapRemoteError(error: Throwable): String = when (error) {
