@@ -76,6 +76,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge-to-edge (decor does not fit system windows). MamunBingoTheme uses a transparent
+        // status bar; fullscreen import camera applies its own green status-bar color + insets.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         DatabaseProvider.init(applicationContext)

@@ -1,6 +1,16 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Global bottom navigation:** `MainShellScaffold` wraps app routes; `main` graph hosts tabs + archived/history/live/manual/settings; camera/auth fullscreen. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Gallery uCrop status bar (theme):** Non-edge-to-edge `Theme.MamunBingoApp.UCrop` + API 35 opt-out; `decorFitsSystemWindows` in `MamunUcropActivity`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Gallery uCrop simplified:** Removed custom bottom bar; minimal `MamunUcropActivity`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Gallery uCrop AppCompat theme:** `Theme.MamunBingoApp.UCrop` AppCompat parent; fixes UCropActivity theme crash. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Gallery uCrop crash fix:** Reverted risky toolbar/decor inset; `decorFits=true` in `MamunUcropActivity`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Gallery uCrop status bar (reverted):** Runtime toolbar padding caused gallery import crash. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Global bottom navigation:** `MainShellScaffold` wraps app routes; `main` graph hosts tabs + archived/history/live/manual/settings; camera/auth fullscreen. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **Archived navigation stabilized:** Single route constants, encoded args, relative nested child routes, safe invalid-arg/back. `./gradlew :app:assembleDebug` OK.
 

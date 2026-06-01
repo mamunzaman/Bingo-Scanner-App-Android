@@ -90,6 +90,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.mamunbingoapp.ui.importgallery.MamunUcropActivity
 import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.UCropActivity
 import com.yalantis.ucrop.model.AspectRatio
@@ -219,6 +220,7 @@ private fun buildImportTicketUcropIntent(context: Context, sourceUri: Uri, destU
         .withOptions(options)
         .withMaxResultSize(4096, 4096)
         .getIntent(context)
+        .setClass(context, MamunUcropActivity::class.java)
     Log.d(
         IMPORT_GALLERY_UCROP_LOG,
         "uCropConfig freestyle=true hideBottomControls=false gestures=ALL dynamicRatio=true rotateVisible=true",
@@ -238,6 +240,10 @@ private fun prepareImportTicketUcropIntentForLaunch(
     clip.addItem(ClipData.Item(destUri))
     intent.clipData = clip
     val resolved = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+    Log.d(
+        IMPORT_GALLERY_UCROP_LOG,
+        "uCropLaunch activity=${intent.component?.className} (expect ${MamunUcropActivity::class.java.name})",
+    )
     val targetPkg = resolved?.activityInfo?.packageName
     if (targetPkg != null) {
         try {

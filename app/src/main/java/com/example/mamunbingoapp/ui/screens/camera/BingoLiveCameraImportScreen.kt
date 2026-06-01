@@ -1,6 +1,7 @@
 package com.example.mamunbingoapp.ui.screens.camera
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -38,7 +39,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -94,6 +98,10 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
+import com.example.mamunbingoapp.theme.PrimaryPressed
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -530,6 +538,7 @@ fun BingoLiveCameraImportScreen(
         Column(
             modifier
                 .fillMaxSize()
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .padding(Dimens.screenHorizontalPadding, Dimens.spacing16),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -671,6 +680,23 @@ fun BingoLiveCameraImportScreen(
     }
     val captureActionEnabled = cameraSessionReady && !fullTicketImportLocked
     BackHandler(enabled = !capturing, onBack = onBack)
+    val view = LocalView.current
+    DisposableEffect(view) {
+        if (!view.isInEditMode) {
+            val window = (view.context as Activity).window
+            val controller = WindowCompat.getInsetsController(window, view)
+            val previousStatusBarColor = window.statusBarColor
+            val previousLightStatusBarIcons = controller.isAppearanceLightStatusBars
+            window.statusBarColor = PrimaryPressed.toArgb()
+            controller.isAppearanceLightStatusBars = false
+            onDispose {
+                window.statusBarColor = previousStatusBarColor
+                controller.isAppearanceLightStatusBars = previousLightStatusBarIcons
+            }
+        } else {
+            onDispose { }
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -738,54 +764,15 @@ fun BingoLiveCameraImportScreen(
                     ),
                 ),
         )
-        TopAppBar(
-            title = { Text(stringResource(R.string.camera_qr_title), style = MaterialTheme.typography.titleLarge) },
-            navigationIcon = {
-                IconButton(onClick = onBack, enabled = !capturing) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        stringResource(R.string.common_back),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Black.copy(alpha = 0.26f),
-                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
+        BingoCameraImportTopHeader(
+            modifier = Modifier.align(Alignment.TopCenter),
+            onBack = onBack,
+            capturing = capturing,
+            hasFlashUnit = hasFlashUnit,
+            torchEnabled = torchEnabled,
+            onTorchToggle = { torchEnabled = !torchEnabled },
+            flashControlEnabled = captureActionEnabled && !capturing,
         )
-        if (hasFlashUnit) {
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(
-                        top = Dimens.spacing32 * 5 + Dimens.spacing8,
-                        end = Dimens.screenHorizontalPadding,
-                    )
-                    .size(44.dp),
-                shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.48f),
-                shadowElevation = 4.dp,
-            ) {
-                IconButton(
-                    onClick = { torchEnabled = !torchEnabled },
-                    enabled = captureActionEnabled && !capturing,
-                ) {
-                    Icon(
-                        imageVector = if (torchEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
-                        contentDescription = stringResource(
-                            if (torchEnabled) R.string.camera_flash_on_cd else R.string.camera_flash_off_cd,
-                        ),
-                        tint = if (torchEnabled) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            Color.White.copy(alpha = 0.92f)
-                        },
-                    )
-                }
-            }
-        }
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -985,6 +972,88 @@ fun BingoLiveCameraImportScreen(
                         Color.White.copy(alpha = shutterAlpha.value.coerceIn(0f, 1f))
                     )
             )
+        }
+    }
+}
+
+/** Green import-camera header: status-bar band + toolbar row (edge-to-edge safe). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BingoCameraImportTopHeader(
+    onBack: () -> Unit,
+    capturing: Boolean,
+    hasFlashUnit: Boolean,
+    torchEnabled: Boolean,
+    onTorchToggle: () -> Unit,
+    flashControlEnabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val toolbarGreen = MaterialTheme.colorScheme.primary
+    val statusBarGreen = PrimaryPressed
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(toolbarGreen),
+    ) {
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .height(statusBarTop)
+                .background(statusBarGreen),
+        )
+        Box(Modifier.fillMaxWidth()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        stringResource(R.string.camera_qr_title),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack, enabled = !capturing) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            stringResource(R.string.common_back),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
+                },
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            )
+            if (hasFlashUnit) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = Dimens.screenHorizontalPadding)
+                        .size(44.dp),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.35f),
+                    shadowElevation = 4.dp,
+                ) {
+                    IconButton(
+                        onClick = onTorchToggle,
+                        enabled = flashControlEnabled,
+                    ) {
+                        Icon(
+                            imageVector = if (torchEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
+                            contentDescription = stringResource(
+                                if (torchEnabled) R.string.camera_flash_on_cd else R.string.camera_flash_off_cd,
+                            ),
+                            tint = if (torchEnabled) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                Color.White.copy(alpha = 0.92f)
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
 }

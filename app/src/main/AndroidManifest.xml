@@ -53,7 +53,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.yalantis.ucrop.UCropActivity"
+            android:name=".ui.importgallery.MamunUcropActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.MamunBingoApp.UCrop" />
         <provider

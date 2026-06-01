@@ -598,7 +598,7 @@ fun LivePlayScreen(
                     onRemoveFromRoomClick = { showLiveListBulkLeaveConfirm = true },
                     onDeleteFromHistoryClick = { showLiveListBulkDeleteConfirm = true }
                 )
-            } else if (showBottomBar && !isMyTicketsSheetOpen) {
+            } else if (!isMyTicketsSheetOpen) {
                 LivePlayBottomArea(
                     displaySheets = displaySheets,
                     calledNumbers = calledNumbers,
@@ -615,6 +615,7 @@ fun LivePlayScreen(
                     onUndoLastCall = onUndoLastCall,
                     selectedTabForBottomBar = selectedTabForBottomBar,
                     onTabSelected = onTabSelected,
+                    showBottomBar = showBottomBar,
                     showCompactBar = showCompactBar,
                     haptic = haptic,
                     showNumberKeypad = showNumberKeypad,
@@ -859,6 +860,7 @@ private fun LivePlayBottomArea(
     onUndoLastCall: () -> Unit,
     selectedTabForBottomBar: AppTab,
     onTabSelected: (AppTab) -> Unit,
+    showBottomBar: Boolean,
     showCompactBar: Boolean,
     haptic: HapticFeedback,
     showNumberKeypad: Boolean,
@@ -993,11 +995,13 @@ private fun LivePlayBottomArea(
                 }
             )
             }
-            AppBottomBar(
-                selectedTab = selectedTabForBottomBar,
-                onTabSelected = onTabSelected,
-                showTopShadow = !showCompactBar
-            )
+            if (showBottomBar) {
+                AppBottomBar(
+                    selectedTab = selectedTabForBottomBar,
+                    onTabSelected = onTabSelected,
+                    showTopShadow = !showCompactBar,
+                )
+            }
         }
     }
 }

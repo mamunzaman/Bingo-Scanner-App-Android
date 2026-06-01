@@ -6,11 +6,20 @@
         <item name="android:colorBackground">@android:color/white</item>
     </style>
 
-    <style name="Theme.MamunBingoApp.UCrop" parent="Theme.AppCompat.Light.NoActionBar">
+    <!-- Gallery crop (uCrop): AppCompat + non-edge-to-edge; MamunUcropActivity sets decorFitsSystemWindows. -->
+    <style name="Theme.MamunBingoApp.UCrop" parent="@style/Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
         <item name="colorPrimary">@color/ucrop_toolbar_green</item>
         <item name="colorPrimaryDark">@color/ucrop_status_bar_green</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:statusBarColor">@color/ucrop_status_bar_green</item>
-        <item name="android:navigationBarColor">@color/ucrop_canvas_background</item>
+        <item name="android:navigationBarColor">@color/ucrop_status_bar_green</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fitsSystemWindows">true</item>
         <item name="android:windowBackground">@color/ucrop_canvas_background</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     </style>
 </resources>
