@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,8 +70,9 @@ data class ActiveTicketCellState(
 )
 
 data class ActiveTicketCardModel(
-    val ticketLabel: String,
-    val drawDate: String,
+    val sheetName: String,
+    val losNumber: String? = null,
+    val serieNumber: String? = null,
     val isInLiveRoom: Boolean,
     val calledCountLabel: String?,
     val calledProgress: Float,
@@ -135,7 +138,7 @@ fun ActiveTicketCard(
                     .height(22.dp),
             ) {
                 Text(
-                    text = model.ticketLabel,
+                    text = model.sheetName,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .padding(end = STATUS_CHIP_MIN_WIDTH + Dimens.spacing8),
@@ -165,12 +168,9 @@ fun ActiveTicketCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Text(
-                    text = stringResource(R.string.active_ticket_draw, model.drawDate),
-                    style = activeTicketMetaSecondaryStyle(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                ActiveTicketLosSerieMeta(
+                    losNumber = model.losNumber,
+                    serieNumber = model.serieNumber,
                 )
                 model.resultSourceLabel?.takeIf { it.isNotBlank() }?.let { label ->
                     Text(
@@ -219,6 +219,102 @@ private fun activeTicketMetaSecondaryStyle() =
         fontSize = 10.sp,
         lineHeight = 12.sp,
     )
+
+@Composable
+private fun activeTicketMetaLabelStyle() =
+    MaterialTheme.typography.labelSmall.copy(
+        fontSize = 10.sp,
+        lineHeight = 11.sp,
+        fontWeight = FontWeight.Medium,
+    )
+
+@Composable
+private fun activeTicketMetaValueStyle() =
+    MaterialTheme.typography.labelLarge.copy(
+        fontSize = 15.sp,
+        lineHeight = 16.sp,
+        fontWeight = FontWeight.Bold,
+    )
+
+@Composable
+private fun ActiveTicketLosSerieMeta(
+    losNumber: String?,
+    serieNumber: String?,
+) {
+    val los = losNumber?.trim()?.takeIf { it.isNotEmpty() }
+    val serie = serieNumber?.trim()?.takeIf { it.isNotEmpty() }
+    if (los == null && serie == null) return
+
+    val cs = MaterialTheme.colorScheme
+    val labelStyle = activeTicketMetaLabelStyle()
+    val valueStyle = activeTicketMetaValueStyle()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+    ) {
+        if (los != null) {
+            ActiveTicketMetaField(
+                label = stringResource(R.string.home_active_ticket_los_label),
+                value = los,
+                labelStyle = labelStyle,
+                valueStyle = valueStyle,
+                labelColor = cs.onSurfaceVariant,
+                valueColor = cs.onSurface,
+                alignEnd = false,
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        if (serie != null) {
+            ActiveTicketMetaField(
+                label = stringResource(R.string.home_active_ticket_serie_label),
+                value = serie,
+                labelStyle = labelStyle,
+                valueStyle = valueStyle,
+                labelColor = cs.onSurfaceVariant,
+                valueColor = cs.onSurface,
+                alignEnd = true,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActiveTicketMetaField(
+    label: String,
+    value: String,
+    labelStyle: TextStyle,
+    valueStyle: TextStyle,
+    labelColor: Color,
+    valueColor: Color,
+    alignEnd: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val horizontalAlign = if (alignEnd) Alignment.End else Alignment.Start
+    val textAlign = if (alignEnd) TextAlign.End else TextAlign.Start
+    Column(
+        modifier = modifier.wrapContentWidth(horizontalAlign),
+        horizontalAlignment = horizontalAlign,
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        Text(
+            text = label,
+            style = labelStyle,
+            color = labelColor,
+            textAlign = textAlign,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = value,
+            style = valueStyle,
+            color = valueColor,
+            textAlign = textAlign,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
 
 @Composable
 private fun ActiveTicketStatusChip(

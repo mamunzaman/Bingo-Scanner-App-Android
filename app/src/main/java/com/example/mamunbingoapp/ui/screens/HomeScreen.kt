@@ -344,8 +344,11 @@ private fun HomeScrollBody(
                                 }
                                 ActiveTicketCard(
                                     model = ActiveTicketCardModel(
-                                        ticketLabel = sessionDisplayLabel(session),
-                                        drawDate = formatHomeTicketDate(preview.drawDateMillis),
+                                        sheetName = session.effectiveSheetName().ifBlank {
+                                            stringResource(R.string.history_unnamed_sheet)
+                                        },
+                                        losNumber = session.losNumber,
+                                        serieNumber = session.serialNumber,
                                         isInLiveRoom = preview.isInLiveRoom,
                                         calledCountLabel = calledLabel,
                                         calledProgress = preview.calledProgress,

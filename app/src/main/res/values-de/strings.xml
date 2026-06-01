@@ -108,6 +108,8 @@
     <string name="home_active_ticket_test_date_result">Testdatum-Ergebnis</string>
     <string name="home_active_ticket_status_live_room">Live-Raum</string>
     <string name="home_active_ticket_status_saved">Gespeichertes Ticket</string>
+    <string name="home_active_ticket_los_label">LOS</string>
+    <string name="home_active_ticket_serie_label">SERIE</string>
     <string name="home_error_load_prizes">Preise konnten nicht geladen werden.</string>
     <string name="home_error_load_latest_draw">Letzte Ziehung konnte nicht geladen werden.</string>
     <string name="home_view_all">Alle anzeigen</string>

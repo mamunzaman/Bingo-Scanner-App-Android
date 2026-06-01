@@ -62,6 +62,8 @@
     <string name="home_active_ticket_test_date_result">Test date result</string>
     <string name="home_active_ticket_status_live_room">Live room</string>
     <string name="home_active_ticket_status_saved">Saved ticket</string>
+    <string name="home_active_ticket_los_label">LOS</string>
+    <string name="home_active_ticket_serie_label">SERIE</string>
     <string name="home_error_load_prizes">Could not load prizes.</string>
     <string name="home_error_load_latest_draw">Could not load latest draw.</string>
     <string name="home_view_all">View All</string>
