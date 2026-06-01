@@ -199,7 +199,11 @@ import com.example.mamunbingoapp.ui.components.LivePlayCallKeypad
 import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
-import com.example.mamunbingoapp.ui.components.MiniBingoGrid
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketCompactSheetPreview
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketListSheetPreview
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketLosSerieRow
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.SettingsRepository
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
@@ -1942,7 +1946,7 @@ private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick
     }
 }
 
-/** Live room sheet list row: header row + full-bleed footer strip (matches History list cards). */
+/** Live room sheet list row — compact B–O preview + LOS/SERIE (aligned with [HistorySheetCard]). */
 @Composable
 private fun ListSheetRow(
     title: String,
@@ -1956,131 +1960,151 @@ private fun ListSheetRow(
     selected: Boolean = false,
     onSelectionToggle: () -> Unit = {}
 ) {
-    val miniGrid = if (cells.size == 25) cells.map { it.isMarked } else List(25) { false }
-    val placeholderDash = stringResource(R.string.common_placeholder_dash)
-    val safeSerial = serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
-    val safeLos = losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
-    val serialLabel = stringResource(R.string.live_play_label_serial)
-    val losLabel = stringResource(R.string.live_play_label_los)
-    val markedLabel = stringResource(R.string.live_play_label_marked)
     val selectedA11yLabel = stringResource(
         if (selected) R.string.live_play_a11y_selected else R.string.live_play_a11y_not_selected
     )
     val markedCount = marked.substringBefore('/').toIntOrNull() ?: 0
-    val rowShape = RoundedCornerShape(Dimens.radiusSmall)
-    val borderWidth = if (selectionMode && selected) 2.dp else Dimens.cardBorderDefault
-    val borderColor = if (selectionMode && selected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+    val gridCellStates = remember(cells) {
+        val normalized = when {
+            cells.size >= BingoPlayableNumbers.GRID_CELL_COUNT ->
+                cells.take(BingoPlayableNumbers.GRID_CELL_COUNT)
+            else ->
+                cells + List(BingoPlayableNumbers.GRID_CELL_COUNT - cells.size) {
+                    BingoCellUi(null, false, false, false, false)
+                }
+        }
+        normalized.map { cell ->
+            val display = cell.number?.trim().orEmpty().let { raw ->
+                when {
+                    raw.isEmpty() -> ""
+                    raw.equals("FREE", ignoreCase = true) -> "FREE"
+                    else -> raw
+                }
+            }
+            ActiveTicketCellState(display = display, isCalled = cell.isMarked)
+        }
+    }
+    val rowShape = RoundedCornerShape(Dimens.radiusLarge)
+    val leadingSlotWidth = 42.dp
+    val cs = MaterialTheme.colorScheme
+    val borderColor = when {
+        selectionMode && selected -> cs.primary.copy(alpha = 0.55f)
+        else -> cs.primary.copy(alpha = 0.45f)
+    }
+    val selectedTintBg: Modifier = if (selectionMode && selected) {
+        Modifier.background(cs.primaryContainer.copy(alpha = 0.10f))
     } else {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        Modifier
     }
     val rowGo = {
         if (selectionMode) onSelectionToggle() else onClick()
     }
-    val headerClick = Modifier.clickable(
+    val contentClick = Modifier.clickable(
         indication = rememberRipple(),
         interactionSource = remember { MutableInteractionSource() },
-        onClick = rowGo
-    )
-    val footerClick = Modifier.clickable(
-        indication = rememberRipple(),
-        interactionSource = remember { MutableInteractionSource() },
-        onClick = rowGo
+        onClick = rowGo,
     )
     val rowContentDescription = if (selectionMode) {
         stringResource(R.string.live_play_a11y_sheet_select, title, selectedA11yLabel)
     } else {
         stringResource(R.string.live_play_a11y_sheet_open, title, markedCount)
     }
-    Column(
+
+    AppSectionSurface(
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
                 contentDescription = rowContentDescription
             }
-            .clip(rowShape)
-            .border(width = borderWidth, color = borderColor, shape = rowShape)
+            .clip(rowShape),
+        shape = rowShape,
+        borderColor = borderColor,
+        shadowElevation = 5.dp,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(cs.surface)
+                .then(selectedTintBg),
+            verticalAlignment = Alignment.Top,
         ) {
             if (selectionMode) {
-                Checkbox(
-                    checked = selected,
-                    onCheckedChange = { onSelectionToggle() },
-                    modifier = Modifier.padding(start = Dimens.spacing4),
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary
+                Box(
+                    modifier = Modifier
+                        .width(leadingSlotWidth)
+                        .padding(top = Dimens.spacing12),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = { onSelectionToggle() },
+                        colors = CheckboxDefaults.colors(checkedColor = cs.primary),
                     )
-                )
+                }
             }
             Row(
                 modifier = Modifier
                     .weight(1f)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing5)
-                    .then(headerClick),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16)
+                    .padding(
+                        start = if (selectionMode) Dimens.spacing4 else Dimens.spacing12,
+                        end = Dimens.spacing12,
+                        top = Dimens.spacing12,
+                        bottom = Dimens.spacing12,
+                    )
+                    .then(contentClick),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16),
+                verticalAlignment = Alignment.Top,
             ) {
-                MiniBingoGrid(cells = miniGrid)
+                ActiveTicketCompactSheetPreview(
+                    cellStates = gridCellStates,
+                    neutralGrid = false,
+                )
                 Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .heightIn(min = ActiveTicketListSheetPreview.Height),
+                    verticalArrangement = Arrangement.Top,
                 ) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            lineHeight = 20.sp,
+                        ),
+                        color = cs.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    ActiveTicketLosSerieRow(
+                        losNumber = losNumber,
+                        serieNumber = serialNumber,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Dimens.spacing8),
+                        valueStyle = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 16.sp,
+                            lineHeight = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
                     )
                     Text(
                         text = stringResource(R.string.live_play_scanned_date, scannedDate),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Dimens.spacing8),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 14.sp,
+                        ),
+                        color = cs.onSurfaceVariant.copy(alpha = 0.55f),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp)
-                .height(1.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha))
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing4)
-                .then(footerClick),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ListSheetInfoCell(
-                label = serialLabel,
-                value = safeSerial,
-                modifier = Modifier.weight(1f)
-            )
-            ListSheetVerticalDivider()
-            ListSheetInfoCell(
-                label = losLabel,
-                value = safeLos,
-                modifier = Modifier.weight(1f)
-            )
-            ListSheetVerticalDivider()
-            ListSheetInfoCell(
-                label = markedLabel,
-                value = marked,
-                modifier = Modifier.weight(1f),
-                valueColor = MaterialTheme.colorScheme.primary,
-                valueFontWeight = FontWeight.SemiBold
-            )
         }
     }
 }

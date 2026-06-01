@@ -1,8 +1,10 @@
 ﻿# Next task
 
-**Goal:** Optional: persist full grid snapshot on archive (true point-in-time ticket without live DB).
+**Goal:** Migrate **My Tickets** bottom sheet rows to `ActiveTicketCompactSheetPreview` (needs 25-cell data on `TicketUiModel`).
 
-**Verify:** History list cards show mini grid + LOS/SERIE + room/date; menu/actions work. `./gradlew :app:assembleDebug` OK.
+**Verify:** Live Play list view matches History (grid + LOS/SERIE); selection/checkbox/tap OK; carousel unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** Live Play `ListSheetRow` → shared compact preview + `ActiveTicketLosSerieRow`; removed SERIAL/LOS/MARKED footer.
 
 **Previous:** Bottom nav audit — tab highlight via route/VM/handle; `stageMainShellTab` on entry routes; shell `onMainBottomBarTabSelected` wired on pushed screens.
 

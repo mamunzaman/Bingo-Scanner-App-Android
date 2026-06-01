@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +48,7 @@ import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCompactSheetPreview
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketListSheetPreview
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketLosSerieRow
 import com.example.mamunbingoapp.viewmodel.HistoryMiniGridCell
 import java.text.SimpleDateFormat
@@ -155,14 +157,17 @@ fun HistorySheetCard(
                     )
                     .then(contentClick),
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 ActiveTicketCompactSheetPreview(
                     cellStates = gridCellStates,
                     neutralGrid = !inRoom,
                 )
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .heightIn(min = ActiveTicketListSheetPreview.Height),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
                 ) {
                     Text(
