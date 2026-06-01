@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Nav label Jackpot → Live Play:** `tab_jackpot` + `live_nav_title` (EN/DE); `AppTab.Jackpot` / routes unchanged. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Live Rooms UI polish:** Top bar scan + create icons; Archived Games in Quick Actions row (4 tiles). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Nav label Jackpot → Live Play:** `tab_jackpot` + `live_nav_title` (EN/DE); `AppTab.Jackpot` / routes unchanged. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **My Tickets one-sheet-per-room:** Picker hides tickets assigned to any live room (`assignedRoomId` + global `room_tickets` ids); current-room fallback kept. `./gradlew :app:assembleDebug` OK.
 

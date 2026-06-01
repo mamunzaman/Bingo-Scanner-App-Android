@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -46,6 +47,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Schedule
@@ -126,19 +128,22 @@ import com.example.mamunbingoapp.R
 import androidx.compose.ui.platform.LocalContext
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
-import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.viewmodel.LiveRoomsViewModel
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppIconContainer
+import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
 import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.RoomRepository
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 private val berlinZone: ZoneId = SundayBingoSchedule.berlinZone
@@ -269,30 +274,11 @@ fun LiveRoomsScreen(
     AppHeaderPageLayout(
         modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
         topBar = {
-        AppTopBar(
-            title = stringResource(R.string.live_nav_title),
-            actions = {
-                IconButton(
-                    onClick = { showCreateDialog = true },
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = stringResource(R.string.live_nav_create_room_cd),
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }
-            }
-        )
+            LiveRoomsTopBar(
+                title = stringResource(R.string.live_nav_title),
+                onScanClick = { showScanTypeSheet = true },
+                onCreateRoomClick = { showCreateDialog = true },
+            )
         },
         content = {
         Column(
@@ -313,10 +299,10 @@ fun LiveRoomsScreen(
             )
             QuickActionsSection(
                 onScanSheet = { showScanTypeSheet = true },
+                onManualEntry = onManualEntry,
                 onHistory = onHistory,
-                onManualEntry = onManualEntry
+                onArchivedGames = onArchivedGames,
             )
-            ArchivedGamesEntrySection(onClick = onArchivedGames)
             RecentRoomsSection(
                 roomsWithStats = roomsWithStats,
                 excludeRoomIds = sundayFeaturedRoomIdsToHide,
@@ -713,6 +699,82 @@ private fun CreateRoomDialog(
     )
 }
 
+@Composable
+private fun LiveRoomsTopBar(
+    title: String,
+    onScanClick: () -> Unit,
+    onCreateRoomClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val actionSize = 40.dp
+    val actionIconSize = 24.dp
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = Dimens.screenHorizontalPadding)
+            .heightIn(min = 56.dp)
+            .padding(vertical = Dimens.spacing8),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.semantics { heading() },
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LiveRoomsTopBarAction(
+                onClick = onScanClick,
+                contentDescription = stringResource(R.string.live_nav_direct_scan_cd),
+                icon = Icons.Default.QrCodeScanner,
+                actionSize = actionSize,
+                iconSize = actionIconSize,
+            )
+            LiveRoomsTopBarAction(
+                onClick = onCreateRoomClick,
+                contentDescription = stringResource(R.string.live_nav_create_room_cd),
+                icon = Icons.Filled.Add,
+                actionSize = actionSize,
+                iconSize = actionIconSize,
+                containerColor = MaterialTheme.colorScheme.primary,
+                iconTint = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveRoomsTopBarAction(
+    onClick: () -> Unit,
+    contentDescription: String,
+    icon: ImageVector,
+    actionSize: Dp,
+    iconSize: Dp,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(actionSize),
+    ) {
+        AppIconTile(
+            icon = icon,
+            size = actionSize,
+            iconSize = iconSize,
+            containerColor = containerColor,
+            iconTint = iconTint,
+            contentDescription = contentDescription,
+        )
+    }
+}
+
 private data class QuickActionItem(
     val title: String,
     val subtitle: String,
@@ -721,76 +783,44 @@ private data class QuickActionItem(
 )
 
 @Composable
-private fun ArchivedGamesEntrySection(onClick: () -> Unit) {
-    val sessions by TicketPlayLogRepository.observeArchivedSessions()
-        .collectAsState(initial = emptyList())
-    val subtitle = if (sessions.isEmpty()) {
-        stringResource(R.string.live_nav_archived_games_subtitle_empty)
-    } else {
-        stringResource(R.string.live_nav_archived_games_subtitle, sessions.size)
-    }
-    AppSectionSurface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.spacing16),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
-            ) {
-                Text(
-                    text = stringResource(R.string.live_nav_archived_games),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
 private fun QuickActionsSection(
     onScanSheet: () -> Unit,
+    onManualEntry: () -> Unit,
     onHistory: () -> Unit,
-    onManualEntry: () -> Unit
+    onArchivedGames: () -> Unit,
 ) {
+    val archivedSessions by TicketPlayLogRepository.observeArchivedSessions()
+        .collectAsState(initial = emptyList())
+    val archivedSubtitle = if (archivedSessions.isEmpty()) {
+        stringResource(R.string.live_nav_archived_games_subtitle_empty)
+    } else {
+        stringResource(R.string.live_nav_archived_games_subtitle, archivedSessions.size)
+    }
     val actions = listOf(
         QuickActionItem(
             stringResource(R.string.live_nav_scan_sheet),
             stringResource(R.string.live_nav_scan_sheet_subtitle),
             Icons.Default.QrCodeScanner,
-            onScanSheet
-        ),
-        QuickActionItem(
-            stringResource(R.string.live_nav_history),
-            stringResource(R.string.live_nav_history_subtitle),
-            Icons.Default.History,
-            onHistory
+            onScanSheet,
         ),
         QuickActionItem(
             stringResource(R.string.live_nav_manual_entry),
             stringResource(R.string.live_nav_manual_entry_subtitle),
             Icons.Default.Edit,
-            onManualEntry
-        )
+            onManualEntry,
+        ),
+        QuickActionItem(
+            stringResource(R.string.live_nav_history),
+            stringResource(R.string.live_nav_history_subtitle),
+            Icons.Default.History,
+            onHistory,
+        ),
+        QuickActionItem(
+            stringResource(R.string.live_nav_archived_games),
+            archivedSubtitle,
+            Icons.Filled.Archive,
+            onArchivedGames,
+        ),
     )
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)) {
         AppSectionTitle(text = stringResource(R.string.live_nav_quick_actions))

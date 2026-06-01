@@ -131,6 +131,7 @@
     <string name="live_nav_quick_actions">Schnellaktionen</string>
     <string name="live_nav_recent_rooms">Letzte Räume</string>
     <string name="live_nav_create_room_cd">Neuen Raum erstellen</string>
+    <string name="live_nav_direct_scan_cd">Ticket scannen</string>
     <string name="live_nav_join">Beitreten</string>
     <string name="import_ticket_scan_tips_dialog_ok">OK</string>
     <string name="import_ticket_scanned_at">Gescannt am %1$s</string>

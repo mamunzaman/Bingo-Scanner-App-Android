@@ -89,6 +89,7 @@
     <string name="projects_retry">Retry</string>
     <string name="projects_last_updated">Last updated %1$s</string>
     <string name="live_nav_create_room_cd">Create new room</string>
+    <string name="live_nav_direct_scan_cd">Scan sheet</string>
     <string name="live_nav_subtitle">Choose how to start your session</string>
     <string name="live_nav_start_resume">Start / Resume Live</string>
     <string name="live_nav_start_resume_subtitle">%1$s • Sheets: %2$d • Called: %3$d</string>
