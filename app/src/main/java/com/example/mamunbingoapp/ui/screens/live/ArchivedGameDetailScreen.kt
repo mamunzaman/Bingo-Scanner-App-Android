@@ -129,7 +129,7 @@ fun ArchivedGameDetailScreen(
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
                                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                                .padding(top = Dimens.spacing8, bottom = Dimens.spacing24),
+                                .padding(bottom = Dimens.spacing24),
                             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16),
                         ) {
                             ArchivedGameDetailHero(

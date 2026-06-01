@@ -118,9 +118,9 @@ fun LiveSheetDetailScreen(
                 .fillMaxWidth(),
             contentPadding = PaddingValues(
                 start = Dimens.screenHorizontalPadding,
-                top = Dimens.spacing8,
+                top = 0.dp,
                 end = Dimens.screenHorizontalPadding,
-                bottom = Dimens.spacing16
+                bottom = Dimens.pageContentBottomPadding,
             ),
                 verticalArrangement = Arrangement.spacedBy(Dimens.spacing24)
             ) {

@@ -277,7 +277,7 @@ fun TicketDetailScreen(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing5, bottom = Dimens.spacing24)
+                .padding(top = Dimens.pageContentTopPadding, bottom = Dimens.spacing24)
                 ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),

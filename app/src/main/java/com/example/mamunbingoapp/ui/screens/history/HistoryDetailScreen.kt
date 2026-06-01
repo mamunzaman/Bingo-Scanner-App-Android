@@ -278,7 +278,7 @@ fun HistoryDetailScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(top = Dimens.spacing5)
+                        .padding(top = Dimens.pageContentTopPadding)
                         .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing16),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -538,7 +538,7 @@ fun HistoryDetailScreen(
                         .fillMaxWidth(),
                     contentPadding = PaddingValues(
                         start = Dimens.screenHorizontalPadding,
-                        top = Dimens.spacing8,
+                        top = Dimens.pageContentTopPadding,
                         end = Dimens.screenHorizontalPadding,
                         bottom = HistoryDetailBottomContentPadding,
                     ),
@@ -1354,6 +1354,7 @@ fun HistoryReadOnlyTicketDetailContent(
     createdAtMillis: Long,
     updatedAtMillis: Long,
     modifier: Modifier = Modifier,
+    listTopPadding: Dp = Dimens.pageContentTopPadding,
 ) {
     val timestampFormat = remember {
         SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault())
@@ -1374,7 +1375,7 @@ fun HistoryReadOnlyTicketDetailContent(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(
             start = Dimens.screenHorizontalPadding,
-            top = Dimens.spacing8,
+            top = listTopPadding,
             end = Dimens.screenHorizontalPadding,
             bottom = HistoryDetailBottomContentPadding,
         ),

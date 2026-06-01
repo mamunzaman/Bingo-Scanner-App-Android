@@ -635,7 +635,8 @@ fun LivePlayScreen(
     ) {
     Column(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .padding(top = Dimens.pageContentTopPadding),
         verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)
     ) {
         MyTicketsBottomSheet(
@@ -695,7 +696,7 @@ fun LivePlayScreen(
                     contentPadding = PaddingValues(
                         start = Dimens.screenHorizontalPadding,
                         end = Dimens.screenHorizontalPadding,
-                        top = Dimens.spacing8,
+                        top = 0.dp,
                         bottom = Dimens.spacing8
                     )
                 ) {
@@ -781,7 +782,6 @@ fun LivePlayScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = Dimens.screenHorizontalPadding)
-                        .padding(top = Dimens.spacing8)
                 ) {
                     AnimatedVisibility(
                         visible = roomSettings?.isRunning == true && !isCallLimitReached,

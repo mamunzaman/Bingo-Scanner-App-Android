@@ -223,7 +223,7 @@ fun HistoryPhotoImportScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(top = Dimens.spacing8)
+                            .padding(top = Dimens.pageContentTopPadding)
                             .padding(horizontal = Dimens.screenHorizontalPadding)
                             .padding(bottom = Dimens.spacing8)
                     ) {

@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.TicketPlayLog
 import com.example.mamunbingoapp.data.TicketPlayLogRepository
@@ -118,6 +119,7 @@ fun ArchivedGameTicketDetailScreen(
                             createdAtMillis = ticket?.createdAt ?: log?.addedAt ?: archivedAt,
                             updatedAtMillis = log?.archivedAt ?: archivedAt,
                             modifier = Modifier.weight(1f),
+                            listTopPadding = 0.dp,
                         )
                     }
                 }

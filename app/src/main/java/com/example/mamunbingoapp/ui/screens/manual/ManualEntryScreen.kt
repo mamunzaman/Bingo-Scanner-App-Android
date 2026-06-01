@@ -711,6 +711,7 @@ fun ManualEntryScreen(
                                 modifier = Modifier
                             .weight(1f)
                                     .fillMaxWidth()
+                            .padding(top = Dimens.pageContentTopPadding)
                             .padding(bottom = keypadDockForLayout + bingoKeypadBreathingGap)
                             .then(outsideDismissFlexModifier)
                     ) {

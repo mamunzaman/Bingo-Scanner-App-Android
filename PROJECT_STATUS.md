@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Page shell spacing:** `pageContentTopPadding` / `pageContentBottomPadding` in `Dimens`; `AppHeaderPageLayout` applies body top gap; main tabs deduped local top padding. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Inner page shell spacing:** high-traffic screens use `pageContentTopPadding`; archived/sheet routes drop duplicate top `spacing8`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Page shell spacing:** `AppHeaderPageLayout` body top gap; main tabs aligned. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **Top bar alignment:** shared `AppPageTopBar`. `./gradlew :app:assembleDebug` OK.
 

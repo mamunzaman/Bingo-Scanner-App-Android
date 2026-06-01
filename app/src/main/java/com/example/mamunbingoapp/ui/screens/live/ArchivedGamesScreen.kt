@@ -93,7 +93,7 @@ fun ArchivedGamesScreen(
                             .weight(1f)
                             .fillMaxWidth()
                             .padding(horizontal = Dimens.screenHorizontalPadding)
-                            .padding(top = Dimens.spacing8, bottom = Dimens.spacing16),
+                            .padding(bottom = Dimens.pageContentBottomPadding),
                         verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
                     ) {
                         items(sessions, key = { "${it.roomId}_${it.archivedAt}" }) { session ->
