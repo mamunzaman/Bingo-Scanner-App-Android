@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
@@ -187,6 +188,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _remoteError.value = null
             BingoRemoteRepository.getLatestDraw()
                 .onSuccess { draw ->
+                    if (BuildConfig.DEBUG) {
+                        Log.d(
+                            TAG,
+                            "Home latest draw drawDate=${draw.drawDate} jackpot=${draw.jackpot} " +
+                                "updatedAt=${draw.updatedAt}",
+                        )
+                    }
                     _latestDraw.value = draw
                     BingoRemoteRepository.getPrizesForDraw(draw.id)
                         .onSuccess { prizes -> _latestPrizes.value = prizes }

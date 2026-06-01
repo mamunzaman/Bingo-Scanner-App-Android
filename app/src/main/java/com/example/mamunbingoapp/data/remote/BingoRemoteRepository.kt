@@ -79,7 +79,15 @@ object BingoRemoteRepository {
             parameter("order", "draw_date.desc")
             parameter("limit", "1")
         }
-        rows.firstOrNull() ?: error("No bingo draw found.")
+        val draw = rows.firstOrNull() ?: error("No bingo draw found.")
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                TAG,
+                "getLatestDraw ok drawDate=${draw.drawDate} jackpot=${draw.jackpot} " +
+                    "numbers=${draw.winningNumbers.size} updatedAt=${draw.updatedAt}",
+            )
+        }
+        draw
     }.fold(
         onSuccess = { Result.success(it) },
         onFailure = { error ->

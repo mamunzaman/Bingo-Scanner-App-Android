@@ -3,10 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const BASE_URL = "https://www.bingo-umweltlotterie.de/api/gewinnzahlen";
 
 Deno.serve(async () => {
-  const supabase = createClient(
-    Deno.env.get("PROJECT_URL") ?? "",
-    Deno.env.get("SERVICE_ROLE_KEY") ?? "",
-  );
+  const supabaseUrl =
+    Deno.env.get("SUPABASE_URL") ?? Deno.env.get("PROJECT_URL") ?? "";
+  const serviceRoleKey =
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+    Deno.env.get("SERVICE_ROLE_KEY") ??
+    "";
+  if (!supabaseUrl || !serviceRoleKey) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Missing Supabase credentials (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)",
+      },
+      { status: 500 },
+    );
+  }
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   try {
     const drawDate = getLatestSundayBerlin();
