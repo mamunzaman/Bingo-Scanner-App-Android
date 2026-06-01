@@ -1,6 +1,9 @@
 package com.example.mamunbingoapp.data
 
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
+import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.ui.model.BingoCellUi
+import com.example.mamunbingoapp.ui.model.TicketPickerMiniGridCell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,37 +64,20 @@ object HistoryRepository {
     suspend fun getAllTicketsForPicker(roomId: String? = null): List<com.example.mamunbingoapp.ui.model.TicketUiModel> =
         withContext(Dispatchers.Default) {
             val ticketToRoom = RoomRepository.ticketToRoomFlow().first()
+            val cellsByTicket = TicketRepository.cellsByTicketFlow().first()
             _sessionsFlow.value.map { session ->
-                val ticketId = session.ticketId
-                val assignedRoomId = ticketToRoom[ticketId] ?: ticketToRoom[session.id]
-                com.example.mamunbingoapp.ui.model.TicketUiModel(
-                    id = ticketId,
-                    sessionId = session.id,
-                    title = session.effectiveSheetName().ifBlank { "Unnamed" },
-                    createdAt = session.effectivePlayedAtMillis(),
-                    serialNumber = session.serialNumber,
-                    losNumber = session.losNumber,
-                    isInRoom = roomId != null && assignedRoomId == roomId,
-                    assignedRoomId = assignedRoomId,
-                )
+                toPickerTicketUiModel(session, ticketToRoom, cellsByTicket, roomId)
             }
         }
 
     fun ticketsForPickerFlow(roomId: String?): Flow<List<com.example.mamunbingoapp.ui.model.TicketUiModel>> =
-        combine(_sessionsFlow, RoomRepository.ticketToRoomFlow()) { sessions, ticketToRoom ->
+        combine(
+            _sessionsFlow,
+            RoomRepository.ticketToRoomFlow(),
+            TicketRepository.cellsByTicketFlow(),
+        ) { sessions, ticketToRoom, cellsByTicket ->
             sessions.map { session ->
-                val ticketId = session.ticketId
-                val assignedRoomId = ticketToRoom[ticketId] ?: ticketToRoom[session.id]
-                com.example.mamunbingoapp.ui.model.TicketUiModel(
-                    id = ticketId,
-                    sessionId = session.id,
-                    title = session.effectiveSheetName().ifBlank { "Unnamed" },
-                    createdAt = session.effectivePlayedAtMillis(),
-                    serialNumber = session.serialNumber,
-                    losNumber = session.losNumber,
-                    isInRoom = roomId != null && assignedRoomId == roomId,
-                    assignedRoomId = assignedRoomId,
-                )
+                toPickerTicketUiModel(session, ticketToRoom, cellsByTicket, roomId)
             }
         }
 
@@ -278,4 +264,60 @@ object HistoryRepository {
             null
         }
     }
+
+    private fun toPickerTicketUiModel(
+        session: HistorySession,
+        ticketToRoom: Map<String, String>,
+        cellsByTicket: Map<String, List<TicketCellEntity>>,
+        roomId: String?,
+    ): com.example.mamunbingoapp.ui.model.TicketUiModel {
+        val ticketId = session.ticketId
+        val assignedRoomId = ticketToRoom[ticketId] ?: ticketToRoom[session.id]
+        return com.example.mamunbingoapp.ui.model.TicketUiModel(
+            id = ticketId,
+            sessionId = session.id,
+            title = session.effectiveSheetName().ifBlank { "Unnamed" },
+            createdAt = session.effectivePlayedAtMillis(),
+            serialNumber = session.serialNumber,
+            losNumber = session.losNumber,
+            isInRoom = roomId != null && assignedRoomId == roomId,
+            assignedRoomId = assignedRoomId,
+            miniGridCells = pickerMiniGridForTicket(ticketId, cellsByTicket),
+        )
+    }
+
+    private fun pickerMiniGridForTicket(
+        ticketId: String,
+        cellsByTicket: Map<String, List<TicketCellEntity>>,
+    ): List<TicketPickerMiniGridCell> {
+        cellsByTicket[ticketId]?.let { return pickerMiniGridFromCellEntities(it) }
+        _demoTicketCells[ticketId]?.let { return pickerMiniGridFromBingoCells(it) }
+        return pickerMiniGridFromCellEntities(null)
+    }
+
+    private fun pickerMiniGridFromCellEntities(cells: List<TicketCellEntity>?): List<TicketPickerMiniGridCell> =
+        List(BingoPlayableNumbers.GRID_CELL_COUNT) { i ->
+            val cell = cells?.getOrNull(i)
+            val display = cell?.value?.trim().orEmpty().let { raw ->
+                when {
+                    raw.isEmpty() -> ""
+                    raw.equals("FREE", ignoreCase = true) -> "FREE"
+                    else -> raw
+                }
+            }
+            TicketPickerMiniGridCell(display = display, isMarked = cell?.isMarked == true)
+        }
+
+    private fun pickerMiniGridFromBingoCells(cells: List<BingoCellUi>): List<TicketPickerMiniGridCell> =
+        List(BingoPlayableNumbers.GRID_CELL_COUNT) { i ->
+            val cell = cells.getOrNull(i)
+            val display = cell?.number?.trim().orEmpty().let { raw ->
+                when {
+                    raw.isEmpty() -> ""
+                    raw.equals("FREE", ignoreCase = true) -> "FREE"
+                    else -> raw
+                }
+            }
+            TicketPickerMiniGridCell(display = display, isMarked = cell?.isMarked == true)
+        }
 }

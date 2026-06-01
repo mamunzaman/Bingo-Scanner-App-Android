@@ -44,7 +44,9 @@ import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.theme.Primary
+import com.example.mamunbingoapp.theme.PrimaryPressed
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCompactSheetPreview
@@ -191,16 +193,8 @@ fun HistorySheetCard(
                         ),
                     )
                     if (inRoom) {
-                        HistorySheetMetaIconRow(
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Filled.Groups,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimens.iconCompact),
-                                    tint = Primary,
-                                )
-                            },
-                            text = roomName?.takeIf { it.isNotBlank() }
+                        HistorySheetRoomRow(
+                            roomLabel = roomName?.takeIf { it.isNotBlank() }
                                 ?: stringResource(R.string.history_in_room_pill),
                         )
                     }
@@ -275,6 +269,42 @@ fun HistorySheetCard(
 }
 
 @Composable
+private fun HistorySheetRoomRow(
+    roomLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    val chipShape = RoundedCornerShape(Dimens.radiusPill)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(chipShape)
+            .background(IconContainerBg, chipShape)
+            .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing4),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Groups,
+            contentDescription = null,
+            modifier = Modifier.size(Dimens.iconCompact),
+            tint = Primary,
+        )
+        Text(
+            text = roomLabel,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                lineHeight = 16.sp,
+            ),
+            color = PrimaryPressed,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+    }
+}
+
+@Composable
 private fun HistorySheetMetaIconRow(
     icon: @Composable () -> Unit,
     text: String,
@@ -295,7 +325,7 @@ private fun HistorySheetMetaIconRow(
             } else {
                 MaterialTheme.typography.labelMedium
             },
-            color = cs.onSurfaceVariant.copy(alpha = if (muted) 0.68f else 0.92f),
+            color = cs.onSurfaceVariant.copy(alpha = if (muted) 0.55f else 0.92f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.SnackbarHost
@@ -75,17 +76,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.example.mamunbingoapp.R
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
-import com.example.mamunbingoapp.ui.components.AppFieldLabel
+import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.EmptyStateBlock
-import com.example.mamunbingoapp.ui.components.TicketGridThumbnailPreview
 import com.example.mamunbingoapp.ui.components.common.SearchFilterSortHeader
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketCompactSheetPreview
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketListSheetPreview
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketLosSerieRow
 import com.example.mamunbingoapp.ui.components.common.SearchHeaderVariant
 import com.example.mamunbingoapp.ui.model.TicketUiModel
 import com.example.mamunbingoapp.data.RoomRepository
@@ -513,164 +520,190 @@ private fun TicketRowCard(
         inRoomSuffix,
         actionLabel
     )
-    val placeholderDash = stringResource(R.string.common_placeholder_dash)
-    val serialValue = ticket.serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
-    val losValue = ticket.losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
-    val markedValue = ticket.status?.takeIf { it.isNotBlank() } ?: "--"
-    val cardShape = RoundedCornerShape(Dimens.radiusCard)
+    val dateLabel = formatTicketDate(ticket.createdAt)
+    val gridCellStates = remember(ticket.miniGridCells) {
+        ticket.miniGridCells.take(BingoPlayableNumbers.GRID_CELL_COUNT).map {
+            ActiveTicketCellState(display = it.display, isCalled = it.isMarked)
+        }
+    }
+    val rowShape = RoundedCornerShape(Dimens.radiusLarge)
+    val leadingSlotWidth = 42.dp
+    val cs = MaterialTheme.colorScheme
+    val borderColor = when {
+        selectionMode && isSelected -> cs.primary.copy(alpha = 0.55f)
+        else -> cs.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
+    }
+    val selectedTintBg: Modifier = if (selectionMode && isSelected) {
+        Modifier.background(cs.primaryContainer.copy(alpha = 0.10f))
+    } else {
+        Modifier
+    }
+    val rowClick = {
+        when {
+            selectionMode -> onToggleSelect()
+            canAct -> if (isInThisRoom) onGoLive() else onAddToRoom()
+        }
+    }
+    val contentClick = Modifier.clickable(
+        indication = rememberRipple(),
+        interactionSource = remember { MutableInteractionSource() },
+        onClick = rowClick,
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = summary }
-            .clickable(
-                indication = rememberRipple(),
-                interactionSource = remember { MutableInteractionSource() }
-            ) {
-                when {
-                    selectionMode -> onToggleSelect()
-                    canAct -> if (isInThisRoom) onGoLive() else onAddToRoom()
-                }
-            },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+            .semantics(mergeDescendants = true) { contentDescription = summary },
+        verticalAlignment = Alignment.Top,
     ) {
         if (selectionMode) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onToggleSelect() },
-                modifier = Modifier.padding(end = Dimens.spacing4)
-            )
+            Box(
+                modifier = Modifier
+                    .width(leadingSlotWidth)
+                    .padding(top = Dimens.spacing12),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onToggleSelect() },
+                )
+            }
         }
-        Column(
+        AppSectionSurface(
             modifier = Modifier
                 .weight(1f)
-                .clip(cardShape)
-                .background(MaterialTheme.colorScheme.surface)
-                .then(
-                    if (isSelected) {
-                        Modifier.border(2.dp, MaterialTheme.colorScheme.primary, cardShape)
-                    } else {
-                        Modifier.border(
-                            Dimens.cardBorderDefault,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                            cardShape
-                        )
-                    }
-                )
+                .clip(rowShape),
+            shape = rowShape,
+            borderColor = borderColor,
+            shadowElevation = 0.dp,
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing10),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12)
+                    .background(cs.surface)
+                    .then(selectedTintBg),
+                verticalAlignment = Alignment.Top,
             ) {
-                TicketGridThumbnailPreview(
-                    matchedCells = ticket.status?.toIntOrNull() ?: 0,
-                    modifier = Modifier.size(34.dp)
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
-                        text = ticket.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = formatTicketDate(ticket.createdAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-                    )
-                    if (isInOtherRoom) {
-                        Text(
-                            text = stringResource(
-                                R.string.live_play_room_prefix,
-                                otherRoomName ?: anotherRoomFallback
-                            ),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(
+                            start = Dimens.spacing12,
+                            end = Dimens.spacing4,
+                            top = Dimens.spacing12,
+                            bottom = Dimens.spacing12,
                         )
+                        .then(contentClick),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    ActiveTicketCompactSheetPreview(
+                        cellStates = gridCellStates,
+                        neutralGrid = true,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .heightIn(min = ActiveTicketListSheetPreview.Height),
+                        verticalArrangement = Arrangement.Top,
+                    ) {
+                        Text(
+                            text = ticket.title,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                lineHeight = 20.sp,
+                            ),
+                            color = cs.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        ActiveTicketLosSerieRow(
+                            losNumber = ticket.losNumber,
+                            serieNumber = ticket.serialNumber,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = Dimens.spacing8),
+                            valueStyle = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 16.sp,
+                                lineHeight = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                        MyTicketsMetaIconRow(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Schedule,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimens.iconCompact),
+                                    tint = cs.onSurfaceVariant.copy(alpha = 0.62f),
+                                )
+                            },
+                            text = dateLabel,
+                            muted = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = Dimens.spacing8),
+                        )
+                        if (isInOtherRoom) {
+                            MyTicketsMetaIconRow(
+                                text = stringResource(
+                                    R.string.live_play_room_prefix,
+                                    otherRoomName ?: anotherRoomFallback,
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = Dimens.spacing4),
+                            )
+                        }
                     }
                 }
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimens.iconDefault),
-                    tint = if (canAct) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.outline
-                    }
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Dimens.spacing8, vertical = Dimens.spacing8),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TicketInfoCell(
-                    label = stringResource(R.string.live_play_label_serial),
-                    value = serialValue,
-                    modifier = Modifier.weight(1f)
-                )
-                VerticalInfoDivider()
-                TicketInfoCell(
-                    label = stringResource(R.string.live_play_label_los),
-                    value = losValue,
-                    modifier = Modifier.weight(1f)
-                )
-                VerticalInfoDivider()
-                TicketInfoCell(
-                    label = stringResource(R.string.live_play_label_marked),
-                    value = markedValue,
-                    valueColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
+                Box(
+                    modifier = Modifier
+                        .padding(top = Dimens.spacing12, end = Dimens.spacing8)
+                        .then(contentClick),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.iconDefault),
+                        tint = if (canAct) cs.onSurfaceVariant else cs.outline,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TicketInfoCell(
-    label: String,
-    value: String,
+private fun MyTicketsMetaIconRow(
+    text: String,
     modifier: Modifier = Modifier,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
+    icon: (@Composable () -> Unit)? = null,
+    muted: Boolean = false,
 ) {
-    Column(
+    val cs = MaterialTheme.colorScheme
+    Row(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
     ) {
-        AppFieldLabel(text = label)
+        icon?.invoke()
         Text(
-            text = value,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = valueColor
+            text = text,
+            style = if (muted) {
+                MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, lineHeight = 14.sp)
+            } else {
+                MaterialTheme.typography.labelMedium
+            },
+            color = cs.onSurfaceVariant.copy(alpha = if (muted) 0.55f else 0.92f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-@Composable
-private fun VerticalInfoDivider() {
-    Box(
-        modifier = Modifier
-            .height(24.dp)
-            .width(1.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-    )
 }
 
 @Composable

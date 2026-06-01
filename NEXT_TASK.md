@@ -1,10 +1,10 @@
 ﻿# Next task
 
-**Goal:** Migrate **My Tickets** bottom sheet rows to `ActiveTicketCompactSheetPreview` (needs 25-cell data on `TicketUiModel`).
+**Goal:** Optional: uCrop status bar overlap on device if still reported.
 
-**Verify:** Ticket in Room 1 hidden from Room 2 picker; filter counts = unassigned only. `./gradlew :app:assembleDebug` OK.
+**Verify:** My Tickets rows show B–O preview + LOS/SERIE; add/select unchanged. `./gradlew :app:assembleDebug` OK.
 
-**Previous:** My Tickets picker hides sheets assigned to any live room (one sheet = one room).
+**Previous:** My Tickets `TicketRowCard` uses shared list preview; `TicketPickerMiniGridCell` on picker model.
 
 **Previous:** Bottom nav audit — tab highlight via route/VM/handle; `stageMainShellTab` on entry routes; shell `onMainBottomBarTabSelected` wired on pushed screens.
 
