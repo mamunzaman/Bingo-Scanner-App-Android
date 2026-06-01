@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import com.example.mamunbingoapp.theme.Background
+import com.example.mamunbingoapp.theme.HeaderGradientEnd
 
 /** Soft vertical gradient (live-card greens in light); decorative strokes kept low-contrast. */
 @Composable
@@ -32,7 +33,7 @@ fun AppHeaderBackground(modifier: Modifier = Modifier) {
             } else {
                 listOf(
                     Background,
-                    Color(0xFFF0F5EC),
+                    HeaderGradientEnd,
                     cs.surface
                 )
             }

@@ -50,3 +50,10 @@ val WarningSubText = Color(0xFFA16207)
 val Info = Color(0xFF1565C0)
 val GreenImpactBg = Color(0xFF064E3B)
 val EmptyHistoryCardBg = Color(0xFFFAFFF6)
+
+/** Branded chrome: light shell header gradient end (`AppHeaderBackground`, import hero). */
+val HeaderGradientEnd = Color(0xFFF0F5EC)
+
+/** Branded chrome: Live room top badge pill gradient (light theme). */
+val LiveTopBarGreenStart = Color(0xFFE2F0DC)
+val LiveTopBarGreenEnd = Color(0xFFD4E8D0)

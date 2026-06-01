@@ -102,6 +102,8 @@ import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.theme.Background
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.LiveFonts
+import com.example.mamunbingoapp.theme.LiveTopBarGreenEnd
+import com.example.mamunbingoapp.theme.LiveTopBarGreenStart
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.model.RoomStatus
@@ -130,7 +132,7 @@ private fun liveBadgePillBackground(colorScheme: ColorScheme, darkTheme: Boolean
     if (darkTheme) {
         lerp(colorScheme.surface, colorScheme.primaryContainer, 0.28f).copy(alpha = 0.93f)
     } else {
-        lerp(Color(0xFFE2F0DC), Color(0xFFD4E8D0), 0.35f).copy(alpha = 0.98f)
+        lerp(LiveTopBarGreenStart, LiveTopBarGreenEnd, 0.35f).copy(alpha = 0.98f)
     }
 
 private fun liveBadgePillBorder(colorScheme: ColorScheme, darkTheme: Boolean): Color =
