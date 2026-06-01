@@ -76,7 +76,7 @@
     <string name="home_news_1_meta">2 hours ago • Sustainability</string>
     <string name="home_news_2">Winner\'s story: How a $50 win helped a local charity</string>
     <string name="home_news_2_meta">Yesterday • Community</string>
-    <string name="live_nav_title">Live Navigation</string>
+    <string name="live_nav_title">Live Play</string>
     <string name="projects_nav_title">Projects</string>
     <string name="projects_nav_subtitle">Funded eco-projects and impact stories from the BINGO! network</string>
     <string name="projects_category_chip">BINGO! Project</string>
@@ -212,7 +212,7 @@
     <string name="terms_title">Terms of Service</string>
     <string name="tab_home">Home</string>
     <string name="tab_scan">Scan</string>
-    <string name="tab_jackpot">Jackpot</string>
+    <string name="tab_jackpot">Live Play</string>
     <string name="tab_projects">Projects</string>
     <string name="tab_profile">Profile</string>
     <string name="auth_error_valid_email">Enter a valid email address.</string>

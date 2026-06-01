@@ -117,7 +117,7 @@
     <string name="home_green_impact">Dein grüner Impact</string>
     <string name="home_trees_planted">Deine Beiträge haben uns geholfen, %1$d Bäume auf lokalen Aufforstungsflächen zu pflanzen.</string>
     <string name="home_milestone">Noch %1$d Bäume bis zum nächsten Meilenstein</string>
-    <string name="live_nav_title">Live-Navigation</string>
+    <string name="live_nav_title">Live-Spiel</string>
     <string name="live_nav_scan_sheet">Ticket scannen</string>
     <string name="live_nav_scan_sheet_subtitle">Ticket mit der Kamera hinzufügen</string>
     <string name="live_nav_manual_entry">Manuelle Eingabe</string>
@@ -451,7 +451,7 @@
     <string name="import_ticket_cropped_from_gallery">Aus Galerie zugeschnitten</string>
     <string name="tab_home">Start</string>
     <string name="tab_scan">Scannen</string>
-    <string name="tab_jackpot">Jackpot</string>
+    <string name="tab_jackpot">Live-Spiel</string>
     <string name="tab_projects">Projekte</string>
     <string name="tab_profile">Profil</string>
     <string name="auth_error_valid_email">Gültige E-Mail-Adresse eingeben.</string>
