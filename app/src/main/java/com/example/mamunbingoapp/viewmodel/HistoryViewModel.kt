@@ -3,6 +3,7 @@ package com.example.mamunbingoapp.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.core.AlmostBingoInfo
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.core.SheetStatusResolver
 import com.example.mamunbingoapp.data.HistoryRepository
@@ -86,6 +87,11 @@ private fun Long.isThisWeek(): Boolean {
     return !cal.before(weekStart) && cal.before(weekEnd)
 }
 
+data class HistoryMiniGridCell(
+    val display: String,
+    val isCalled: Boolean,
+)
+
 data class HistorySessionUi(
     val session: HistorySession,
     val isLive: Boolean,
@@ -94,6 +100,7 @@ data class HistorySessionUi(
     val resolvedCalledCount: Int = 0,
     val resolvedMarkedCount: Int = 0,
     val resolvedMarkedCells: List<Boolean> = emptyList(),
+    val miniGridCells: List<HistoryMiniGridCell> = emptyList(),
     val almostBingo: AlmostBingoInfo? = null,
     val bingoWinLineCount: Int? = null,
     val editedAfterOcr: Boolean = false,
@@ -187,6 +194,20 @@ class HistoryViewModel : ViewModel() {
                 val count = (0 until n).count { originalList[it] != savedForCompare[it] }
                 (n > 0 && count > 0) to count
             } else false to 0
+            val miniGridCells = List(BingoPlayableNumbers.GRID_CELL_COUNT) { i ->
+                val cell = cells.getOrNull(i)
+                val display = cell?.value?.trim().orEmpty().let { raw ->
+                    when {
+                        raw.isEmpty() -> ""
+                        raw.equals("FREE", ignoreCase = true) -> "FREE"
+                        else -> raw
+                    }
+                }
+                HistoryMiniGridCell(
+                    display = display,
+                    isCalled = resolvedMarkedCells.getOrElse(i) { false },
+                )
+            }
             HistorySessionUi(
                 session = session,
                 isLive = roomId != null,
@@ -195,6 +216,7 @@ class HistoryViewModel : ViewModel() {
                 resolvedCalledCount = resolvedCalledCount,
                 resolvedMarkedCount = resolvedMarkedCount,
                 resolvedMarkedCells = resolvedMarkedCells,
+                miniGridCells = miniGridCells,
                 almostBingo = almostBingo,
                 bingoWinLineCount = bingoWinLineCount,
                 editedAfterOcr = editedAfterOcr,

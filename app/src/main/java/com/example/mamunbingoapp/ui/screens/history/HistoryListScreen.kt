@@ -142,8 +142,6 @@ fun HistoryListScreen(
     val deletedSnackbarMessage = stringResource(R.string.history_snackbar_deleted)
     val bulkInRoomInfoText = stringResource(R.string.history_bulk_already_in_room)
     val unnamedSheetLabel = stringResource(R.string.history_unnamed_sheet)
-    val dateSavedLabel = stringResource(R.string.history_date_saved)
-    val dateScannedLabel = stringResource(R.string.history_date_scanned)
     val combinedFilterOptions = listOf(
         filterAllLabel,
         sourceOcrLabel,
@@ -515,8 +513,6 @@ fun HistoryListScreen(
                             )
                         }
                         val playedAt = item.session.effectivePlayedAtMillis()
-                        val dateLabelPrefix =
-                            if (item.session.ocrSource.isNullOrBlank()) dateSavedLabel else dateScannedLabel
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -525,13 +521,10 @@ fun HistoryListScreen(
                             HistorySheetCard(
                                 title = item.session.effectiveSheetName().ifEmpty { unnamedSheetLabel },
                                 playedAtMillis = playedAt,
-                                dateLabelPrefix = dateLabelPrefix,
                                 serialNumber = item.session.serialNumber,
                                 losNumber = item.session.losNumber,
+                                miniGridCells = item.miniGridCells,
                                 markedCount = markedForCard,
-                                markedCells = item.resolvedMarkedCells.takeIf {
-                                    it.size >= BingoPlayableNumbers.GRID_CELL_COUNT
-                                },
                                 onViewClick = { onSessionClick(item.session.id, item.roomId) },
                                 onJoinClick = if (item.isLive && item.roomId != null) ({ onJoinLiveRoom(item.roomId!!) }) else ({ onSessionClick(item.session.id, item.roomId) }),
                                 onDelete = { onDeleteSession(item.session.id) },

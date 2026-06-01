@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Gallery uCrop status bar (theme):** Non-edge-to-edge `Theme.MamunBingoApp.UCrop` + API 35 opt-out; `decorFitsSystemWindows` in `MamunUcropActivity`. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **History cards match Active Ticket:** B–O mini grid, sheet name, LOS/SERIE row, room + date rows; removed SERIAL/LOS/MARKED strip. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Gallery uCrop status bar (theme):** Non-edge-to-edge `Theme.MamunBingoApp.UCrop` + API 35 opt-out. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **Gallery uCrop simplified:** Removed custom bottom bar; minimal `MamunUcropActivity`. `./gradlew :app:assembleDebug` OK.
 

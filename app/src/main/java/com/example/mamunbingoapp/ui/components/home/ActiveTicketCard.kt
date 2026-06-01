@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -63,6 +65,27 @@ private val MINI_CELL_PAPER = Color(0xFFFCFCFC)
 private val MINI_CELL_BORDER_COLOR = Color(0xFFE2E2E2)
 private val SHEET_PADDING = 7.dp
 private val HEADER_ROW_HEIGHT = 30.dp
+
+/**
+ * Default size for [ActiveTicketCompactSheetPreview] on sheet list rows (History, Live, etc.).
+ * Full-size B–O preview remains on [ActiveTicketCard] via [ActiveTicketSheetPreview] (`compact = false`).
+ */
+object ActiveTicketListSheetPreview {
+    val Width = 110.dp
+    val Height = 138.dp
+
+    fun sizeModifier(): Modifier = Modifier
+        .width(Width)
+        .height(Height)
+}
+
+/** Compact list/history preview — separate proportions from full Active Ticket grid. */
+private val COMPACT_SHEET_PADDING = 4.dp
+private val COMPACT_GRID_GAP = 4.dp
+private val COMPACT_HEADER_HEIGHT = 17.dp
+private val COMPACT_HEADER_RADIUS = 6.dp
+private val COMPACT_CELL_RADIUS = 5.dp
+private val COMPACT_SHEET_CORNER = 10.dp
 
 data class ActiveTicketCellState(
     val display: String,
@@ -168,7 +191,7 @@ fun ActiveTicketCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                ActiveTicketLosSerieMeta(
+                ActiveTicketLosSerieRow(
                     losNumber = model.losNumber,
                     serieNumber = model.serieNumber,
                 )
@@ -236,10 +259,28 @@ private fun activeTicketMetaValueStyle() =
         fontWeight = FontWeight.Bold,
     )
 
+/** Shared LOS / SERIE row (Active Ticket + History list cards). */
+@Composable
+fun ActiveTicketLosSerieRow(
+    losNumber: String?,
+    serieNumber: String?,
+    modifier: Modifier = Modifier,
+    valueStyle: TextStyle? = null,
+) {
+    ActiveTicketLosSerieMeta(
+        losNumber = losNumber,
+        serieNumber = serieNumber,
+        modifier = modifier,
+        valueStyle = valueStyle,
+    )
+}
+
 @Composable
 private fun ActiveTicketLosSerieMeta(
     losNumber: String?,
     serieNumber: String?,
+    modifier: Modifier = Modifier,
+    valueStyle: TextStyle? = null,
 ) {
     val los = losNumber?.trim()?.takeIf { it.isNotEmpty() }
     val serie = serieNumber?.trim()?.takeIf { it.isNotEmpty() }
@@ -247,10 +288,10 @@ private fun ActiveTicketLosSerieMeta(
 
     val cs = MaterialTheme.colorScheme
     val labelStyle = activeTicketMetaLabelStyle()
-    val valueStyle = activeTicketMetaValueStyle()
+    val resolvedValueStyle = valueStyle ?: activeTicketMetaValueStyle()
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
     ) {
         if (los != null) {
@@ -258,7 +299,7 @@ private fun ActiveTicketLosSerieMeta(
                 label = stringResource(R.string.home_active_ticket_los_label),
                 value = los,
                 labelStyle = labelStyle,
-                valueStyle = valueStyle,
+                valueStyle = resolvedValueStyle,
                 labelColor = cs.onSurfaceVariant,
                 valueColor = cs.onSurface,
                 alignEnd = false,
@@ -270,7 +311,7 @@ private fun ActiveTicketLosSerieMeta(
                 label = stringResource(R.string.home_active_ticket_serie_label),
                 value = serie,
                 labelStyle = labelStyle,
-                valueStyle = valueStyle,
+                valueStyle = resolvedValueStyle,
                 labelColor = cs.onSurfaceVariant,
                 valueColor = cs.onSurface,
                 alignEnd = true,
@@ -354,47 +395,82 @@ private fun ActiveTicketStatusChip(
     }
 }
 
+/**
+ * Compact B–O sheet preview for list-style cards ([ActiveTicketListSheetPreview] size).
+ * Use on History, Live room lists, and similar rows — not on the home [ActiveTicketCard] carousel.
+ *
+ * @param modifier Defaults to [ActiveTicketListSheetPreview.sizeModifier]; override only for one-off layouts.
+ */
+@Composable
+fun ActiveTicketCompactSheetPreview(
+    cellStates: List<ActiveTicketCellState>,
+    neutralGrid: Boolean,
+    modifier: Modifier = ActiveTicketListSheetPreview.sizeModifier(),
+) {
+    ActiveTicketSheetPreview(
+        cellStates = cellStates,
+        neutralGrid = neutralGrid,
+        modifier = modifier,
+        compact = true,
+    )
+}
+
 @Composable
 private fun ActiveTicketSheetPreview(
     cellStates: List<ActiveTicketCellState>,
     neutralGrid: Boolean,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    val sheetShape = RoundedCornerShape(Dimens.spacing12)
+    val sheetShape = RoundedCornerShape(if (compact) COMPACT_SHEET_CORNER else Dimens.spacing12)
+    val gridGap = if (compact) COMPACT_GRID_GAP else MINI_GRID_GAP
+    val sheetPadding = if (compact) COMPACT_SHEET_PADDING else SHEET_PADDING
     Column(
         modifier = modifier
             .fillMaxSize()
-            .iosElevatedShadow(elevation = 5.dp, shape = sheetShape)
+            .iosElevatedShadow(
+                elevation = if (compact) 3.dp else 5.dp,
+                shape = sheetShape,
+            )
             .clip(sheetShape)
             .background(Color.White)
             .border(MINI_BORDER, MINI_CELL_BORDER_COLOR, sheetShape)
-            .padding(SHEET_PADDING),
+            .padding(sheetPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ActiveTicketBingoHeaderRow()
-        Spacer(modifier = Modifier.height(MINI_GRID_GAP))
+        ActiveTicketBingoHeaderRow(compact = compact)
+        Spacer(modifier = Modifier.height(gridGap))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(MINI_GRID_GAP),
+            verticalArrangement = Arrangement.spacedBy(gridGap),
         ) {
             cellStates.take(25).chunked(5).forEachIndexed { rowIndex, row ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(MINI_GRID_GAP),
+                    horizontalArrangement = Arrangement.spacedBy(gridGap),
+                    verticalAlignment = if (compact) Alignment.CenterVertically else Alignment.Top,
                 ) {
                     row.forEachIndexed { colIndex, cell ->
                         val cellIndex = rowIndex * 5 + colIndex
+                        val cellModifier = if (compact) {
+                            Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                        } else {
+                            Modifier
+                                .weight(1f)
+                                .fillMaxSize()
+                        }
                         ActiveTicketSheetCell(
                             cell = cell,
                             cellIndex = cellIndex,
                             neutralGrid = neutralGrid,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize(),
+                            compact = compact,
+                            modifier = cellModifier,
                         )
                     }
                 }
@@ -404,29 +480,32 @@ private fun ActiveTicketSheetPreview(
 }
 
 @Composable
-private fun ActiveTicketBingoHeaderRow() {
-    val headerShape = RoundedCornerShape(MINI_HEADER_RADIUS)
+private fun ActiveTicketBingoHeaderRow(compact: Boolean = false) {
+    val headerShape = RoundedCornerShape(
+        if (compact) COMPACT_HEADER_RADIUS else MINI_HEADER_RADIUS,
+    )
+    val gridGap = if (compact) COMPACT_GRID_GAP else MINI_GRID_GAP
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(HEADER_ROW_HEIGHT),
-        horizontalArrangement = Arrangement.spacedBy(MINI_GRID_GAP),
+            .height(if (compact) COMPACT_HEADER_HEIGHT else HEADER_ROW_HEIGHT),
+        horizontalArrangement = Arrangement.spacedBy(gridGap),
     ) {
         BINGO_LETTERS.forEach { letter ->
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxSize()
+                    .fillMaxHeight()
                     .clip(headerShape)
                     .background(MaterialTheme.colorScheme.onSurface),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = letter,
-                    style = MaterialTheme.typography.titleSmall.copy(
+                    style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        lineHeight = 15.sp,
+                        fontSize = if (compact) 9.sp else 14.sp,
+                        lineHeight = if (compact) 10.sp else 15.sp,
                     ),
                     color = OnPrimary,
                     textAlign = TextAlign.Center,
@@ -441,10 +520,13 @@ private fun ActiveTicketSheetCell(
     cell: ActiveTicketCellState,
     cellIndex: Int,
     neutralGrid: Boolean,
+    compact: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
-    val cellShape = RoundedCornerShape(MINI_CELL_RADIUS)
+    val cellShape = RoundedCornerShape(
+        if (compact) COMPACT_CELL_RADIUS else MINI_CELL_RADIUS,
+    )
     val isCenterFree = cellIndex == CENTER_CELL_INDEX &&
         (cell.display.isBlank() || cell.display.equals("FREE", ignoreCase = true))
     val highlight = !neutralGrid && cell.isCalled
@@ -470,11 +552,17 @@ private fun ActiveTicketSheetCell(
                     .padding(horizontal = 2.dp),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontSize = when {
+                        compact && isCenterFree -> 6.sp
+                        compact && label.length >= 2 -> 9.sp
+                        compact -> 10.sp
                         isCenterFree -> 7.sp
                         label.length >= 2 -> 10.sp
                         else -> 11.sp
                     },
-                    lineHeight = 11.sp,
+                    lineHeight = when {
+                        compact -> 10.sp
+                        else -> 11.sp
+                    },
                     fontWeight = FontWeight.Bold,
                 ),
                 color = if (highlight) Color.White else cs.onSurface,
