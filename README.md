@@ -90,6 +90,47 @@ This project is tuned for **real-world use**: fast scanning paths, **low frictio
 
 ---
 
+## 🎥 Demo Access
+
+This repository is presented as a portfolio and case study project.
+
+The Android APK is not publicly distributed.
+
+If you would like to review, test, or discuss the application, please contact me directly:
+
+📧 m.mamunuzzaman@gmail.com
+
+Access is provided upon request.
+
+---
+
+## 🤖 AI-Assisted Development
+
+This project was developed using AI-assisted and Vibe Coding workflows.
+
+Tools used during development include:
+
+Cursor AI
+ChatGPT
+Claude
+Google Gemini
+
+My role focused on:
+
+Product planning
+Feature design
+Workflow architecture
+UI/UX decisions
+Testing and QA
+Prompt engineering
+Iterative implementation guidance
+
+This project demonstrates how AI-assisted development can accelerate the creation of production-quality mobile applications.
+
+---
+
 ## 📄 License
 
-*Add your license (e.g. MIT, Apache-2.0) if you publish the repo publicly.*
+Source code is provided for portfolio and educational purposes.
+
+All rights reserved unless otherwise stated.
