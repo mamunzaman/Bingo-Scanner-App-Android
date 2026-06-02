@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Manual Entry unsaved discard guard:** Dirty tracking (grid, LOS, SERIE, sheet name, scan prefill); `AppConfirmDialog` on leave; main shell bottom nav interception. Build OK.
+**Last update:** 2026-05-31 - **Manual Entry bingo sheet polish:** Reused `BingoCardGrid`/`BingoGrid5x5`; `ManualEntryBingoCard` depth + green header; `ManualEntrySheet` cell variant (empty/selected/filled). Build OK.
+
+**Previous:** 2026-05-31 - **Manual Entry unsaved discard guard.** Build OK.
 
 **Previous:** 2026-05-31 - **Manual Entry empty sheet name while editing:** No default refill during edit; commit fallback. Build OK.
 

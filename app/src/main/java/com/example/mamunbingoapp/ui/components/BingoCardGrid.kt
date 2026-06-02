@@ -31,11 +31,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
@@ -51,6 +54,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mamunbingoapp.theme.AppAlpha
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.OnPrimary
 import com.example.mamunbingoapp.theme.Outline
@@ -76,6 +80,46 @@ fun BingoCardGrid(
     historyDetailMaxCellSize: Dp = 44.dp,
     historyDetailCellGap: Dp = Dimens.spacing4,
     historyDetailUseSheetSection: Boolean = true,
+    visualVariant: BingoGridVisualVariant = BingoGridVisualVariant.Default,
+) {
+    CompositionLocalProvider(LocalBingoGridVisualVariant provides visualVariant) {
+        BingoCardGridContent(
+            cells = cells,
+            modifier = modifier,
+            mode = mode,
+            cellSpacing = cellSpacing,
+            editUseFixedCellSize = editUseFixedCellSize,
+            editCellSize = editCellSize,
+            winningCells = winningCells,
+            onCellClick = onCellClick,
+            bingoHeaderStyle = bingoHeaderStyle,
+            historyDetailCompact = historyDetailCompact,
+            historyDetailContentMaxWidth = historyDetailContentMaxWidth,
+            historyDetailContentMaxHeight = historyDetailContentMaxHeight,
+            historyDetailMaxCellSize = historyDetailMaxCellSize,
+            historyDetailCellGap = historyDetailCellGap,
+            historyDetailUseSheetSection = historyDetailUseSheetSection,
+        )
+    }
+}
+
+@Composable
+private fun BingoCardGridContent(
+    cells: List<BingoCellUi>,
+    modifier: Modifier,
+    mode: BingoGridMode,
+    cellSpacing: Dp,
+    editUseFixedCellSize: Boolean,
+    editCellSize: Dp,
+    winningCells: Set<Int>,
+    onCellClick: (Int) -> Unit,
+    bingoHeaderStyle: BingoHeaderStyle,
+    historyDetailCompact: Boolean,
+    historyDetailContentMaxWidth: Dp?,
+    historyDetailContentMaxHeight: Dp?,
+    historyDetailMaxCellSize: Dp,
+    historyDetailCellGap: Dp,
+    historyDetailUseSheetSection: Boolean,
 ) {
     if (historyDetailCompact) {
         BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
@@ -291,28 +335,56 @@ fun ManualEntryBingoCard(
     val renameSheetCd = stringResource(R.string.import_ticket_rename_sheet_cd)
     val sheetTitleOutsideTapInteraction = remember { MutableInteractionSource() }
     val shape = RoundedCornerShape(Dimens.radiusCard)
-    val dividerLine = OnPrimary.copy(alpha = 0.12f)
+    val colorScheme = MaterialTheme.colorScheme
+    val dividerLine = OnPrimary.copy(alpha = 0.16f)
     val metaHeadlineStyle = MaterialTheme.typography.headlineSmall.copy(
         fontWeight = FontWeight.Bold,
         color = OnPrimary
     )
-    Column(
+    val headerVerticalPadding = if (compactGreenHeader) Dimens.spacing8 else Dimens.spacing16
+    val gridInnerShape = RoundedCornerShape(Dimens.radiusSmall)
+    val manualEntryCardShadowShape = shape
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight(align = Alignment.Top)
-            .clip(shape)
-            .border(1.dp, Outline.copy(alpha = 0.42f), shape)
+            .shadow(
+                elevation = 14.dp,
+                shape = manualEntryCardShadowShape,
+                spotColor = Color.Black.copy(alpha = 0.05f),
+                ambientColor = Color.Black.copy(alpha = 0.11f),
+            )
+            .shadow(
+                elevation = 6.dp,
+                shape = manualEntryCardShadowShape,
+                spotColor = Color.Black.copy(alpha = 0.10f),
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+            ),
+        shape = shape,
+        color = colorScheme.surface,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            colorScheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder),
+        ),
     ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Primary)
                 .padding(
-                    horizontal = Dimens.spacing12,
-                    vertical = if (compactGreenHeader) Dimens.spacing5 else Dimens.spacing8
+                    horizontal = Dimens.spacing16,
+                    vertical = headerVerticalPadding
                 )
         ) {
-            val greenHeaderLabelColor = OnPrimary.copy(alpha = 0.78f)
+            val greenHeaderLabelColor = OnPrimary.copy(alpha = 0.82f)
+            val metaFieldLabelStyle = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.75.sp,
+            )
+            val metaFieldLabelColor = OnPrimary.copy(alpha = 0.94f)
             if (readOnly) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -343,7 +415,7 @@ fun ManualEntryBingoCard(
                     )
                 }
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = Dimens.spacing5),
+                    modifier = Modifier.padding(vertical = Dimens.spacing8),
                     thickness = 1.dp,
                     color = dividerLine,
                 )
@@ -354,10 +426,8 @@ fun ManualEntryBingoCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "LOSNUMMER",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.6.sp
-                            ),
-                            color = greenHeaderLabelColor
+                            style = metaFieldLabelStyle,
+                            color = metaFieldLabelColor,
                         )
                         Text(
                             text = losNummerText.ifBlank { "—" },
@@ -383,12 +453,10 @@ fun ManualEntryBingoCard(
                     ) {
                         Text(
                             text = "SERIENNUMMER",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.6.sp
-                            ),
-                            color = greenHeaderLabelColor,
+                            style = metaFieldLabelStyle,
+                            color = metaFieldLabelColor,
                             modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.End,
                         )
                         Text(
                             text = serienNummerText.ifBlank { "—" },
@@ -525,7 +593,7 @@ fun ManualEntryBingoCard(
                 }
                 HorizontalDivider(
                     modifier = Modifier
-                        .padding(vertical = Dimens.spacing5)
+                        .padding(vertical = Dimens.spacing8)
                         .then(
                             if (isEditingSheetName) {
                                 Modifier.clickable(
@@ -557,10 +625,8 @@ fun ManualEntryBingoCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "LOSNUMMER",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.6.sp
-                            ),
-                            color = greenHeaderLabelColor
+                            style = metaFieldLabelStyle,
+                            color = metaFieldLabelColor,
                         )
                         BasicTextField(
                             value = losNummerText,
@@ -605,12 +671,10 @@ fun ManualEntryBingoCard(
                     ) {
                         Text(
                             text = "SERIENNUMMER",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.6.sp
-                            ),
-                            color = greenHeaderLabelColor,
+                            style = metaFieldLabelStyle,
+                            color = metaFieldLabelColor,
                             modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End
+                            textAlign = TextAlign.End,
                         )
                         BasicTextField(
                             value = serienNummerText,
@@ -646,21 +710,30 @@ fun ManualEntryBingoCard(
                 }
             }
         }
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
                 .padding(
                     start = Dimens.spacing12,
-                    top = Dimens.spacing12,
                     end = Dimens.spacing12,
-                    bottom = Dimens.spacing12
+                    bottom = Dimens.spacing12,
                 )
                 .clickable(
                     enabled = isEditingSheetName && !readOnly,
                     indication = null,
                     interactionSource = sheetTitleOutsideTapInteraction
-                ) { onDismissSheetTitleEdit() }
+                ) { onDismissSheetTitleEdit() },
+            shape = gridInnerShape,
+            color = colorScheme.surfaceContainerLowest,
+            border = BorderStroke(
+                0.5.dp,
+                colorScheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder),
+            ),
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.spacing12)
         ) {
             val displayCells = remember(cells, selectedIndex, draftPerCell, readOnly) {
                 val normalized =
@@ -700,7 +773,10 @@ fun ManualEntryBingoCard(
                 mode = BingoGridMode.PREVIEW,
                 winningCells = emptySet(),
                 onCellClick = if (readOnly) { {} } else onCellSelected,
+                visualVariant = BingoGridVisualVariant.ManualEntrySheet,
             )
+        }
+        }
         }
     }
 }

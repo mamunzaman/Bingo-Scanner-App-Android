@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.LocalPrimaryBorder
 import com.example.mamunbingoapp.theme.MamunBingoTheme
 
@@ -46,16 +47,29 @@ fun BingoNumberBox(
     numberFontWeight: FontWeight = FontWeight.SemiBold,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val manualEntrySheet =
+        LocalBingoGridVisualVariant.current == BingoGridVisualVariant.ManualEntrySheet
+    val manualEntryActive = manualEntrySheet && isSelected
+    val manualEntryEmptyTint = manualEntrySheet && numberText.isBlank() && !isSelected
     val bg = when {
         isMarked -> colorScheme.primary
+        manualEntryActive -> colorScheme.primary.copy(alpha = 0.12f)
+        manualEntryEmptyTint -> colorScheme.surfaceContainerLow
         isSelected -> colorScheme.primary.copy(alpha = 0.05f)
         else -> colorScheme.surface
     }
     val primaryBorder = LocalPrimaryBorder.current
     val borderColor = when {
         isMarked -> if (showBorderWhenMarked) primaryBorder else Color.Transparent
+        manualEntryActive -> colorScheme.primary
+        manualEntryEmptyTint -> colorScheme.primary.copy(alpha = 0.18f)
         isSelected -> colorScheme.primary
         else -> colorScheme.outlineVariant
+    }
+    val borderWidth = if (manualEntryActive) {
+        Dimens.borderBingoMarked
+    } else {
+        BingoBoxTokens.BorderWidth
     }
     val textColor = when {
         isMarked -> colorScheme.onPrimary
@@ -67,7 +81,7 @@ fun BingoNumberBox(
         .clip(shape)
         .background(bg)
         .then(
-            if (enabled) Modifier.border(BingoBoxTokens.BorderWidth, borderColor, shape)
+            if (enabled) Modifier.border(borderWidth, borderColor, shape)
             else Modifier
         )
     Box(modifier = mod, contentAlignment = Alignment.Center) {

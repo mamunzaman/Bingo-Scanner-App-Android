@@ -1,8 +1,8 @@
 ﻿# Next task
 
-**Goal:** Manual QA — instant keypad reject (wrong column / duplicate); partial digits still wait (B: 1→14, O: 6→68).
+**Goal:** Manual QA — Manual Entry bingo sheet polish (depth, cells, header); other screens unchanged.
 
-**Previous:** `evaluateKeypadDraft` + immediate snackbar/clear; OK unchanged.
+**Previous:** Shared grid + `ManualEntrySheet` visual variant; no extraction needed.
 
 **Verify:** Empty leave OK; one cell/LOS/SERIE/name → dialog; Keep Editing stays; Discard leaves; save clears dirty. `./gradlew :app:assembleDebug` OK.
 
