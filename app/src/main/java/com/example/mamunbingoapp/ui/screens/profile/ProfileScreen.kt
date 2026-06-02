@@ -318,7 +318,7 @@ private fun ProfileSummaryCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimens.spacing20, vertical = Dimens.spacing20),
+                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing16),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ProfileAvatar(

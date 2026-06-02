@@ -74,10 +74,8 @@ fun ChangePasswordScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = Dimens.spacing5)
                     .padding(horizontal = Dimens.screenHorizontalPadding),
             ) {
-            Spacer(modifier = Modifier.height(Dimens.spacing16))
                 Text(
                     text = stringResource(R.string.change_password_current_label),
                     style = MaterialTheme.typography.labelLarge,

@@ -1,12 +1,9 @@
 package com.example.mamunbingoapp.ui.screens.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,38 +27,29 @@ import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.AppTextStyles
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.ui.components.AppHeaderBackground
+import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppTopBar
 
 @Composable
 fun LocationServicesScreen(onBack: () -> Unit) {
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        AppHeaderBackground(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.4f)
-                .align(Alignment.TopCenter)
-        )
-        Column(Modifier.fillMaxSize()) {
+    AppHeaderPageLayout(
+        topBar = {
             AppTopBar(
                 title = stringResource(R.string.settings_location_services),
                 showBack = true,
-                onBackClick = onBack
+                onBackClick = onBack,
             )
+        },
+        content = {
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(top = Dimens.spacing5)
                     .padding(horizontal = Dimens.screenHorizontalPadding)
-                    .padding(bottom = Dimens.spacing16)
+                    .padding(bottom = Dimens.spacing16),
             ) {
                 Text(
                     text = stringResource(R.string.profile_location_intro),
@@ -95,8 +83,8 @@ fun LocationServicesScreen(onBack: () -> Unit) {
                     )
                 }
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable

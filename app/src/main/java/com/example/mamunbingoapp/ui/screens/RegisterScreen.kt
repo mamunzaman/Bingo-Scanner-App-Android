@@ -87,10 +87,8 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = Dimens.spacing5)
-                        .padding(horizontal = Dimens.screenHorizontalPadding)
+                        .padding(horizontal = Dimens.screenHorizontalPadding),
                 ) {
-                    Spacer(modifier = Modifier.height(Dimens.spacing16))
                     Text(
                         text = stringResource(R.string.register_subtitle),
                         style = MaterialTheme.typography.bodyLarge,

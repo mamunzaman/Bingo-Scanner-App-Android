@@ -1,6 +1,32 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Inner page shell spacing:** high-traffic screens use `pageContentTopPadding`; archived/sheet routes drop duplicate top `spacing8`. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-06-02 - **Scan hero animation:** Calm single soft scan line (~4.8s ease-in-out); no trail/glow/bracket pulse; subtle grid + stable card shadow. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan tab polish:** Removed back arrow; scanner hero animation + card depth. Build OK.
+
+**Previous:** 2026-06-02 - **Projects top bar:** Single-line `AppTopBar` (matches Profile); eco subtitle in body under shell inset. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan curve + CTA polish:** Upward white arc into hero; `labelLarge` SemiBold CTAs, 26dp icons, 12dp gap; buttons 56/52dp. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Projects root spacing:** `ProjectsList` duplicate top inset removed (`contentPadding.top` 0dp). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan screen fit pass:** Measured layout metrics; smaller adaptive illustration; global typography; hero flex + manual wrap; 16dp curve clearance; FAB-safe padding. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan screen one-screen layout:** Removed scroll; 70/30 weighted hero/manual; `ScanHeroBottomCurve` arc transition; adaptive scale; FAB-safe manual padding. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Profile root hero rhythm:** `ProfileSummaryCard` row padding 20dp → 16dp (matches Live Rooms hero inset). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan screen proportions:** Full-width hero min 62% viewport; scanner card/brackets scaled up; 64dp Launch Camera; manual section +81dp bottom inset clears FAB/nav. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan screen polish:** Unified rounded hero container; scanner ~35% larger with stronger glow/shadow; premium CTAs (60dp primary / 56dp outlined); manual section spacing; wave divider removed. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Scan screen premium redesign:** Replaced diagonal split with light-green hero + animated scanner illustration, manual input section, `AppTopBar` (Ticket Scanner + help tips dialog); camera/type sheet + number pad flows unchanged. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Inner page body spacing:** Terms/Privacy/Support/Payment/Placeholder/Environmental/Location → `AppHeaderPageLayout`; Change Password/Register/Forgot Password drop duplicate top gap (`spacing5` + 16dp). Matches Settings `pageContentTopPadding`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Top bar leading slot:** `AppPageTopBar` uses 40dp back slot + `topBarTitleAfterLeadingGap`; page inset `screenHorizontalPadding`. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Inner page shell spacing:** `pageContentTopPadding` on high-traffic inner pages. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-05-31 - **Page shell spacing:** `AppHeaderPageLayout` body top gap; main tabs aligned. `./gradlew :app:assembleDebug` OK.
 
@@ -466,7 +492,7 @@
 - **Live status pills** (`LiveRoomTopSection`): LIVE green-tint chip + green rim, stronger dot/text, slow dot breath; counter de-emphasized vs LIVE.
 - **`CalledHistoryPanel` motion**: new last-call only ??? main circle scale+alpha in; LazyRow ???latest??? soft fade in when it becomes latest; inactive circles static.
 - **`CalledHistoryPanel` row**: horizontal **content** inset + scroll to active (last) call with breathing offset; no gradient fade overlay.
-- **`AppHeaderPageLayout`**: shared screen wrapper for `AppHeaderBackground`-based screens ??? `surface` root fill + gradient band (top 40%) + `Column(topBar, content)`; migrated HomeScreen, HistoryListScreen, ProfileScreen, SettingsScreen, MyAccountScreen, LiveRoomsScreen, LoginScreen, LiveSheetDetailScreen.
+- **`AppHeaderPageLayout`**: shared screen wrapper for `AppHeaderBackground`-based screens — `surface` root fill + gradient band (top 40%) + `Column(topBar, content)` + `pageContentTopPadding`; migrated Home, History, Profile, Settings, MyAccount, LiveRooms, Login, LiveSheetDetail, legal (Terms/Privacy), profile stubs (Support/Payment/Placeholder/Environmental/Location), auth inner pages (Change Password/Register/Forgot Password duplicate top gap removed).
 
 ## In progress
 

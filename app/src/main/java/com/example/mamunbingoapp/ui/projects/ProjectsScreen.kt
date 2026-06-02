@@ -47,8 +47,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -98,46 +96,42 @@ fun ProjectsScreen(
     AppHeaderPageLayout(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            AppTopBar(
-                title = stringResource(R.string.projects_nav_title),
-                titleContent = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.projects_nav_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        Text(
-                            text = stringResource(R.string.projects_nav_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                            modifier = Modifier.padding(top = Dimens.spacing4),
-                            lineHeight = 18.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
-            )
+            AppTopBar(title = stringResource(R.string.projects_nav_title))
         },
     ) {
-        when (val state = uiState) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = stringResource(R.string.projects_nav_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.screenHorizontalPadding)
+                    .padding(bottom = Dimens.spacing8),
+            )
+            when (val state = uiState) {
             ProjectsUiState.Loading -> ProjectsLoadingState(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .padding(horizontal = Dimens.screenHorizontalPadding),
             )
             is ProjectsUiState.Error -> ProjectsErrorState(
                 message = state.message,
                 onRetry = viewModel::loadProjects,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .padding(horizontal = Dimens.screenHorizontalPadding),
             )
             ProjectsUiState.Empty -> AppPullRefresh(
                 isRefreshing = isRefreshing,
                 onRefresh = viewModel::refresh,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
             ) {
                 Column(
                     modifier = Modifier
@@ -159,7 +153,9 @@ fun ProjectsScreen(
             is ProjectsUiState.Success -> AppPullRefresh(
                 isRefreshing = isRefreshing,
                 onRefresh = viewModel::refresh,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
             ) {
                 ProjectsList(
                     featuredProjects = state.featuredProjects,
@@ -169,6 +165,7 @@ fun ProjectsScreen(
                     onRetryRefresh = viewModel::refresh,
                     onProjectClick = { url -> openProjectSourceUrl(context, url) },
                 )
+            }
             }
         }
     }
@@ -230,7 +227,7 @@ private fun ProjectsList(
         contentPadding = PaddingValues(
             start = Dimens.screenHorizontalPadding,
             end = Dimens.screenHorizontalPadding,
-            top = Dimens.spacing16,
+            top = 0.dp,
             bottom = Dimens.spacing32,
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.spacing20),

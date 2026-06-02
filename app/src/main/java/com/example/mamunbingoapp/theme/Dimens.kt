@@ -48,6 +48,12 @@ object Dimens {
     val screenHorizontalPadding = spacing16
     val topBarHeight = 64.dp
 
+    /** Fixed leading slot in [com.example.mamunbingoapp.ui.components.AppPageTopBar] (back [IconButton] centered, 48dp touch). */
+    val topBarLeadingSlotWidth = 40.dp
+
+    /** Gap between leading slot and title on back navigation pages. */
+    val topBarTitleAfterLeadingGap = spacing8
+
     /** Gap between [com.example.mamunbingoapp.ui.components.AppPageTopBar] and scrollable body on main screens. */
     val pageContentTopPadding = spacing16
 

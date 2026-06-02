@@ -3,11 +3,14 @@ package com.example.mamunbingoapp.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -25,13 +28,13 @@ import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.theme.Dimens
 
 /**
- * Shared top bar row for main screens: status bar inset, [Dimens.topBarHeight],
- * [Dimens.screenHorizontalPadding], vertically centered title and actions.
+ * Shared top bar row: status bar inset, [Dimens.topBarHeight],
+ * [Dimens.screenHorizontalPadding], optional fixed leading slot for back, title, actions.
  */
 @Composable
 fun AppPageTopBar(
     modifier: Modifier = Modifier,
-    leading: @Composable RowScope.() -> Unit = {},
+    leading: (@Composable () -> Unit)? = null,
     title: @Composable RowScope.() -> Unit,
     actions: @Composable () -> Unit = {},
 ) {
@@ -43,19 +46,24 @@ fun AppPageTopBar(
             .height(Dimens.topBarHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        leading()
-        Box(
+        if (leading != null) {
+            Box(
+                modifier = Modifier
+                    .width(Dimens.topBarLeadingSlotWidth)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center,
+            ) {
+                leading()
+            }
+            Spacer(modifier = Modifier.width(Dimens.topBarTitleAfterLeadingGap))
+        }
+        Row(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.CenterStart,
+                .fillMaxHeight(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                title()
-            }
+            title()
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             actions()
@@ -74,8 +82,8 @@ fun AppTopBar(
 ) {
     AppPageTopBar(
         modifier = modifier,
-        leading = {
-            if (showBack && onBackClick != null) {
+        leading = if (showBack && onBackClick != null) {
+            {
                 IconButton(
                     onClick = onBackClick,
                     modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
@@ -83,6 +91,8 @@ fun AppTopBar(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             }
+        } else {
+            null
         },
         title = {
             if (titleContent != null) {
@@ -94,7 +104,9 @@ fun AppTopBar(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() },
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .semantics { heading() },
                 )
             }
         },

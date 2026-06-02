@@ -103,11 +103,9 @@ fun ForgotPasswordScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = Dimens.spacing5)
                         .padding(horizontal = Dimens.screenHorizontalPadding),
                 ) {
                     if (recoveryPending) {
-                        Spacer(modifier = Modifier.height(Dimens.spacing16))
                         Text(
                             text = stringResource(R.string.change_password_title),
                             style = MaterialTheme.typography.headlineMedium,
@@ -320,7 +318,6 @@ fun ForgotPasswordScreen(
                 )
                 Spacer(modifier = Modifier.height(Dimens.spacing16))
             } else {
-                        Spacer(modifier = Modifier.height(Dimens.spacing16))
                         Text(
                             text = stringResource(R.string.forgot_title),
                             style = MaterialTheme.typography.headlineMedium,
