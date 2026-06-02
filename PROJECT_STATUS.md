@@ -1,6 +1,10 @@
 # Project status
 
-**Last update:** 2026-06-02 - **History Detail UI polish:** Premium hero + LOS/SERIE chips, `AppSectionTitle`, `surfaceContainer` stats/called sections, archived read-only parity. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Master Sheet Gemini AI OCR:** `MasterSheetGeminiVisionOcr` + `MainSheetScanAnalyzer` (AI first, `MainSheetBingoOcr` fallback); `GEMINI_API_KEY` via `local.properties` → `BuildConfig`; `MainSheetAiOcr` logs. MAIN_SHEET only. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Master Sheet LOS/SERIE OCR:** `MainSheetBingoOcr` multi-layout metadata; `MainSheetMetaOcr` logcat. Build OK.
+
+**Previous:** 2026-06-02 - **History Detail UI polish:** Premium hero + LOS/SERIE chips, `AppSectionTitle`, `surfaceContainer` stats/called sections, archived read-only parity. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-06-02 - **Duplicate sheet dialog v2:** Tighter bottom sheet; `ContentCopy` icon tile; `surfaceContainer` meta chips; prominent outlined secondary. `./gradlew :app:assembleDebug` OK.
 

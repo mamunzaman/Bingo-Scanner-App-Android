@@ -41,6 +41,11 @@ android {
             "SUPABASE_ANON_KEY",
             quoteBuildConfigString(localProperties.getProperty("SUPABASE_ANON_KEY", "")),
         )
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            quoteBuildConfigString(localProperties.getProperty("GEMINI_API_KEY", "")),
+        )
     }
 
     buildTypes {
@@ -136,6 +141,7 @@ dependencies {
     implementation("androidx.camera:camera-view:1.5.0")
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation(libs.google.generativeai)
     implementation(libs.coil.compose)
     implementation("com.github.yalantis:ucrop:2.2.8")
     // Supabase: Auth + profiles table only. Bingo data stays in Room on-device.

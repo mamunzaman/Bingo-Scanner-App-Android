@@ -16,6 +16,7 @@ import com.example.mamunbingoapp.scanner.BingoNumberAnalyzer
 import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
 import com.example.mamunbingoapp.scanner.MainSheetBingoOcr
+import com.example.mamunbingoapp.scanner.MainSheetScanAnalyzer
 import com.example.mamunbingoapp.scanner.OnlineBingoOcr
 import com.example.mamunbingoapp.scanner.PlayPaperBingoOcr
 import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromImageUri
@@ -426,13 +427,17 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     BingoScanType.ONLINE -> runCatching {
                         OnlineBingoOcr.analyzeUri(context.applicationContext, uri)
                     }
-                    BingoScanType.MAIN_SHEET -> runCatching {
-                        MainSheetBingoOcr.analyzeUri(
-                            context.applicationContext,
-                            uri,
-                            bypassInternalGridCrop = true,
-                            preCropCameraForStripOcr = false,
+                    BingoScanType.MAIN_SHEET -> try {
+                        Result.success(
+                            MainSheetScanAnalyzer.analyzeUri(
+                                context.applicationContext,
+                                uri,
+                                bypassInternalGridCrop = true,
+                                preCropCameraForStripOcr = false,
+                            ),
                         )
+                    } catch (e: Exception) {
+                        Result.failure(e)
                     }
                     BingoScanType.PLAY_PAPER -> runCatching {
                         PlayPaperBingoOcr.analyzeUri(

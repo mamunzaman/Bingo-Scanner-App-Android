@@ -1,8 +1,10 @@
 ﻿# Next task
 
-**Goal:** Alpha Phase 4B — tokenize disabled / text / scrim alphas (not divider/border); start with highest-drift screens from audit.
+**Goal:** Field-test Master Sheet Gemini AI on Types A/B/C; confirm fallback when `GEMINI_API_KEY` empty or offline.
 
-**Verify:** `./gradlew :app:assembleDebug`; spot-check Live Play + Settings unchanged aside from intended divider tweaks.
+**Verify:** Add `GEMINI_API_KEY=...` to `local.properties`, rebuild; logcat `MainSheetAiOcr` (success / validation failed / fallback); offline → `MainSheetBingoOcr`; Player Sheet + Online unchanged.
+
+**Previous:** **Master Sheet LOS/SERIE OCR** — multi-layout meta parser (footer + top star + spatial 4+5); `MainSheetMetaOcr` debug logs. Build OK.
 
 **Previous:** **Live Play control console polish** — premium bottom dock, primary Call, outlined Undo/keypad, keypad card. Build OK.
 

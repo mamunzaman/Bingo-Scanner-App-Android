@@ -1,6 +1,7 @@
 package com.example.mamunbingoapp.scanner
 
 import android.content.Context
+import android.util.Log
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -40,10 +41,25 @@ object MainSheetBingoOcr {
     /** Footer crop starts here for dedicated footer OCR pass. */
     private const val FOOTER_TOP_FRAC = 0.72f
 
-    private val serieRegex = Regex("(?i)serie\\s*[:#\\-.=]?\\s*([0-9]{1,8})")
-    private val losRegex = Regex("(?i)los[\\s\\-]*nr\\.?\\s*[:#\\-.=]?\\s*([0-9]{1,8})")
-    private val footerLabelPattern =
-        Regex("(?i)serie|seriennummer|los(?:nummer|\\s*nr\\.?)?|los\\s*nr")
+    private const val META_LOG_TAG = "MainSheetMetaOcr"
+
+    private val footerLabelPattern = Regex(
+        "(?i)serie|seriennummer|serien[\\s\\-]*nr|seriennr|los(?:nummer|[\\s\\-]*nr\\.?)?|los\\s*nr|" +
+            "seriennummer[\\s\\-]*losnummer",
+    )
+    private val serieAfterLabelRegex = Regex(
+        "(?i)(?:serie|seriennummer|serien[\\s\\-]*nr\\.?|seriennr)" +
+            "(?:\\s*[:#\\-.=]+|\\s+)([0-9]{4,8})",
+    )
+    private val losAfterLabelRegex = Regex(
+        "(?i)(?:los(?:nummer)?(?:[\\s\\-]*nr\\.?)?|los\\s*nr)" +
+            "(?:\\s*[:#\\-.=]+|\\s+)([0-9]{5,8})",
+    )
+    private val starSerieLosPairRegex = Regex(
+        """\*\*\s*([0-9]{4,6})\s*\*\*\s*([0-9]{5,8})\s*\*\*""",
+    )
+    private val topComboHeaderRegex = Regex("(?i)seriennummer[\\s\\-]*losnummer")
+    private val spatialFourFiveRegex = Regex("(?<![0-9])([0-9]{4})(?![0-9])\\D{0,24}([0-9]{5})(?![0-9])")
     /** Super 6 / Spiel 77 noise lines that appear below the footer on printed tickets. */
     private val noiseLinePattern = Regex("(?i)super\\s*6|spiel\\s*77")
     private val gridNumberPattern = Regex("(?<![0-9])([1-9]|[1-6][0-9]|7[0-5])(?![0-9])")
@@ -104,15 +120,24 @@ object MainSheetBingoOcr {
         val visionText = ocrFullImage(bitmap, recognizer)
             ?: return MainSheetOcrAttempt(variantName, HistoryImportOcrOutcome(pad25(emptyList())), 0, 0)
 
-        // Footer pass for Serie/Los-Nr.
+        val headerBottomY = detectBingoTextHeaderBottomY(bitmap)
+        val visionLines = collectVisionLines(visionText, bitmap.height)
+        val rawCandidates = collectNumericCandidates(visionText)
+        val gridTopY = estimateMetaGridTopY(rawCandidates, headerBottomY, bitmap.height)
+
         val footerTop = (bitmap.height * FOOTER_TOP_FRAC).toInt().coerceIn(0, bitmap.height - 4)
         val footerBmp = Bitmap.createBitmap(bitmap, 0, footerTop, bitmap.width, bitmap.height - footerTop)
         val (serie, los) = try {
-            parseFooterMeta(footerBmp, recognizer, visionText, bitmap.height)
+            parseMasterSheetMeta(
+                footerBmp = footerBmp,
+                recognizer = recognizer,
+                visionLines = visionLines,
+                imageH = bitmap.height,
+                gridTopY = gridTopY,
+            )
         } finally {
             if (!footerBmp.isRecycled) footerBmp.recycle()
         }
-        val rawCandidates = collectNumericCandidates(visionText)
         val preGridCandidates = filterPreGridCandidates(rawCandidates, excludeSerie = serie, excludeLos = los)
         val gridLayout = computeGridRowLayout(preGridCandidates, bitmap.height)
 
@@ -257,8 +282,8 @@ object MainSheetBingoOcr {
     ): List<PositionCandidate> = raw.filter { c ->
         if (c.onFooterLabelLine) return@filter false
         val s = c.value.toString()
-        if (excludeSerie != null && s == excludeSerie) return@filter false
-        if (excludeLos != null && s == excludeLos) return@filter false
+        if (excludeSerie != null && (s == excludeSerie || excludeSerie.endsWith(s))) return@filter false
+        if (excludeLos != null && (s == excludeLos || excludeLos.endsWith(s))) return@filter false
         true
     }
 
@@ -527,37 +552,295 @@ object MainSheetBingoOcr {
         return grouped.filter { it.value == bestCount }.keys.minOrNull() ?: hits.first()
     }
 
-    // ── Footer meta parsing ───────────────────────────────────────────────────
+    // ── Master Sheet metadata (Serie / Los-Nr.) ─────────────────────────────
 
-    private fun parseFooterMeta(
-        footer: Bitmap,
-        recognizer: TextRecognizer,
-        fullVision: Text,
-        imageH: Int,
-    ): Pair<String?, String?> {
-        val footerCropText = runCatching {
-            Tasks.await(recognizer.process(InputImage.fromBitmap(footer, 0))).text
-        }.getOrDefault("")
-        val bottomLines = buildFooterPlainText(fullVision, imageH)
-        val combined = listOf(footerCropText, bottomLines).filter { it.isNotBlank() }.joinToString("\n")
-        val serie = serieRegex.find(combined)?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
-        val los = losRegex.find(combined)?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
-        return serie to los
-    }
+    private data class VisionLine(val text: String, val cy: Float)
 
-    private fun buildFooterPlainText(visionText: Text, imageH: Int): String {
-        val yMin = imageH * FOOTER_TOP_FRAC
-        val lines = mutableListOf<Pair<Float, String>>()
+    private data class LabeledMetaExtract(
+        val serie: String?,
+        val los: String?,
+        val layoutType: String,
+    )
+
+    private fun collectVisionLines(visionText: Text, imageH: Int): List<VisionLine> {
+        val out = mutableListOf<VisionLine>()
         for (block in visionText.textBlocks) {
             for (line in block.lines) {
                 if (noiseLinePattern.containsMatchIn(line.text)) continue
                 val box = line.boundingBox ?: continue
                 val cy = (box.top + box.bottom) / 2f
-                if (cy < yMin) continue
-                lines.add(cy to line.text)
+                if (cy < 0f || cy > imageH) continue
+                out.add(VisionLine(line.text, cy))
             }
         }
-        return lines.sortedBy { it.first }.joinToString("\n") { it.second }
+        return out.sortedBy { it.cy }
+    }
+
+    private fun estimateMetaGridTopY(
+        candidates: List<PositionCandidate>,
+        headerBottomY: Int?,
+        imageH: Int,
+    ): Float {
+        val gridNums = candidates.filter { !it.onFooterLabelLine && it.value in 1..75 }
+        val minGridCy = gridNums.minOfOrNull { it.cy }
+        return when {
+            minGridCy != null && minGridCy > (headerBottomY?.toFloat() ?: imageH * 0.08f) ->
+                minGridCy.coerceAtMost(imageH * 0.58f)
+            headerBottomY != null -> (headerBottomY + imageH * 0.04f).toFloat().coerceAtMost(imageH * 0.55f)
+            else -> imageH * 0.45f
+        }
+    }
+
+    private fun parseMasterSheetMeta(
+        footerBmp: Bitmap,
+        recognizer: TextRecognizer,
+        visionLines: List<VisionLine>,
+        imageH: Int,
+        gridTopY: Float,
+    ): Pair<String?, String?> {
+        val footerCropText = runCatching {
+            Tasks.await(recognizer.process(InputImage.fromBitmap(footerBmp, 0))).text
+        }.getOrDefault("")
+        val footerYMin = imageH * FOOTER_TOP_FRAC
+        val bottomRegionText = regionPlainText(visionLines, yMin = footerYMin)
+        val topRegionText = regionPlainText(visionLines, yMax = gridTopY)
+
+        val footerCombined = normalizeMetaText(
+            listOf(footerCropText, bottomRegionText).filter { it.isNotBlank() }.joinToString("\n"),
+        )
+        val topNormalized = normalizeMetaText(topRegionText)
+
+        var serie: String? = null
+        var los: String? = null
+        var layoutType = "none"
+        var debugText = footerCombined
+
+        fun applyExtract(extract: LabeledMetaExtract, sourceText: String) {
+            if (extract.serie != null) serie = extract.serie
+            if (extract.los != null) los = extract.los
+            if (layoutType == "none" && (extract.serie != null || extract.los != null)) {
+                layoutType = extract.layoutType
+                debugText = sourceText
+            }
+        }
+
+        applyExtract(extractLabeledSerieLos(footerCombined, visionLines, footerYMin), footerCombined)
+
+        if (serie == null || los == null) {
+            val bottomOnly = extractLabeledSerieLos(bottomRegionText, visionLines, footerYMin)
+            applyExtract(bottomOnly, bottomRegionText)
+            if (layoutType == "none" && bottomOnly.layoutType != "none") layoutType = bottomOnly.layoutType
+        }
+
+        if (serie == null || los == null) {
+            val fullExtract = extractLabeledSerieLosFromLines(visionLines, yMin = footerYMin)
+            if (serie == null) serie = fullExtract.serie
+            if (los == null) los = fullExtract.los
+            if (layoutType == "none" && (fullExtract.serie != null || fullExtract.los != null)) {
+                layoutType = fullExtract.layoutType
+                debugText = bottomRegionText
+            }
+        }
+
+        if (serie == null || los == null) {
+            val star = extractStarTopPair(topNormalized, visionLines, gridTopY)
+            if (star != null) {
+                if (serie == null) serie = star.first
+                if (los == null) los = star.second
+                layoutType = "star_top_spatial"
+                debugText = topNormalized
+            }
+        }
+
+        if (serie == null || los == null) {
+            val spatial = extractSpatialTopPair(visionLines, gridTopY, imageH)
+            if (spatial != null) {
+                if (serie == null) serie = spatial.first
+                if (los == null) los = spatial.second
+                if (layoutType == "none") layoutType = "spatial_top_4_5"
+                debugText = topNormalized
+            }
+        }
+
+        if (serie == null || los == null) {
+            val fallback = extractLabeledSerieLos(footerCombined, visionLines, footerYMin, relaxedLengths = true)
+            if (serie == null) serie = fallback.serie
+            if (los == null) los = fallback.los
+            if (layoutType == "none" && (fallback.serie != null || fallback.los != null)) {
+                layoutType = "footer_fallback"
+                debugText = footerCombined
+            }
+        }
+
+        Log.d(
+            META_LOG_TAG,
+            "layout=$layoutType serie=$serie los=$los gridTopY=${gridTopY.toInt()} " +
+                "text=${debugText.take(280)}",
+        )
+        return serie to los
+    }
+
+    private fun regionPlainText(lines: List<VisionLine>, yMin: Float? = null, yMax: Float? = null): String =
+        lines.filter { line ->
+            (yMin == null || line.cy >= yMin) && (yMax == null || line.cy <= yMax)
+        }.joinToString("\n") { it.text }
+
+    private fun normalizeMetaText(raw: String): String =
+        raw.replace(Regex("[\\u00A0\\u2007\\u202F]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    private fun lineLooksLikeBingoGrid(text: String): Boolean {
+        val count = gridNumberPattern.findAll(text).count { m ->
+            m.groupValues[1].toIntOrNull()?.let { it in 1..75 } == true
+        }
+        return count >= 5
+    }
+
+    private fun isPlausibleSerie(digits: String): Boolean =
+        digits.length in 4..6 && digits.toIntOrNull()?.let { it !in 1..75 } == true
+
+    private fun isPlausibleLos(digits: String): Boolean =
+        digits.length in 5..8 && digits.toIntOrNull()?.let { it !in 1..75 } == true
+
+    private fun pickBestSerie(candidates: List<String>): String? =
+        candidates.filter { isPlausibleSerie(it) }
+            .maxByOrNull { it.length.coerceAtMost(6) * 10 + if (it.length == 4) 2 else 1 }
+
+    private fun pickBestLos(candidates: List<String>): String? =
+        candidates.filter { isPlausibleLos(it) }
+            .maxByOrNull { if (it.length == 5) 10 else it.length }
+
+    private fun extractLabeledSerieLos(
+        normalizedText: String,
+        visionLines: List<VisionLine>,
+        footerYMin: Float,
+        relaxedLengths: Boolean = false,
+    ): LabeledMetaExtract {
+        if (normalizedText.isBlank()) return LabeledMetaExtract(null, null, "none")
+
+        val serieCandidates = mutableListOf<String>()
+        val losCandidates = mutableListOf<String>()
+        var sameLineBoth = false
+        var splitLines = false
+
+        for (match in serieAfterLabelRegex.findAll(normalizedText)) {
+            match.groupValues.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }?.let { serieCandidates.add(it) }
+        }
+        for (match in losAfterLabelRegex.findAll(normalizedText)) {
+            match.groupValues.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }?.let { losCandidates.add(it) }
+        }
+
+        val footerLines = visionLines.filter { it.cy >= footerYMin && !lineLooksLikeBingoGrid(it.text) }
+        for (line in footerLines) {
+            val normLine = normalizeMetaText(line.text)
+            if (lineLooksLikeBingoGrid(normLine)) continue
+            val s = serieAfterLabelRegex.find(normLine)?.groupValues?.getOrNull(1)?.trim()
+            val l = losAfterLabelRegex.find(normLine)?.groupValues?.getOrNull(1)?.trim()
+            if (s != null) serieCandidates.add(s)
+            if (l != null) losCandidates.add(l)
+            if (s != null && l != null) sameLineBoth = true
+            if ((s != null) xor (l != null)) splitLines = true
+        }
+
+        val serie = pickBestSerie(serieCandidates)
+            ?: if (relaxedLengths) serieCandidates.firstOrNull { it.length in 3..8 } else null
+        val los = pickBestLos(losCandidates)
+            ?: if (relaxedLengths) losCandidates.firstOrNull { it.length in 4..8 } else null
+
+        val layoutType = when {
+            sameLineBoth -> "footer_same_line"
+            splitLines && serie != null && los != null -> "footer_split"
+            serie != null || los != null -> "footer_labeled"
+            else -> "none"
+        }
+        return LabeledMetaExtract(serie, los, layoutType)
+    }
+
+    private fun extractLabeledSerieLosFromLines(
+        visionLines: List<VisionLine>,
+        yMin: Float,
+    ): LabeledMetaExtract {
+        var serie: String? = null
+        var los: String? = null
+        var split = false
+        var sameLine = false
+        for (line in visionLines) {
+            if (line.cy < yMin) continue
+            if (lineLooksLikeBingoGrid(line.text)) continue
+            val norm = normalizeMetaText(line.text)
+            val s = serieAfterLabelRegex.find(norm)?.groupValues?.getOrNull(1)?.trim()
+            val l = losAfterLabelRegex.find(norm)?.groupValues?.getOrNull(1)?.trim()
+            if (s != null && isPlausibleSerie(s)) {
+                serie = s
+            }
+            if (l != null && isPlausibleLos(l)) {
+                los = l
+            }
+            if (s != null && l != null) sameLine = true
+            if ((s != null) xor (l != null)) split = true
+        }
+        val layoutType = when {
+            sameLine -> "footer_same_line"
+            split && serie != null && los != null -> "footer_split"
+            serie != null || los != null -> "bottom_labeled"
+            else -> "none"
+        }
+        return LabeledMetaExtract(serie, los, layoutType)
+    }
+
+    private fun extractStarTopPair(
+        topText: String,
+        visionLines: List<VisionLine>,
+        gridTopY: Float,
+    ): Pair<String, String>? {
+        starSerieLosPairRegex.find(topText)?.let { m ->
+            val s = m.groupValues.getOrNull(1)
+            val l = m.groupValues.getOrNull(2)
+            if (s != null && l != null && isPlausibleSerie(s) && isPlausibleLos(l)) return s to l
+        }
+        for (line in visionLines) {
+            if (line.cy > gridTopY) continue
+            if (lineLooksLikeBingoGrid(line.text)) continue
+            val norm = normalizeMetaText(line.text)
+            if (!topComboHeaderRegex.containsMatchIn(norm) && !norm.contains("**")) continue
+            starSerieLosPairRegex.find(norm)?.let { m ->
+                val s = m.groupValues.getOrNull(1)
+                val l = m.groupValues.getOrNull(2)
+                if (s != null && l != null && isPlausibleSerie(s) && isPlausibleLos(l)) return s to l
+            }
+            spatialFourFiveRegex.find(norm)?.let { m ->
+                val s = m.groupValues.getOrNull(1)
+                val l = m.groupValues.getOrNull(2)
+                if (s != null && l != null && isPlausibleSerie(s) && isPlausibleLos(l)) return s to l
+            }
+        }
+        return null
+    }
+
+    private fun extractSpatialTopPair(
+        visionLines: List<VisionLine>,
+        gridTopY: Float,
+        imageH: Int,
+    ): Pair<String, String>? {
+        val upperBound = min(gridTopY, imageH * 0.52f)
+        for (line in visionLines) {
+            if (line.cy > upperBound) continue
+            if (lineLooksLikeBingoGrid(line.text)) continue
+            if (footerLabelPattern.containsMatchIn(line.text) &&
+                !topComboHeaderRegex.containsMatchIn(line.text)
+            ) {
+                continue
+            }
+            val norm = normalizeMetaText(line.text)
+            if (lineLooksLikeBingoGrid(norm)) continue
+            spatialFourFiveRegex.find(norm)?.let { m ->
+                val s = m.groupValues.getOrNull(1)
+                val l = m.groupValues.getOrNull(2)
+                if (s != null && l != null && isPlausibleSerie(s) && isPlausibleLos(l)) return s to l
+            }
+        }
+        return null
     }
 
     // ── Validity helpers ──────────────────────────────────────────────────────

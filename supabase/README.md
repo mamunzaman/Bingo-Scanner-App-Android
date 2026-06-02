@@ -90,6 +90,13 @@ The function targets the **latest Berlin Sunday** date when calling the public A
 
 - **Tables:** `bingo_draws`, `bingo_prizes`
 - **Query:** `order=draw_date.desc&limit=1` with `SUPABASE_ANON_KEY` in `local.properties` (gitignored)
+
+**Android `local.properties` (gitignored)** — optional keys:
+
+| Key | Use |
+|-----|-----|
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Supabase client |
+| `GEMINI_API_KEY` | Master Sheet scan AI (`BuildConfig.GEMINI_API_KEY`); empty → local OCR only |
 - **RLS:** anon role must be allowed `SELECT` on `bingo_draws` (and prizes if used)
 
 If the app shows old jackpot values but no load error, the ingestion layer is stale — fix deploy/cron/logs above, not the Home UI.
