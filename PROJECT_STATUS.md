@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Master Sheet Gemini AI OCR:** `MasterSheetGeminiVisionOcr` + `MainSheetScanAnalyzer` (AI first, `MainSheetBingoOcr` fallback); `GEMINI_API_KEY` via `local.properties` → `BuildConfig`; `MainSheetAiOcr` logs. MAIN_SHEET only. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Ktor 3 + Gemini KMP SDK:** Restored Ktor 3.0.3 for Supabase; replaced `com.google.ai.client.generativeai` with `dev.shreyaspatil.generativeai:generativeai-google:0.9.0-1.1.0` (`PlatformImage` JPEG bytes). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Master Sheet Gemini AI OCR:** AI first + `MainSheetBingoOcr` fallback; `GEMINI_API_KEY` in `BuildConfig`. Build OK.
 
 **Previous:** 2026-05-31 - **Master Sheet LOS/SERIE OCR:** `MainSheetBingoOcr` multi-layout metadata; `MainSheetMetaOcr` logcat. Build OK.
 

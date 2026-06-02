@@ -8,9 +8,11 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.util.Log
 import com.example.mamunbingoapp.BuildConfig
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
-import com.google.ai.client.generativeai.type.generationConfig
+import dev.shreyaspatil.ai.client.generativeai.GenerativeModel
+import dev.shreyaspatil.ai.client.generativeai.type.PlatformImage
+import dev.shreyaspatil.ai.client.generativeai.type.content
+import dev.shreyaspatil.ai.client.generativeai.type.generationConfig
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -22,7 +24,7 @@ import kotlinx.serialization.json.Json
 object MasterSheetGeminiVisionOcr {
 
     private const val TAG = "MainSheetAiOcr"
-    private const val MODEL_NAME = "gemini-2.0-flash"
+    private const val MODEL_NAME = "gemini-3.5-flash"
     private const val REQUEST_TIMEOUT_MS = 45_000L
     private const val MAX_IMAGE_SIDE = 1600
 
@@ -75,9 +77,10 @@ Example shape:
                         responseMimeType = "application/json"
                     },
                 )
+                val imageBytes = bitmapToJpegBytes(bitmap)
                 val response = model.generateContent(
                     content {
-                        image(bitmap)
+                        image(PlatformImage(imageBytes))
                         text(prompt)
                     },
                 )
@@ -119,6 +122,12 @@ Example shape:
         val end = raw.lastIndexOf('}')
         if (start >= 0 && end > start) return raw.substring(start, end + 1)
         return null
+    }
+
+    private fun bitmapToJpegBytes(bitmap: Bitmap, quality: Int = 85): ByteArray {
+        val out = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        return out.toByteArray()
     }
 
     private fun loadBitmapDownsampled(context: Context, uri: Uri, maxSide: Int): Bitmap? {

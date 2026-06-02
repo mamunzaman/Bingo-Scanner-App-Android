@@ -1,8 +1,8 @@
 ﻿# Next task
 
-**Goal:** Field-test Master Sheet Gemini AI on Types A/B/C; confirm fallback when `GEMINI_API_KEY` empty or offline.
+**Goal:** Verify Supabase auth + Home refresh after Ktor 3 restore; field-test Master Sheet Gemini (`generativeai-google` KMP SDK).
 
-**Verify:** Add `GEMINI_API_KEY=...` to `local.properties`, rebuild; logcat `MainSheetAiOcr` (success / validation failed / fallback); offline → `MainSheetBingoOcr`; Player Sheet + Online unchanged.
+**Verify:** Login/auth; Home draw fetch; Master Sheet AI + offline fallback (`MainSheetAiOcr`); Player Sheet + Online unchanged.
 
 **Previous:** **Master Sheet LOS/SERIE OCR** — multi-layout meta parser (footer + top star + spatial 4+5); `MainSheetMetaOcr` debug logs. Build OK.
 
