@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -30,6 +31,8 @@ import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.viewmodel.ImportTicketViewModel
 import com.example.mamunbingoapp.viewmodel.MainTabsViewModel
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
+import com.example.mamunbingoapp.viewmodel.logMasterSheetManualPrefill
+import com.example.mamunbingoapp.viewmodel.normalizeManualEntryGridPrefill
 import com.example.mamunbingoapp.ui.screens.ForgotPasswordScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryDetailScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryListScreen
@@ -497,7 +500,25 @@ private fun NavHostController.onMainBottomBarTabSelected(
     tab: AppTab,
     tabsViewModel: MainTabsViewModel?,
 ) {
+    if (stageManualEntryPendingTabIfDirty(tab)) return
     navigateToMainTabRoot(tab, tabsViewModel)
+}
+
+/** When Manual Entry has unsaved edits, stash tab intent for the screen discard dialog. */
+private fun NavHostController.stageManualEntryPendingTabIfDirty(tab: AppTab): Boolean {
+    val entry = currentBackStackEntry ?: return false
+    val route = entry.destination.route ?: return false
+    if (!route.startsWith("manualEntry")) return false
+    if (entry.savedStateHandle.get<Boolean>(
+            com.example.mamunbingoapp.viewmodel.MANUAL_ENTRY_UNSAVED_DIRTY_KEY,
+        ) != true
+    ) {
+        return false
+    }
+    entry.savedStateHandle[
+        com.example.mamunbingoapp.viewmodel.MANUAL_ENTRY_PENDING_TAB_KEY,
+    ] = tab.name
+    return true
 }
 
 @Composable
@@ -544,7 +565,7 @@ private fun MainShellScaffold(
             AppBottomBar(
                 selectedTab = highlightedTab,
                 onTabSelected = { tab ->
-                    navController.navigateToMainTabRoot(tab, tabsViewModel)
+                    navController.onMainBottomBarTabSelected(tab, tabsViewModel)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -1237,8 +1258,9 @@ fun NavGraph(
             val displayImportUri = galleryPendingUri ?: selectedUri
             var lastOcrSource by remember { mutableStateOf<HistoryOcrSource?>(null) }
             var lastOcrConfidence by remember { mutableStateOf<Float?>(null) }
-            var continueNavigated by remember { mutableStateOf(false) }
-            val importPrefill = parseHistoryPhotoImportPrefill(backStackEntry.arguments)
+                    var continueNavigated by remember { mutableStateOf(false) }
+                    var importManualNavDone by rememberSaveable { mutableStateOf(false) }
+                    val importPrefill = parseHistoryPhotoImportPrefill(backStackEntry.arguments)
             val prefilledScannedNumbers = importPrefill.scannedNumbers
             val prefilledOcrSource = importPrefill.ocrSource
             val prefilledOcrConfidence = importPrefill.ocrConfidence
@@ -1309,50 +1331,122 @@ fun NavGraph(
                     }.getOrNull()
                     val fallbackRoomFlow = remember { MutableStateFlow<String?>(null) }
                     val lastActiveRoomId by (mainTabsVm?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
-                    fun navigateImportToManualEntry(useActiveRoom: Boolean) {
-                        val s = success ?: return
-                        val nums = s.numbers
-                        if (continueNavigated) {
-                            return
-                        }
-                        continueNavigated = true
-                        val route =
-                            if (useActiveRoom && !lastActiveRoomId.isNullOrBlank()) {
-                                buildManualEntryForRoomRoute(
-                                    lastActiveRoomId!!,
-                                    finalUiGridRowMajor(nums),
-                                    losNumber = s.losNumber,
-                                    serialNumber = s.serialNumber,
-                                    sheetName = s.sheetName,
-                                    prefillAsRowMajor = true,
-                                )
-                            } else {
-                                buildManualEntryRoute(
-                                    finalUiGridRowMajor(nums),
-                                    s.ocrSource ?: lastOcrSource,
-                                    if (s.ocrSource != null) null else lastOcrConfidence,
-                                    prefillAsRowMajor = true,
-                                    losNumber = s.losNumber,
-                                    serialNumber = s.serialNumber,
-                                    sheetName = s.sheetName,
-                                )
+                    val effectiveImportScanType = importVm.effectiveImportScanType()
+                    fun navigateImportToManualEntry(
+                        scan: com.example.mamunbingoapp.viewmodel.ScanResultUiState,
+                        useActiveRoom: Boolean,
+                        isMainSheet: Boolean,
+                    ) {
+                        if (continueNavigated || importManualNavDone) return
+                        when (scan) {
+                            is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success -> {
+                                continueNavigated = true
+                                importManualNavDone = true
+                                val s = scan
+                                val nums = s.numbers
+                                val grid = normalizeManualEntryGridPrefill(nums)
+                                if (isMainSheet) {
+                                    logMasterSheetManualPrefill(grid, s.losNumber, s.serialNumber)
+                                    importVm.releaseImportImageMemory()
+                                }
+                                val hasGrid = grid.any { it != 0 }
+                                val route =
+                                    if (hasGrid && useActiveRoom && !lastActiveRoomId.isNullOrBlank()) {
+                                        buildManualEntryForRoomRoute(
+                                            lastActiveRoomId!!,
+                                            grid,
+                                            losNumber = s.losNumber,
+                                            serialNumber = s.serialNumber,
+                                            sheetName = s.sheetName,
+                                            prefillAsRowMajor = true,
+                                        )
+                                    } else if (hasGrid) {
+                                        buildManualEntryRoute(
+                                            grid,
+                                            s.ocrSource ?: lastOcrSource,
+                                            if (s.ocrSource != null) null else lastOcrConfidence,
+                                            prefillAsRowMajor = true,
+                                            losNumber = s.losNumber,
+                                            serialNumber = s.serialNumber,
+                                            sheetName = s.sheetName,
+                                        )
+                                    } else {
+                                        buildManualEntryRoute(
+                                            scannedNumbers = null,
+                                            ocrSource = s.ocrSource ?: lastOcrSource,
+                                            ocrConfidence = if (s.ocrSource != null) null else lastOcrConfidence,
+                                            losNumber = s.losNumber,
+                                            serialNumber = s.serialNumber,
+                                            sheetName = s.sheetName,
+                                        )
+                                    }
+                                navController.navigate(route) {
+                                    popUpTo(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE) { inclusive = true }
+                                }
                             }
-                        navController.navigate(route) {
-                            popUpTo(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE) { inclusive = true }
+                            is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error -> {
+                                continueNavigated = true
+                                importManualNavDone = true
+                                if (isMainSheet) {
+                                    logMasterSheetManualPrefill(emptyList(), scan.losNumber, scan.serialNumber)
+                                    importVm.releaseImportImageMemory()
+                                }
+                                val route = buildManualEntryRoute(
+                                    losNumber = scan.losNumber,
+                                    serialNumber = scan.serialNumber,
+                                )
+                                navController.navigate(route) {
+                                    popUpTo(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE) { inclusive = true }
+                                }
+                            }
+                            else -> Unit
                         }
                     }
-                    LaunchedEffect(scanResult) {
+                    LaunchedEffect(scanResult, effectiveImportScanType) {
+                        if (scanResult is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Loading ||
+                            scanResult is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Idle
+                        ) {
+                            if (scanResult !is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success) {
+                                continueNavigated = false
+                                importManualNavDone = false
+                            }
+                            return@LaunchedEffect
+                        }
+                        if (effectiveImportScanType == BingoScanType.MAIN_SHEET) {
+                            when (scanResult) {
+                                is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success,
+                                is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error -> {
+                                    if (continueNavigated || importManualNavDone) return@LaunchedEffect
+                                    navigateImportToManualEntry(
+                                        scanResult,
+                                        useActiveRoom = false,
+                                        isMainSheet = true,
+                                    )
+                                }
+                                else -> Unit
+                            }
+                            return@LaunchedEffect
+                        }
                         if (!qualifiesForHistoryPhotoAutoManualEntry(scanResult)) {
                             if (scanResult !is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success) {
                                 continueNavigated = false
                             }
                             return@LaunchedEffect
                         }
-                        if (continueNavigated) return@LaunchedEffect
-                        navigateImportToManualEntry(useActiveRoom = false)
+                        if (continueNavigated || importManualNavDone) return@LaunchedEffect
+                        navigateImportToManualEntry(
+                            scanResult,
+                            useActiveRoom = false,
+                            isMainSheet = false,
+                        )
                     }
                     val suppressHeroForAutoManualNav =
-                        qualifiesForHistoryPhotoAutoManualEntry(scanResult) || continueNavigated
+                        qualifiesForHistoryPhotoAutoManualEntry(scanResult) ||
+                        continueNavigated ||
+                        importManualNavDone ||
+                        (effectiveImportScanType == BingoScanType.MAIN_SHEET &&
+                            (scanResult is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Success ||
+                                scanResult is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error))
                     HistoryPhotoImportScreen(
                         importViewModel = importVm,
                         onBackClick = {

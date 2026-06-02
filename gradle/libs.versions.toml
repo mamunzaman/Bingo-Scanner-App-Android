@@ -19,6 +19,7 @@ zxingCore = "3.5.3"
 supabase = "3.5.0"
 ktor = "3.0.3"
 coil = "2.7.0"
+generativeaiGoogle = "0.9.0-1.1.0"
 
 [libraries]
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
@@ -54,7 +55,10 @@ supabase-auth-kt = { group = "io.github.jan-tennert.supabase", name = "auth-kt" 
 supabase-postgrest-kt = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
 supabase-storage-kt = { group = "io.github.jan-tennert.supabase", name = "storage-kt" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+generativeai-google = { group = "dev.shreyaspatil.generativeai", name = "generativeai-google", version.ref = "generativeaiGoogle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -3,8 +3,8 @@
     <!-- Manual Entry -->
     <string name="manual_entry_partial_title">Einige Felder nicht gelesen</string>
     <string name="manual_entry_partial_message">Einige Felder wurden nicht übernommen. Bitte prüfe die leeren Felder manuell.</string>
-    <string name="manual_entry_discard_title">Manuelle Eingabe verwerfen?</string>
-    <string name="manual_entry_discard_message">Beim Verlassen werden die eingegebenen Bingo-Zahlen verworfen. Sie gehen verloren.</string>
+    <string name="manual_entry_discard_title">Änderungen verwerfen?</string>
+    <string name="manual_entry_discard_message">Dein aktuelles Bingo-Blatt hat ungespeicherte Änderungen.</string>
     <string name="manual_entry_discard_confirm">Verwerfen</string>
     <string name="manual_entry_keep_editing">Weiter bearbeiten</string>
     <string name="manual_entry_duplicate_sheet_title">Blatt existiert bereits</string>
@@ -24,6 +24,8 @@
     <string name="manual_entry_invalid_number_message">%1$d ist nicht erlaubt. Spalte %2$s akzeptiert nur Zahlen %3$d–%4$d.</string>
     <string name="manual_entry_number_used_title">Zahl bereits verwendet</string>
     <string name="manual_entry_number_used_message">%1$s wurde bereits ins Gitter eingetragen.</string>
+    <string name="manual_entry_keypad_number_already_added">Zahl bereits eingetragen</string>
+    <string name="manual_entry_keypad_column_not_allowed">Zahl in dieser Spalte nicht erlaubt</string>
     <string name="manual_entry_default_sheet_name">Blatt %1$s</string>
     <string name="manual_entry_error_assign_failed">Blatt konnte dem Raum nicht hinzugefügt werden</string>
     <string name="manual_entry_error_unknown">Unbekannter Fehler</string>

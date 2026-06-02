@@ -1,6 +1,24 @@
 # Project status
 
-**Last update:** 2026-06-02 - **History Detail UI polish:** Premium hero + LOS/SERIE chips, `AppSectionTitle`, `surfaceContainer` stats/called sections, archived read-only parity. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-05-31 - **Manual Entry unsaved discard guard:** Dirty tracking (grid, LOS, SERIE, sheet name, scan prefill); `AppConfirmDialog` on leave; main shell bottom nav interception. Build OK.
+
+**Previous:** 2026-05-31 - **Manual Entry empty sheet name while editing:** No default refill during edit; commit fallback. Build OK.
+
+**Previous:** 2026-05-31 - **Manual Entry sheet name edit stability:** Local edit buffer + deferred focus; prefill guarded after user rename. Build OK.
+
+**Previous:** 2026-05-31 - **MainSheetBingoOcr geometry fallback:** 5-row OCR clustering between BINGO header and footer when cell/position grid &lt; 12 filled; partial/weak rows kept; `fallbackGridRowsFound` / `fallbackGridCellsFilled` logs. Build OK.
+
+**Previous:** 2026-05-31 - **Master Sheet Manual Entry prefill hardening:** Batch row-major prefill, 25-cell normalize, duplicate-nav guard, image URI release before nav, `MainSheetManualPrefill` logcat. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Master Sheet → Manual Entry:** Removed review screen; MAIN_SHEET → Manual Entry prefill. Build OK.
+
+**Previous:** 2026-05-31 - **Ktor 3 + Gemini KMP SDK:** Restored Ktor 3.0.3 for Supabase; replaced `com.google.ai.client.generativeai` with `dev.shreyaspatil.generativeai:generativeai-google:0.9.0-1.1.0` (`PlatformImage` JPEG bytes). `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-05-31 - **Master Sheet Gemini AI OCR:** AI first + `MainSheetBingoOcr` fallback; `GEMINI_API_KEY` in `BuildConfig`. Build OK.
+
+**Previous:** 2026-05-31 - **Master Sheet LOS/SERIE OCR:** `MainSheetBingoOcr` multi-layout metadata; `MainSheetMetaOcr` logcat. Build OK.
+
+**Previous:** 2026-06-02 - **History Detail UI polish:** Premium hero + LOS/SERIE chips, `AppSectionTitle`, `surfaceContainer` stats/called sections, archived read-only parity. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-06-02 - **Duplicate sheet dialog v2:** Tighter bottom sheet; `ContentCopy` icon tile; `surfaceContainer` meta chips; prominent outlined secondary. `./gradlew :app:assembleDebug` OK.
 
@@ -507,6 +525,7 @@
 - **`CalledHistoryPanel` motion**: new last-call only ??? main circle scale+alpha in; LazyRow ???latest??? soft fade in when it becomes latest; inactive circles static.
 - **`CalledHistoryPanel` row**: horizontal **content** inset + scroll to active (last) call with breathing offset; no gradient fade overlay.
 - **`AppHeaderPageLayout`**: shared screen wrapper for `AppHeaderBackground`-based screens — `surface` root fill + gradient band (top 40%) + `Column(topBar, content)` + `pageContentTopPadding`; migrated Home, History, Profile, Settings, MyAccount, LiveRooms, Login, LiveSheetDetail, legal (Terms/Privacy), profile stubs (Support/Payment/Placeholder/Environmental/Location), auth inner pages (Change Password/Register/Forgot Password duplicate top gap removed).
+- **Master Sheet import → Manual Entry:** `historyPhotoImport` auto-navigates MAIN_SHEET Success/Error to `manualEntry` with grid/meta prefill (no review route, no image preview).
 
 ## In progress
 
