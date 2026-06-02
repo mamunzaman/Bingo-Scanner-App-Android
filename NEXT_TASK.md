@@ -4,6 +4,8 @@
 
 **Verify:** `./gradlew :app:assembleDebug`; spot-check Live Play + Settings unchanged aside from intended divider tweaks.
 
+**Previous:** **Live Play control console polish** — premium bottom dock, primary Call, outlined Undo/keypad, keypad card. Build OK.
+
 **Previous:** **History Detail ticket LOS/SERIE** — plain label/value in ticket card; hero chips unchanged. Build OK.
 
 **Previous:** **History Detail UI polish** — `AppSectionTitle`, premium LOS/SERIE chips, 16dp section rhythm, stats/called panels. Build OK.

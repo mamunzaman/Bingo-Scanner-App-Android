@@ -73,6 +73,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -959,28 +960,32 @@ private fun LivePlayBottomArea(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.Bottom,
     ) {
-        Column(verticalArrangement = Arrangement.Bottom) {
-            if (callingLocked) {
-                SundayLivePlayLockedBanner(helperText = callingLockedMessage)
-            }
-            Box(
-                modifier = if (callingLocked) {
-                    Modifier.graphicsLayer { alpha = 0.42f }
-                } else {
-                    Modifier
-                },
-            ) {
-                LivePlayCallKeypad(
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth(),
+            thickness = Dimens.cardBorderDefault,
+            color = scheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
+        )
+        if (callingLocked) {
+            SundayLivePlayLockedBanner(helperText = callingLockedMessage)
+        }
+        Box(
+            modifier = if (callingLocked) {
+                Modifier.graphicsLayer { alpha = 0.42f }
+            } else {
+                Modifier
+            },
+        ) {
+            LivePlayCallKeypad(
                 latestCalled = calledNumbers.lastOrNull(),
                 draft = inputText,
                 onDraftChange = onInputChange,
                 canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached && !callingLocked,
-                undoEnabled = !callingLocked,
+                undoEnabled = calledNumbers.isNotEmpty() && !callingLocked,
                 actionInProgress = actionGuard.value,
                 showNumberKeypad = showNumberKeypad,
                 onToggleNumberKeypad = onToggleNumberKeypad,
@@ -992,21 +997,20 @@ private fun LivePlayBottomArea(
                     }
                 },
                 onUndoClick = {
-                    if (!actionGuard.value) {
+                    if (calledNumbers.isNotEmpty() && !actionGuard.value) {
                         actionGuard.value = true
                         sizeWhenGuardSet.value = calledNumbers.size
                         onUndoLastCall()
                     }
-                }
+                },
             )
-            }
-            if (showBottomBar) {
-                AppBottomBar(
-                    selectedTab = selectedTabForBottomBar,
-                    onTabSelected = onTabSelected,
-                    showTopShadow = !showCompactBar,
-                )
-            }
+        }
+        if (showBottomBar) {
+            AppBottomBar(
+                selectedTab = selectedTabForBottomBar,
+                onTabSelected = onTabSelected,
+                showTopShadow = !showCompactBar,
+            )
         }
     }
 }

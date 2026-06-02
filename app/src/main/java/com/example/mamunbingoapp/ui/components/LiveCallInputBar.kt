@@ -35,8 +35,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,14 +46,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -62,7 +63,9 @@ import androidx.compose.ui.res.stringResource
 import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mamunbingoapp.theme.AppAlpha
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.APP_SECTION_BORDER_ALPHA
 
 private const val LiveKeypadVisibilityAnimMs = 200
 private val liveKeypadVisibilitySpec = tween<Float>(
@@ -74,9 +77,9 @@ private val liveKeypadVisibilitySpec = tween<Float>(
 object LivePlayCallKeypadMetrics {
     val topRowHeight: Dp get() = Dimens.inputBarHeight - Dimens.spacing8
     val keyHeight: Dp get() = Dimens.spacing32 + Dimens.spacing8
-    val digitBlockTopGap: Dp get() = Dimens.spacing4
-    val digitRowGap: Dp get() = 3.dp
-    private val shellVerticalPad: Dp get() = Dimens.spacing8 + Dimens.spacing12
+    val digitBlockTopGap: Dp get() = Dimens.spacing8 + Dimens.spacing10
+    val digitRowGap: Dp get() = Dimens.spacing8
+    private val shellVerticalPad: Dp get() = Dimens.spacing16 + Dimens.spacing16
     val digitBlockHeight: Dp get() = digitBlockTopGap + keyHeight + digitRowGap + keyHeight
     val collapsedDockHeight: Dp get() = shellVerticalPad + topRowHeight
     val expandedDockHeight: Dp get() = collapsedDockHeight + digitBlockHeight
@@ -94,21 +97,24 @@ fun LivePlayCallKeypad(
     draft: String,
     onDraftChange: (String) -> Unit,
     canAddNumber: Boolean,
-    undoEnabled: Boolean = true,
+    undoEnabled: Boolean = false,
     actionInProgress: Boolean,
     showNumberKeypad: Boolean = true,
     onToggleNumberKeypad: () -> Unit = {},
     onCallClick: () -> Unit,
     onUndoClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
     val callNumberA11y = stringResource(R.string.live_play_a11y_call_number)
     val keyHeight = LivePlayCallKeypadMetrics.keyHeight
-    val keyShape = RoundedCornerShape(10.dp)
-    val keyBg = scheme.surfaceContainerHighest.copy(alpha = 0.55f)
-    val pillShape = RoundedCornerShape(Dimens.radiusMedium)
-    val confirmDiameter = Dimens.buttonHeight
+    val keyShape = RoundedCornerShape(Dimens.radiusMedium)
+    val keyBg = scheme.surface
+    val pillShape = RoundedCornerShape(Dimens.radiusButtonPill)
+    val consoleShape = RoundedCornerShape(
+        topStart = Dimens.radiusXL,
+        topEnd = Dimens.radiusXL,
+    )
     val haptic = LocalHapticFeedback.current
     val actionsEnabled = !actionInProgress
     // Allow Add when there is text so invalid/edge values can be submitted; empty stays off (no feedback on type-only).
@@ -119,18 +125,18 @@ fun LivePlayCallKeypad(
     val hasDraft = draft.isNotEmpty()
     val inputBg by animateColorAsState(
         targetValue = if (hasDraft) {
-            scheme.surfaceContainerHighest.copy(alpha = 0.98f)
+            scheme.primaryContainer.copy(alpha = 0.38f)
         } else {
-            scheme.surfaceContainerHighest.copy(alpha = 0.9f)
+            scheme.surface
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveInputBg"
     )
     val inputBorder by animateColorAsState(
         targetValue = if (hasDraft) {
-            scheme.outlineVariant.copy(alpha = 0.72f)
+            scheme.primary.copy(alpha = 0.5f)
         } else {
-            scheme.outlineVariant.copy(alpha = 0.6f)
+            scheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder)
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveInputBorder"
@@ -157,12 +163,12 @@ fun LivePlayCallKeypad(
         label = "liveCallScale"
     )
     val callContainerColor by animateColorAsState(
-        targetValue = if (callEnabled) scheme.primaryContainer else scheme.primaryContainer.copy(alpha = 0.55f),
+        targetValue = if (callEnabled) scheme.primary else scheme.surfaceContainerHigh,
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveCallContainer"
     )
     val callIconTint by animateColorAsState(
-        targetValue = if (callEnabled) scheme.primary else scheme.primary.copy(alpha = 0.38f),
+        targetValue = if (callEnabled) scheme.onPrimary else scheme.onSurfaceVariant.copy(alpha = 0.45f),
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveCallIconTint"
     )
@@ -175,15 +181,15 @@ fun LivePlayCallKeypad(
     }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(
-            topStart = Dimens.radiusMedium,
-            topEnd = Dimens.radiusMedium
+        modifier = modifier.fillMaxWidth(),
+        shape = consoleShape,
+        color = scheme.surfaceContainer,
+        tonalElevation = Dimens.cardElevationSubtle,
+        shadowElevation = Dimens.cardElevationDefault,
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            scheme.primary.copy(alpha = APP_SECTION_BORDER_ALPHA),
         ),
-        color = scheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
@@ -191,14 +197,16 @@ fun LivePlayCallKeypad(
                 .padding(
                     start = Dimens.screenHorizontalPadding,
                     end = Dimens.screenHorizontalPadding,
-                    top = Dimens.spacing8,
-                    bottom = Dimens.spacing12
-                )
+                    top = Dimens.spacing16,
+                    bottom = Dimens.spacing16,
+                ),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = Dimens.spacing4),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
             ) {
                 Row(
                     modifier = Modifier
@@ -217,12 +225,12 @@ fun LivePlayCallKeypad(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(start = Dimens.spacing12, end = Dimens.spacing8),
+                            .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing4),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        val inputFontSize = (topRowHeight.value * 0.42f)
-                            .coerceIn(20f, 34f)
+                        val inputFontSize = (topRowHeight.value * 0.46f)
+                            .coerceIn(22f, 36f)
                             .sp
                         Crossfade(
                             targetState = draft.isEmpty(),
@@ -233,20 +241,20 @@ fun LivePlayCallKeypad(
                             Text(
                                 text = if (isEmpty) "1-75" else draft,
                                 modifier = Modifier.fillMaxWidth(),
-                                style = MaterialTheme.typography.headlineLarge.copy(
+                                style = MaterialTheme.typography.displaySmall.copy(
                                     fontWeight = if (isEmpty) FontWeight.Medium else FontWeight.Bold,
                                     fontSize = inputFontSize,
                                     lineHeight = inputFontSize,
-                                    letterSpacing = 0.5.sp,
-                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                    letterSpacing = if (isEmpty) 0.5.sp else 1.sp,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false),
                                 ),
                                 color = if (isEmpty) {
-                                    scheme.onSurfaceVariant.copy(alpha = 0.65f)
+                                    scheme.onSurfaceVariant.copy(alpha = 0.82f)
                                 } else {
                                     scheme.onSurface
                                 },
                                 maxLines = 1,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
                             )
                         }
                         Box(
@@ -285,59 +293,71 @@ fun LivePlayCallKeypad(
                         }
                     }
                 }
-                IconButton(
+                LivePlayConsoleOutlinedAction(
                     onClick = {
-                        if (!actionsEnabled || !undoEnabled) return@IconButton
-                        onUndoClick()
+                        if (undoEnabled && actionsEnabled) {
+                            onUndoClick()
+                        }
                     },
                     enabled = actionsEnabled && undoEnabled,
                     interactionSource = undoInteraction,
-                    modifier = Modifier
-                        .size(compactActionSize)
-                        .graphicsLayer {
-                            scaleX = undoScale
-                            scaleY = undoScale
-                        }
+                    scale = undoScale,
+                    size = compactActionSize,
+                    contentDescription = stringResource(R.string.live_play_undo_cd),
+                    inactive = !undoEnabled,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Undo,
-                        contentDescription = stringResource(R.string.live_play_undo_cd),
-                        tint = scheme.primary
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.iconDefault),
+                        tint = if (actionsEnabled && undoEnabled) {
+                            scheme.primary
+                        } else {
+                            scheme.onSurfaceVariant.copy(alpha = 0.34f)
+                        },
                     )
                 }
                 Box(
                     modifier = Modifier
+                        .padding(horizontal = Dimens.spacing4)
                         .size(compactActionSize)
+                        .then(
+                            if (callEnabled) {
+                                Modifier.shadow(
+                                    Dimens.cardElevationDefault,
+                                    CircleShape,
+                                    clip = false,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
                         .graphicsLayer {
                             scaleX = callScale
                             scaleY = callScale
                         }
                         .clip(CircleShape)
-                        .border(
-                            width = Dimens.cardBorderDefault,
-                            color = scheme.primary,
-                            shape = CircleShape
-                        )
                         .background(callContainerColor)
                         .clickable(
                             enabled = callEnabled,
                             interactionSource = callInteraction,
-                            indication = null
+                            indication = null,
                         ) { onCallClick() }
                         .semantics { contentDescription = callNumberA11y },
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardReturn,
                         contentDescription = null,
                         modifier = Modifier.size(Dimens.iconDefault + Dimens.spacing4),
-                        tint = callIconTint
+                        tint = callIconTint,
                     )
                 }
                 LiveKeypadToggleButton(
                     keypadOpen = showNumberKeypad,
                     onClick = onToggleNumberKeypad,
                     size = compactActionSize,
+                    inactive = !showNumberKeypad,
                 )
             }
             AnimatedVisibility(
@@ -360,42 +380,105 @@ fun LivePlayCallKeypad(
                     ),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(modifier = Modifier.height(LivePlayCallKeypadMetrics.digitBlockTopGap))
-                    val rowA = listOf(1, 2, 3, 4, 5)
-                    val rowB = listOf(6, 7, 8, 9, 0)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = Dimens.spacing8),
+                        thickness = Dimens.cardBorderDefault,
+                        color = scheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.spacing10))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimens.spacing4),
                     ) {
-                        for (d in rowA) {
-                            LivePlayKeypadDigitKey(
-                                digit = d,
-                                keyHeight = keyHeight,
-                                keyShape = keyShape,
-                                keyBgIdle = keyBg,
-                                enabled = canAddNumber && actionsEnabled,
-                                onDigit = { appendDigit(d) }
-                            )
+                        val rowA = listOf(1, 2, 3, 4, 5)
+                        val rowB = listOf(6, 7, 8, 9, 0)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(LivePlayCallKeypadMetrics.digitRowGap),
+                        ) {
+                            for (d in rowA) {
+                                LivePlayKeypadDigitKey(
+                                    digit = d,
+                                    keyHeight = keyHeight,
+                                    keyShape = keyShape,
+                                    keyBgIdle = keyBg,
+                                    enabled = canAddNumber && actionsEnabled,
+                                    onDigit = { appendDigit(d) },
+                                )
+                            }
                         }
-                    }
-                    Spacer(modifier = Modifier.height(LivePlayCallKeypadMetrics.digitRowGap))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        for (d in rowB) {
-                            LivePlayKeypadDigitKey(
-                                digit = d,
-                                keyHeight = keyHeight,
-                                keyShape = keyShape,
-                                keyBgIdle = keyBg,
-                                enabled = canAddNumber && actionsEnabled,
-                                onDigit = { appendDigit(d) }
-                            )
+                        Spacer(modifier = Modifier.height(LivePlayCallKeypadMetrics.digitRowGap))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(LivePlayCallKeypadMetrics.digitRowGap),
+                        ) {
+                            for (d in rowB) {
+                                LivePlayKeypadDigitKey(
+                                    digit = d,
+                                    keyHeight = keyHeight,
+                                    keyShape = keyShape,
+                                    keyBgIdle = keyBg,
+                                    enabled = canAddNumber && actionsEnabled,
+                                    onDigit = { appendDigit(d) },
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LivePlayConsoleOutlinedAction(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    interactionSource: MutableInteractionSource,
+    scale: Float,
+    size: Dp,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    inactive: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Dimens.radiusButtonPill)
+    val isActive = enabled && !inactive
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .size(size)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .semantics { this.contentDescription = contentDescription },
+        shape = shape,
+        color = if (isActive) {
+            scheme.surfaceContainerHigh
+        } else {
+            scheme.surface
+        },
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            if (isActive) {
+                scheme.primary.copy(alpha = 0.45f)
+            } else {
+                scheme.outlineVariant.copy(alpha = 0.24f)
+            },
+        ),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+        interactionSource = interactionSource,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
         }
     }
 }
@@ -406,37 +489,38 @@ private fun LiveKeypadToggleButton(
     onClick: () -> Unit,
     size: Dp,
     modifier: Modifier = Modifier,
+    inactive: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(Dimens.radiusSmall)
+    val shape = RoundedCornerShape(Dimens.radiusButtonPill)
     val toggleContentDescription = if (keypadOpen) {
         stringResource(R.string.live_play_a11y_hide_keypad)
     } else {
         stringResource(R.string.live_play_a11y_show_keypad)
     }
     val containerColor by animateColorAsState(
-        targetValue = if (keypadOpen) {
-            scheme.primary.copy(alpha = 0.14f)
-        } else {
-            scheme.surfaceContainerHighest.copy(alpha = 0.55f)
+        targetValue = when {
+            keypadOpen -> scheme.primaryContainer.copy(alpha = 0.55f)
+            inactive -> scheme.surface
+            else -> scheme.surfaceContainerHigh
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveKeypadToggleBg",
     )
     val borderColor by animateColorAsState(
-        targetValue = if (keypadOpen) {
-            scheme.primary.copy(alpha = 0.36f)
-        } else {
-            scheme.outlineVariant.copy(alpha = 0.45f)
+        targetValue = when {
+            keypadOpen -> scheme.primary.copy(alpha = 0.55f)
+            inactive -> scheme.outlineVariant.copy(alpha = 0.24f)
+            else -> scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveKeypadToggleBorder",
     )
     val iconTint by animateColorAsState(
-        targetValue = if (keypadOpen) {
-            scheme.primary
-        } else {
-            scheme.onSurfaceVariant.copy(alpha = 0.78f)
+        targetValue = when {
+            keypadOpen -> scheme.primary
+            inactive -> scheme.onSurfaceVariant.copy(alpha = 0.34f)
+            else -> scheme.onSurfaceVariant.copy(alpha = 0.78f)
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveKeypadToggleIcon",
@@ -484,15 +568,26 @@ private fun RowScope.LivePlayKeypadDigitKey(
         animationSpec = tween(75, easing = FastOutSlowInEasing),
         label = "liveKeypadDigit"
     )
-    val keyBg = if (pressed) {
-        scheme.surfaceContainerHighest.copy(alpha = 0.62f)
-    } else {
-        keyBgIdle
+    val keyBg = when {
+        pressed -> scheme.primaryContainer.copy(alpha = 0.42f)
+        !enabled -> scheme.surfaceContainer.copy(alpha = 0.65f)
+        else -> keyBgIdle
+    }
+    val keyBorderColor = when {
+        pressed -> scheme.primary.copy(alpha = 0.4f)
+        else -> scheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorderStrong)
     }
     Box(
         modifier = Modifier
             .weight(1f)
             .height(keyHeight)
+            .then(
+                if (!pressed && enabled) {
+                    Modifier.shadow(Dimens.cardElevationSubtle, keyShape, clip = false)
+                } else {
+                    Modifier
+                },
+            )
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -500,6 +595,7 @@ private fun RowScope.LivePlayKeypadDigitKey(
             }
             .clip(keyShape)
             .background(keyBg)
+            .border(1.5.dp, keyBorderColor, keyShape)
             .clickable(
                 enabled = enabled,
                 interactionSource = interaction,
@@ -509,12 +605,12 @@ private fun RowScope.LivePlayKeypadDigitKey(
     ) {
         Text(
             text = "$digit",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold,
                 fontSize = digitFontSize,
-                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
             ),
-            color = scheme.onSurface
+            color = if (enabled) scheme.onSurface else scheme.onSurfaceVariant.copy(alpha = 0.5f),
         )
     }
 }
