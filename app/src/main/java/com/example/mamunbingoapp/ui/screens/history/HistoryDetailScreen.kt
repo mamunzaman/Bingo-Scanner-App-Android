@@ -43,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -73,7 +74,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.TextUnit
 import com.example.mamunbingoapp.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.WindowInsets
@@ -84,8 +84,9 @@ import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
 import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
-import com.example.mamunbingoapp.ui.components.AppSectionHeader
+import com.example.mamunbingoapp.ui.components.APP_SECTION_BORDER_ALPHA
 import com.example.mamunbingoapp.ui.components.AppSectionSurface
+import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.data.HistorySession
@@ -94,7 +95,6 @@ import com.example.mamunbingoapp.data.TicketPlayLog
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
@@ -131,19 +131,16 @@ private fun formatHistoryDetailTimestamp(millis: Long): String =
 private val HistoryDetailCardShape = RoundedCornerShape(Dimens.radiusLarge)
 private val HistoryDetailCardPadding = Dimens.spacing16
 private val HistoryDetailStatCardPadding = Dimens.spacing12
-private val HistoryDetailTicketSectionTopPadding = Dimens.spacing10
+private val HistoryDetailTicketSectionTopPadding = Dimens.spacing12
 private val HistoryDetailTicketSectionBottomPadding = Dimens.spacing16
 private val HistoryDetailTicketDividerToBingoGap = Dimens.spacing12
-private val HistoryDetailTicketGridToDividerGap = Dimens.spacing10
-private val HistoryDetailTicketDividerToFooterGap = Dimens.spacing8
+private val HistoryDetailTicketGridToDividerGap = Dimens.spacing12
+private val HistoryDetailTicketDividerToFooterGap = Dimens.spacing10
 private const val HistoryDetailTicketDividerAlpha = 0.22f
 private val HistoryDetailBottomContentPadding = Dimens.spacing32
-private val HistoryDetailSectionSpacing = Dimens.spacing12
-private val HistoryDetailHeroVerticalSpacing = Dimens.spacing8
-private val HistoryDetailHeroActionHeight = 28.dp
-private val HistoryDetailLatestCallSize = 68.dp
-private val HistoryDetailRecentChipSize = 38.dp
-
+private val HistoryDetailSectionSpacing = Dimens.spacing16
+private val HistoryDetailHeroVerticalSpacing = Dimens.spacing12
+private val HistoryDetailHeroActionHeight = 36.dp
 private enum class HistoryDetailRoomAction {
     JoinRoom,
     ChangeRoom,
@@ -157,12 +154,15 @@ private fun resolveHistoryDetailRoomAction(assignedRoomId: String?): HistoryDeta
 private fun HistoryDetailSectionCard(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(HistoryDetailCardPadding),
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val scheme = MaterialTheme.colorScheme
     AppSectionSurface(
         modifier = modifier.fillMaxWidth(),
         shape = HistoryDetailCardShape,
-        color = MaterialTheme.colorScheme.surface,
+        color = containerColor,
+        borderColor = scheme.primary.copy(alpha = APP_SECTION_BORDER_ALPHA),
         shadowElevation = 0.dp,
     ) {
         Column(
@@ -179,10 +179,20 @@ private fun HistoryDetailSectionTitle(
     title: String,
     trailing: String? = null,
 ) {
-    AppSectionHeader(
-        title = title,
-        actionText = trailing,
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppSectionTitle(text = title)
+        if (trailing != null) {
+            Text(
+                text = trailing,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
 }
 
 @Composable
@@ -279,32 +289,42 @@ fun HistoryDetailScreen(
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(top = Dimens.pageContentTopPadding)
-                        .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacing16),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (isLoading) {
-                    Text(
-                        text = stringResource(R.string.common_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.history_detail_ticket_unavailable),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(Dimens.spacing8))
-                    Text(
-                        text = errorMessage?.takeIf { it.isNotBlank() }
-                            ?: stringResource(R.string.history_detail_ticket_removed_default),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                    )
+                        .padding(horizontal = Dimens.screenHorizontalPadding),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    HistoryDetailSectionCard(
+                        contentPadding = PaddingValues(Dimens.spacing24),
+                    ) {
+                        if (isLoading) {
+                            Text(
+                                text = stringResource(R.string.common_loading),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.history_detail_ticket_unavailable),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                            )
+                            Spacer(modifier = Modifier.height(Dimens.spacing8))
+                            Text(
+                                text = errorMessage?.takeIf { it.isNotBlank() }
+                                    ?: stringResource(R.string.history_detail_ticket_removed_default),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
                 }
-            }
             }
         }
         return
@@ -552,6 +572,8 @@ fun HistoryDetailScreen(
                             HistoryDetailHeroSection(
                                 sheetName = sessionForDisplay.effectiveSheetName().ifEmpty { unnamedSheetLabel },
                                 ticketId = ticketId,
+                                losNumber = sessionForDisplay.losNumber,
+                                serialNumber = sessionForDisplay.serialNumber,
                                 sheetStatus = displaySheetStatus,
                                 roomAction = roomAction,
                                 showLiveBadge = showLiveBadge,
@@ -659,6 +681,8 @@ fun HistoryDetailScreen(
 private fun HistoryDetailHeroSection(
     sheetName: String,
     ticketId: String,
+    losNumber: String?,
+    serialNumber: String?,
     sheetStatus: SheetStatus,
     roomAction: HistoryDetailRoomAction,
     showLiveBadge: Boolean,
@@ -667,20 +691,21 @@ private fun HistoryDetailHeroSection(
 ) {
     val truncatedId = if (ticketId.length > 18) ticketId.take(16) + "…" else ticketId
     val isLiveTicket = sheetStatus == SheetStatus.ACTIVE
+    val scheme = MaterialTheme.colorScheme
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            verticalAlignment = Alignment.Top,
         ) {
             Text(
                 text = sheetName,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = scheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -693,25 +718,51 @@ private fun HistoryDetailHeroSection(
                 }
             }
         }
+        HistoryDetailLosSerieChipsRow(
+            losNumber = losNumber,
+            serialNumber = serialNumber,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
         ) {
-            Text(
-                text = truncatedId,
-                style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            IconButton(onClick = onCopyTicketId, modifier = Modifier.size(HistoryDetailHeroActionHeight)) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = stringResource(R.string.history_detail_copy_ticket_cd),
-                    modifier = Modifier.size(Dimens.iconCompact),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-                )
+            Surface(
+                shape = RoundedCornerShape(Dimens.radiusSmall),
+                color = scheme.surfaceContainerHigh,
+                border = BorderStroke(
+                    Dimens.cardBorderDefault,
+                    scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha),
+                ),
+            ) {
+                Row(
+                    modifier = Modifier.padding(
+                        horizontal = Dimens.spacing10,
+                        vertical = Dimens.spacing5,
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+                ) {
+                    Text(
+                        text = truncatedId,
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    IconButton(
+                        onClick = onCopyTicketId,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.history_detail_copy_ticket_cd),
+                            modifier = Modifier.size(Dimens.iconCompact),
+                            tint = scheme.primary,
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.weight(1f))
             HistoryDetailRoomActionButton(
@@ -737,29 +788,33 @@ private fun HistoryDetailRoomActionButton(
         HistoryDetailRoomAction.ChangeRoom ->
             stringResource(R.string.history_detail_change_room) to Icons.Filled.SwapHoriz
     }
-    val shape = RoundedCornerShape(Dimens.radiusPill)
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Dimens.radiusButtonPill)
     Row(
         modifier = modifier
             .height(HistoryDetailHeroActionHeight)
             .clip(shape)
-            .background(Primary.copy(alpha = 0.12f))
-            .border(BorderStroke(Dimens.cardBorderDefault, Primary.copy(alpha = 0.28f)), shape)
+            .background(scheme.primaryContainer.copy(alpha = 0.42f))
+            .border(
+                BorderStroke(Dimens.cardBorderDefault, scheme.primary.copy(alpha = 0.45f)),
+                shape,
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = Dimens.spacing10),
+            .padding(horizontal = Dimens.spacing12),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing5),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Primary,
-            modifier = Modifier.size(16.dp),
+            tint = scheme.primary,
+            modifier = Modifier.size(Dimens.iconCompact),
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = Primary,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = scheme.primary,
         )
     }
 }
@@ -825,9 +880,13 @@ private fun HistoryDetailStatusChip(status: SheetStatus) {
         SheetStatus.IN_PROGRESS -> stringResource(R.string.history_detail_status_active)
         else -> return
     }
-    val bg = MaterialTheme.colorScheme.surface
-    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
+    val scheme = MaterialTheme.colorScheme
+    val bg = scheme.surfaceContainerHigh
+    val textColor = when (status) {
+        SheetStatus.IN_PROGRESS -> scheme.primary
+        else -> scheme.onSurfaceVariant
+    }
+    val borderColor = scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
     val chipShape = RoundedCornerShape(Dimens.radiusPill)
     Box(
         modifier = Modifier
@@ -855,14 +914,18 @@ private fun HistoryDetailTestDateDebugSection(
     onChangeTestDateClick: () -> Unit,
     onClearTestDateClick: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+    HistoryDetailSectionCard(
+        contentPadding = PaddingValues(Dimens.spacing16),
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+        ) {
         Text(
             text = stringResource(R.string.history_detail_test_date_label),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (testDateMillis != null) {
             Text(
@@ -909,6 +972,77 @@ private fun HistoryDetailTestDateDebugSection(
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailMetaChip(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(Dimens.radiusSmall),
+        color = scheme.surfaceContainerHigh,
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = Dimens.spacing12,
+                vertical = Dimens.spacing10,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = scheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailLosSerieChipsRow(
+    losNumber: String?,
+    serialNumber: String?,
+    modifier: Modifier = Modifier,
+) {
+    val los = losNumber?.trim()?.takeIf { it.isNotEmpty() }
+    val serial = serialNumber?.trim()?.takeIf { it.isNotEmpty() }
+    if (los == null && serial == null) return
+    val placeholderDash = stringResource(R.string.common_placeholder_dash)
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+    ) {
+        HistoryDetailMetaChip(
+            label = stringResource(R.string.home_active_ticket_los_label),
+            value = los ?: placeholderDash,
+            modifier = Modifier.weight(1f),
+        )
+        HistoryDetailMetaChip(
+            label = stringResource(R.string.home_active_ticket_serie_label),
+            value = serial ?: placeholderDash,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -977,13 +1111,14 @@ private fun HistoryDetailTicketDatesFooter(
     gridWidth: Dp,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val labelColor = scheme.onSurfaceVariant.copy(alpha = 0.52f)
-    val valueColor = scheme.onSurfaceVariant.copy(alpha = 0.82f)
+    val labelColor = scheme.onSurfaceVariant
+    val valueColor = scheme.onSurface
     Row(
         modifier = Modifier
             .width(gridWidth)
             .height(IntrinsicSize.Max),
         verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
     ) {
         HistoryDetailTicketMetaColumn(
             label = stringResource(R.string.history_detail_label_created).uppercase(Locale.getDefault()),
@@ -991,9 +1126,6 @@ private fun HistoryDetailTicketDatesFooter(
             labelColor = labelColor,
             valueColor = valueColor,
             horizontalAlignment = Alignment.Start,
-            labelFontSize = 10.sp,
-            valueFontSize = 13.sp,
-            valueFontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
         HistoryDetailTicketMetaColumn(
@@ -1002,9 +1134,6 @@ private fun HistoryDetailTicketDatesFooter(
             labelColor = labelColor,
             valueColor = valueColor,
             horizontalAlignment = Alignment.End,
-            labelFontSize = 10.sp,
-            valueFontSize = 13.sp,
-            valueFontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
     }
@@ -1020,29 +1149,28 @@ private fun HistoryDetailTicketMetaBlock(
     val losValue = losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
     val serialValue = serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
     val scheme = MaterialTheme.colorScheme
-    val labelColor = scheme.onSurfaceVariant.copy(alpha = 0.62f)
-    val valueColor = scheme.onSurfaceVariant.copy(alpha = 0.88f)
     Row(
         modifier = Modifier
             .width(gridWidth)
-            .height(IntrinsicSize.Max)
-            .padding(vertical = Dimens.spacing4),
+            .padding(bottom = Dimens.spacing4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HistoryDetailTicketMetaColumn(
-            label = stringResource(R.string.ocr_stat_los_nr),
+            label = stringResource(R.string.home_active_ticket_los_label),
             value = losValue,
-            labelColor = labelColor,
-            valueColor = valueColor,
+            labelColor = scheme.onSurfaceVariant,
+            valueColor = scheme.onSurface,
             horizontalAlignment = Alignment.Start,
+            emphasizedValue = true,
             modifier = Modifier.weight(1f),
         )
         HistoryDetailTicketMetaColumn(
-            label = stringResource(R.string.ocr_stat_serie),
+            label = stringResource(R.string.home_active_ticket_serie_label),
             value = serialValue,
-            labelColor = labelColor,
-            valueColor = valueColor,
+            labelColor = scheme.onSurfaceVariant,
+            valueColor = scheme.onSurface,
             horizontalAlignment = Alignment.End,
+            emphasizedValue = true,
             modifier = Modifier.weight(1f),
         )
     }
@@ -1056,36 +1184,33 @@ private fun HistoryDetailTicketMetaColumn(
     valueColor: Color,
     horizontalAlignment: Alignment.Horizontal,
     modifier: Modifier = Modifier,
-    labelFontSize: TextUnit = 11.sp,
-    valueFontSize: TextUnit = 19.sp,
-    valueFontWeight: FontWeight = FontWeight.Bold,
+    emphasizedValue: Boolean = false,
 ) {
+    val valueStyle = if (emphasizedValue) {
+        MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    } else {
+        MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Top,
+        verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
         horizontalAlignment = horizontalAlignment,
     ) {
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = labelFontSize,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.4.sp,
             ),
             color = labelColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = valueFontWeight,
-                fontSize = valueFontSize,
-                lineHeight = (valueFontSize.value + 3).sp,
-            ),
+            style = valueStyle,
             color = valueColor,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }
@@ -1145,20 +1270,22 @@ private fun HistoryDetailStatCard(
     HistoryDetailSectionCard(
         modifier = modifier,
         contentPadding = PaddingValues(HistoryDetailStatCardPadding),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-            maxLines = 1,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            lineHeight = 14.sp,
         )
-        Spacer(modifier = Modifier.height(Dimens.spacing5))
+        Spacer(modifier = Modifier.height(Dimens.spacing8))
         Text(
             text = value,
             style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -1182,7 +1309,7 @@ private fun HistoryDetailNumbersCalledCard(
                 null
             },
         )
-        Spacer(modifier = Modifier.height(Dimens.spacing8))
+        Spacer(modifier = Modifier.height(Dimens.spacing12))
         CalledHistoryPanel(
             modifier = Modifier.fillMaxWidth(),
             calledNumbers = calledNumbers,
@@ -1190,9 +1317,7 @@ private fun HistoryDetailNumbersCalledCard(
             showLimitMessage = isCallLimitReached,
             showTvBoard = false,
             applyOuterPadding = false,
-            premiumLatestRow = false,
-            latestCircleSize = HistoryDetailLatestCallSize,
-            recentChipSize = HistoryDetailRecentChipSize,
+            premiumLatestRow = true,
             panelContext = CalledHistoryPanelContext.HistoryDetail,
         )
     }
@@ -1385,7 +1510,7 @@ fun HistoryReadOnlyTicketDetailContent(
             HistoryDetailSectionCard {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                    verticalArrangement = Arrangement.spacedBy(HistoryDetailHeroVerticalSpacing),
                 ) {
                     Text(
                         text = stringResource(R.string.archived_game_detail_archived_pill),
@@ -1395,9 +1520,14 @@ fun HistoryReadOnlyTicketDetailContent(
                     )
                     Text(
                         text = sheetName,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    HistoryDetailLosSerieChipsRow(
+                        losNumber = losNumber,
+                        serialNumber = serialNumber,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
                         text = stringResource(

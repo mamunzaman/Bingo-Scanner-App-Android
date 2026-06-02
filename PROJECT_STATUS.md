@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-06-02 - **Duplicate sheet dialog v2:** Tighter bottom sheet; `ContentCopy` icon tile; `surfaceContainer` meta chips; prominent outlined secondary. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-06-02 - **History Detail UI polish:** Premium hero + LOS/SERIE chips, `AppSectionTitle`, `surfaceContainer` stats/called sections, archived read-only parity. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Duplicate sheet dialog v2:** Tighter bottom sheet; `ContentCopy` icon tile; `surfaceContainer` meta chips; prominent outlined secondary. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-06-02 - **Duplicate sheet dialog polish:** Bottom-sheet modal with scrim, surface card, `ActiveTicketLosSerieRow` meta block, full-width primary/outlined/text actions. `./gradlew :app:assembleDebug` OK.
 

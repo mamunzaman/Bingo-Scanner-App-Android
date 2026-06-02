@@ -4,6 +4,10 @@
 
 **Verify:** `./gradlew :app:assembleDebug`; spot-check Live Play + Settings unchanged aside from intended divider tweaks.
 
+**Previous:** **History Detail ticket LOS/SERIE** — plain label/value in ticket card; hero chips unchanged. Build OK.
+
+**Previous:** **History Detail UI polish** — `AppSectionTitle`, premium LOS/SERIE chips, 16dp section rhythm, stats/called panels. Build OK.
+
 **Previous:** **Duplicate sheet dialog v2** — compact sheet, `AppIconTile` duplicate icon, `AppSectionSurface` + themed LOS/SERIE chips, stronger outlined CTA. Build OK.
 
 **Previous:** **Duplicate sheet dialog polish** — scrim + bottom sheet card, LOS/SERIE meta surface, primary/outlined/text actions. Build OK.
