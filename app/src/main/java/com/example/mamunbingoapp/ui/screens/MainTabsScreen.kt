@@ -2,8 +2,6 @@ package com.example.mamunbingoapp.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.mamunbingoapp.domain.model.BingoScanType
@@ -51,7 +49,7 @@ fun MainTabsScreen(
 ) {
     // Bottom navigation is provided by [MainShellScaffold] in NavGraph for all main-graph routes.
     Column(modifier = Modifier.fillMaxSize()) {
-            when (selectedTab) {
+        when (selectedTab) {
             AppTab.Home -> HomeScreen(
                 onLaunchCamera = onNavigateToBingoLiveCamera,
                 onQuickActionClick = { action ->
@@ -117,6 +115,6 @@ fun MainTabsScreen(
                 profileMessage = profileMessage,
                 profileMessageType = profileMessageType,
             )
-            }
+        }
     }
 }

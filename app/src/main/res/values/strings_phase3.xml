@@ -7,6 +7,11 @@
     <string name="manual_entry_discard_message">Leaving will discard the entered bingo numbers. They will be lost.</string>
     <string name="manual_entry_discard_confirm">Discard</string>
     <string name="manual_entry_keep_editing">Keep editing</string>
+    <string name="manual_entry_duplicate_sheet_title">Sheet Already Exists</string>
+    <string name="manual_entry_duplicate_sheet_message">This sheet was already saved for the current play week.</string>
+    <string name="manual_entry_duplicate_open_existing">Open Existing Sheet</string>
+    <string name="manual_entry_duplicate_scan_another">Scan Another Sheet</string>
+    <string name="manual_entry_duplicate_save_anyway">Save Anyway</string>
     <string name="manual_entry_save_and_play_cd">Save and add to live play</string>
     <string name="manual_entry_save_only_cd">Save ticket sheet only</string>
     <string name="manual_entry_bingo_name_label">Bingo name</string>

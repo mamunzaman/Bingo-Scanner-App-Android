@@ -8,7 +8,9 @@ import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.AssignTicketResult
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
+import com.example.mamunbingoapp.ui.components.PendingSheetSave
 import com.example.mamunbingoapp.ui.components.RoomConflictUi
+import com.example.mamunbingoapp.ui.components.SheetDuplicateUi
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,6 +50,7 @@ sealed class ManualEntryUiEvent {
     data class SaveOnlyCompleted(val ticketId: String, val roomId: String?) : ManualEntryUiEvent()
     data class ShowSnackbar(val message: String) : ManualEntryUiEvent()
     data class ShowInfoDialog(val title: String, val message: String) : ManualEntryUiEvent()
+    data class NavigateToHistoryDetail(val ticketId: String) : ManualEntryUiEvent()
 }
 
 private const val MANUAL_ENTRY_VM_TAG = "ManualEntryViewModel"
@@ -68,7 +71,8 @@ data class ManualEntryUiState(
     val playedAtMillis: Long = System.currentTimeMillis(),
     val isRoomPickerOpen: Boolean = false,
     val pendingTicketId: String? = null,
-    val roomConflict: RoomConflictUi = RoomConflictUi()
+    val roomConflict: RoomConflictUi = RoomConflictUi(),
+    val sheetDuplicate: SheetDuplicateUi = SheetDuplicateUi(),
 )
 
 class ManualEntryViewModel(
@@ -375,12 +379,31 @@ class ManualEntryViewModel(
         return l to s
     }
 
-    private fun saveAndPlay(losNumber: String, serialNumber: String) {
+    private fun saveAndPlay(losNumber: String, serialNumber: String, forceDuplicate: Boolean = false) {
         if (!_state.value.isComplete) return
         Log.d("ManualEntry", "saveAndPlay triggered")
         val st = _state.value
         val (los, ser) = normalizedTicketMeta(losNumber, serialNumber)
         viewModelScope.launch {
+            if (!forceDuplicate && los != null && ser != null) {
+                val existing = TicketRepository.findDuplicateTicketForWeeklyPlay(
+                    los, ser, st.playedAtMillis,
+                )
+                if (existing != null) {
+                    _state.update {
+                        it.copy(
+                            sheetDuplicate = SheetDuplicateUi(
+                                visible = true,
+                                existingTicketId = existing,
+                                losNumber = los,
+                                serialNumber = ser,
+                                pendingSave = PendingSheetSave.SAVE_AND_PLAY,
+                            ),
+                        )
+                    }
+                    return@launch
+                }
+            }
             val ticketId = TicketRepository.saveManualTicket(
                 sheetName = effectiveSheetName(),
                 playedAtMillis = st.playedAtMillis,
@@ -424,12 +447,31 @@ class ManualEntryViewModel(
         }
     }
 
-    private fun saveOnly(losNumber: String, serialNumber: String) {
+    private fun saveOnly(losNumber: String, serialNumber: String, forceDuplicate: Boolean = false) {
         if (!_state.value.isComplete) return
         Log.d("ManualEntry", "saveOnly triggered")
         val st = _state.value
         val (los, ser) = normalizedTicketMeta(losNumber, serialNumber)
         viewModelScope.launch {
+            if (!forceDuplicate && los != null && ser != null) {
+                val existing = TicketRepository.findDuplicateTicketForWeeklyPlay(
+                    los, ser, st.playedAtMillis,
+                )
+                if (existing != null) {
+                    _state.update {
+                        it.copy(
+                            sheetDuplicate = SheetDuplicateUi(
+                                visible = true,
+                                existingTicketId = existing,
+                                losNumber = los,
+                                serialNumber = ser,
+                                pendingSave = PendingSheetSave.SAVE_ONLY,
+                            ),
+                        )
+                    }
+                    return@launch
+                }
+            }
             val ticketId = TicketRepository.saveManualTicket(
                 sheetName = effectiveSheetName(),
                 playedAtMillis = st.playedAtMillis,
@@ -462,6 +504,28 @@ class ManualEntryViewModel(
     private fun navigateBack() {
         Log.d("ManualEntry", "navigate back triggered (emitting NavigateBack)")
         viewModelScope.launch { _events.emit(ManualEntryUiEvent.NavigateBack) }
+    }
+
+    fun dismissSheetDuplicate() {
+        _state.update { it.copy(sheetDuplicate = SheetDuplicateUi()) }
+    }
+
+    fun openExistingSheetFromDuplicate() {
+        val id = _state.value.sheetDuplicate.existingTicketId ?: return
+        dismissSheetDuplicate()
+        viewModelScope.launch { _events.emit(ManualEntryUiEvent.NavigateToHistoryDetail(id)) }
+    }
+
+    fun saveDespiteSheetDuplicate() {
+        val dup = _state.value.sheetDuplicate
+        val pending = dup.pendingSave ?: return
+        val los = dup.losNumber
+        val serial = dup.serialNumber
+        dismissSheetDuplicate()
+        when (pending) {
+            PendingSheetSave.SAVE_ONLY -> saveOnly(los, serial, forceDuplicate = true)
+            PendingSheetSave.SAVE_AND_PLAY -> saveAndPlay(los, serial, forceDuplicate = true)
+        }
     }
 
     fun dismissConflict() {

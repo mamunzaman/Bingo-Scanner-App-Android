@@ -4,6 +4,18 @@
 
 **Verify:** `./gradlew :app:assembleDebug`; spot-check Live Play + Settings unchanged aside from intended divider tweaks.
 
+**Previous:** **Duplicate sheet dialog v2** — compact sheet, `AppIconTile` duplicate icon, `AppSectionSurface` + themed LOS/SERIE chips, stronger outlined CTA. Build OK.
+
+**Previous:** **Duplicate sheet dialog polish** — scrim + bottom sheet card, LOS/SERIE meta surface, primary/outlined/text actions. Build OK.
+
+**Previous:** **Duplicate sheet scan guard** — LOS+SERIE weekly duplicate dialog on Manual Entry save; Open Existing → History Detail; Save Anyway bypass. Build OK.
+
+**Previous:** **Shell revert** — bottom nav responsiveness restored; camera transition workaround removed. Build OK.
+
+**Previous:** **Bottom nav touch fix** — clip shell content above bar. Build OK.
+
+**Previous:** **Scan launch stability** — hero frozen on Launch Camera tap. Build OK.
+
 **Previous:** **Scan hero animation** — soft thin scan line only; slow ease-in-out; reduced-motion preserved. Build OK.
 
 **Previous:** **Projects top bar** — single-line `AppTopBar` title; subtitle moved to body below shell inset. Build OK.

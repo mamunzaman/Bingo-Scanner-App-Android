@@ -1,6 +1,7 @@
 package com.example.mamunbingoapp.core
 
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -108,6 +109,23 @@ object SundayBingoSchedule {
         val dateLabel = berlin.format(DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY))
         val timeLabel = berlin.format(DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY))
         return "Sonntag Bingo • $dateLabel • $timeLabel Uhr"
+    }
+
+    /** Berlin weekly play window for [playedAtMillis]: Sunday 17:00 through next Sunday 17:00 (exclusive end). */
+    data class PlayWindowMillis(
+        val startInclusive: Long,
+        val endExclusive: Long,
+    )
+
+    fun playWindowForPlayedAtMillis(playedAtMillis: Long): PlayWindowMillis {
+        val berlin = Instant.ofEpochMilli(playedAtMillis).atZone(berlinZone)
+        val sundayDate = berlin.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+        val start = sessionAt(sundayDate, SundayTestTimeSettings.PRODUCTION_START)
+        val end = sessionAt(sundayDate.plusWeeks(1), SundayTestTimeSettings.PRODUCTION_START)
+        return PlayWindowMillis(
+            startInclusive = start.toInstant().toEpochMilli(),
+            endExclusive = end.toInstant().toEpochMilli(),
+        )
     }
 
     private fun productionNextSessionStartBerlin(berlinNow: ZonedDateTime): ZonedDateTime {

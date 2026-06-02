@@ -39,6 +39,24 @@ interface TicketDao {
 
     @Query("SELECT * FROM ticket_cells ORDER BY ticketId, cellIndex ASC")
     fun observeAllCells(): kotlinx.coroutines.flow.Flow<List<TicketCellEntity>>
+
+    @Query(
+        """
+        SELECT ticketId FROM tickets
+        WHERE isDeleted = 0
+        AND losNumber = :losNumber
+        AND serialNumber = :serialNumber
+        AND playedAtMillis >= :windowStartMillis
+        AND playedAtMillis < :windowEndExclusiveMillis
+        LIMIT 1
+        """
+    )
+    suspend fun findActiveTicketIdByLosSerialInWindow(
+        losNumber: String,
+        serialNumber: String,
+        windowStartMillis: Long,
+        windowEndExclusiveMillis: Long,
+    ): String?
 }
 
 data class TicketMarkedCount(val ticketId: String, val markedCount: Long)

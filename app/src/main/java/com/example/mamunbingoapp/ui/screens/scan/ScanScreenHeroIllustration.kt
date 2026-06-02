@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,21 @@ private val ScanHeroBracketStroke = 2.5.dp
 private val ScanHeroOuterBracketStroke = 3.dp
 val ScanHeroBottomCurveHeight = 28.dp
 private val ScanLineSweepMs = 4800
+private const val ScanLineFrozenProgress = 0.42f
+
+@Composable
+private fun rememberScanLineProgress(): androidx.compose.runtime.State<Float> {
+    val infinite = rememberInfiniteTransition(label = "scanHero")
+    return infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(ScanLineSweepMs, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "scanLine",
+    )
+}
 
 @Composable
 fun rememberScanAnimationsEnabled(): Boolean {
@@ -102,28 +118,44 @@ fun ScanScreenHeroIllustration(
     val cardShape = RoundedCornerShape(Dimens.radiusLarge)
     val scale = contentScale.coerceIn(0.52f, 1f)
 
-    val infinite = rememberInfiniteTransition(label = "scanHero")
-    val scanProgress by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(ScanLineSweepMs, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "scanLine",
-    )
-
-    val resolvedScanProgress = if (animationsEnabled) scanProgress else 0.42f
-
     val heightModifier = if (maxIllustrationHeight != Dp.Unspecified) {
         Modifier.heightIn(max = maxIllustrationHeight)
     } else {
         Modifier
     }
 
+    key(animationsEnabled) {
+        val resolvedScanProgress = if (animationsEnabled) {
+            val scanProgress by rememberScanLineProgress()
+            scanProgress
+        } else {
+            ScanLineFrozenProgress
+        }
+
+        ScanScreenHeroIllustrationContent(
+            modifier = modifier.then(heightModifier),
+            primary = primary,
+            gridColor = gridColor,
+            bracketColor = bracketColor,
+            cardShape = cardShape,
+            scale = scale,
+            resolvedScanProgress = resolvedScanProgress,
+        )
+    }
+}
+
+@Composable
+private fun ScanScreenHeroIllustrationContent(
+    modifier: Modifier,
+    primary: Color,
+    gridColor: Color,
+    bracketColor: Color,
+    cardShape: RoundedCornerShape,
+    scale: Float,
+    resolvedScanProgress: Float,
+) {
     BoxWithConstraints(
         modifier = modifier
-            .then(heightModifier)
             .fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {

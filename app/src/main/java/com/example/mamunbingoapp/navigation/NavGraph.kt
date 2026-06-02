@@ -1052,6 +1052,9 @@ fun NavGraph(
                 serialNumber = me.ticketMeta.serialNumber,
                 initialSheetName = me.ticketMeta.sheetName,
                 showBottomBar = false,
+                onOpenExistingSheet = { ticketId ->
+                    navController.navigate("historyDetail/$ticketId")
+                },
                 onSaveOnlySuccess = { _, _ ->
                     navController.popBackStack()
                 },
@@ -1106,6 +1109,9 @@ fun NavGraph(
                 serialNumber = mer.ticketMeta.serialNumber,
                 initialSheetName = mer.ticketMeta.sheetName,
                 showBottomBar = false,
+                onOpenExistingSheet = { ticketId ->
+                    navController.navigate("historyDetail/$ticketId")
+                },
                 onSaveOnlySuccess = { ticketId, savedRoomId ->
                     val targetRoomId = savedRoomId ?: mer.roomId
                     runCatching {

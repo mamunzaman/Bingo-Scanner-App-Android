@@ -1,6 +1,18 @@
 # Project status
 
-**Last update:** 2026-06-02 - **Scan hero animation:** Calm single soft scan line (~4.8s ease-in-out); no trail/glow/bracket pulse; subtle grid + stable card shadow. `./gradlew :app:assembleDebug` OK.
+**Last update:** 2026-06-02 - **Duplicate sheet dialog v2:** Tighter bottom sheet; `ContentCopy` icon tile; `surfaceContainer` meta chips; prominent outlined secondary. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Duplicate sheet dialog polish:** Bottom-sheet modal with scrim, surface card, `ActiveTicketLosSerieRow` meta block, full-width primary/outlined/text actions. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Duplicate sheet scan guard:** `TicketDao` + `TicketRepository.findDuplicateTicketForWeeklyPlay`; Manual Entry dialog (Open Existing / Scan Another / Save Anyway); Berlin Sunday week window. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** 2026-06-02 - **Shell revert:** Restored pre-workaround MainShellScaffold + MainTabsScreen; removed camera inset/bleed/clip hacks. Build OK.
+
+**Previous:** 2026-06-02 - **Bottom nav touch fix:** Shell content clipped above bar (zIndex). Build OK.
+
+**Previous:** 2026-06-02 - **Scan launch stability:** `isLaunchingCamera` freezes hero animation on Launch Camera tap. Build OK.
+
+**Previous:** 2026-06-02 - **Scan hero animation:** Calm single soft scan line (~4.8s ease-in-out); no trail/glow/bracket pulse; subtle grid + stable card shadow. `./gradlew :app:assembleDebug` OK.
 
 **Previous:** 2026-06-02 - **Scan tab polish:** Removed back arrow; scanner hero animation + card depth. Build OK.
 

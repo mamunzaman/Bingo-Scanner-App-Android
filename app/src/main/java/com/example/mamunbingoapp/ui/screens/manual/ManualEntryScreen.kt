@@ -117,6 +117,7 @@ import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.BingoGridMode
 import com.example.mamunbingoapp.ui.components.ManualEntryBingoCard
+import com.example.mamunbingoapp.ui.components.DuplicateSheetDialog
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
@@ -199,6 +200,7 @@ private fun manualEntryKeypadTargetScale(cardHeightPx: Int, availHeightPx: Int):
 fun ManualEntryScreen(
     onBack: () -> Unit,
     onNavigateToLivePlay: (roomId: String) -> Unit,
+    onOpenExistingSheet: (ticketId: String) -> Unit = {},
     onSaveOnlySuccess: (ticketId: String, roomId: String?) -> Unit = { _, _ -> },
     onTabSelected: (AppTab) -> Unit = {},
     scannedNumbers: List<Int> = emptyList(),
@@ -301,6 +303,9 @@ fun ManualEntryScreen(
                     snackbarScope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is ManualEntryUiEvent.ShowInfoDialog -> infoDialog = event.title to event.message
+                is ManualEntryUiEvent.NavigateToHistoryDetail -> {
+                    if (allowNavigationByEvent) onOpenExistingSheet(event.ticketId)
+                }
             }
         }
     }
@@ -349,6 +354,15 @@ fun ManualEntryScreen(
             }
         )
     }
+
+    DuplicateSheetDialog(
+        visible = state.sheetDuplicate.visible,
+        losNumber = state.sheetDuplicate.losNumber.takeIf { it.isNotBlank() },
+        serialNumber = state.sheetDuplicate.serialNumber.takeIf { it.isNotBlank() },
+        onOpenExistingSheet = { viewModel.openExistingSheetFromDuplicate() },
+        onScanAnother = { viewModel.dismissSheetDuplicate() },
+        onSaveAnyway = { viewModel.saveDespiteSheetDuplicate() },
+    )
 
     RoomConflictDialog(
         visible = state.roomConflict.visible,

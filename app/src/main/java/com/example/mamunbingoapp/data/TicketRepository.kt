@@ -1,5 +1,6 @@
 package com.example.mamunbingoapp.data
 
+import com.example.mamunbingoapp.core.SundayBingoSchedule
 import com.example.mamunbingoapp.data.db.DatabaseProvider
 import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.data.db.TicketEntity
@@ -28,6 +29,22 @@ object TicketRepository {
         ticketDao().observeAllCells().map { list ->
             list.groupBy { it.ticketId }.mapValues { (_, cells) -> cells.sortedBy { it.cellIndex } }
         }
+
+    suspend fun findDuplicateTicketForWeeklyPlay(
+        losNumber: String,
+        serialNumber: String,
+        playedAtMillis: Long,
+    ): String? = withContext(Dispatchers.IO) {
+        val los = losNumber.trim().takeIf { it.isNotEmpty() } ?: return@withContext null
+        val serial = serialNumber.trim().takeIf { it.isNotEmpty() } ?: return@withContext null
+        val window = SundayBingoSchedule.playWindowForPlayedAtMillis(playedAtMillis)
+        ticketDao().findActiveTicketIdByLosSerialInWindow(
+            losNumber = los,
+            serialNumber = serial,
+            windowStartMillis = window.startInclusive,
+            windowEndExclusiveMillis = window.endExclusive,
+        )
+    }
 
     suspend fun saveManualTicket(
         sheetName: String,

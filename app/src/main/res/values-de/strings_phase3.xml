@@ -7,6 +7,11 @@
     <string name="manual_entry_discard_message">Beim Verlassen werden die eingegebenen Bingo-Zahlen verworfen. Sie gehen verloren.</string>
     <string name="manual_entry_discard_confirm">Verwerfen</string>
     <string name="manual_entry_keep_editing">Weiter bearbeiten</string>
+    <string name="manual_entry_duplicate_sheet_title">Blatt existiert bereits</string>
+    <string name="manual_entry_duplicate_sheet_message">Dieses Blatt wurde für die aktuelle Spielwoche bereits gespeichert.</string>
+    <string name="manual_entry_duplicate_open_existing">Vorhandenes Blatt öffnen</string>
+    <string name="manual_entry_duplicate_scan_another">Anderes Blatt scannen</string>
+    <string name="manual_entry_duplicate_save_anyway">Trotzdem speichern</string>
     <string name="manual_entry_save_and_play_cd">Speichern und zum Live-Spiel hinzufügen</string>
     <string name="manual_entry_save_only_cd">Nur Bingo-Blatt speichern</string>
     <string name="manual_entry_bingo_name_label">Bingo-Name</string>
