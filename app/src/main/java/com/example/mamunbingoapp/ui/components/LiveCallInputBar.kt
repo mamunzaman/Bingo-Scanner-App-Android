@@ -79,8 +79,11 @@ object LivePlayCallKeypadMetrics {
     val keyHeight: Dp get() = Dimens.spacing32 + Dimens.spacing8
     val digitBlockTopGap: Dp get() = Dimens.spacing8 + Dimens.spacing10
     val digitRowGap: Dp get() = Dimens.spacing8
+    /** Extra clearance above Live Play FAB when the digit pad is expanded. */
+    val fabSafeBottomInset: Dp get() = Dimens.spacing12
     private val shellVerticalPad: Dp get() = Dimens.spacing16 + Dimens.spacing16
-    val digitBlockHeight: Dp get() = digitBlockTopGap + keyHeight + digitRowGap + keyHeight
+    val digitBlockHeight: Dp get() =
+        digitBlockTopGap + keyHeight + digitRowGap + keyHeight + fabSafeBottomInset
     val collapsedDockHeight: Dp get() = shellVerticalPad + topRowHeight
     val expandedDockHeight: Dp get() = collapsedDockHeight + digitBlockHeight
     val collapsedListScrollPadding: Dp get() = Dimens.spacing4
@@ -424,6 +427,7 @@ fun LivePlayCallKeypad(
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.height(LivePlayCallKeypadMetrics.fabSafeBottomInset))
                     }
                 }
             }
