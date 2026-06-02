@@ -1,8 +1,12 @@
 ﻿# Next task
 
-**Goal:** Airplane-mode Master Sheet QA — `MainSheetMetaOcr` `emergencyFilled` / `emergencySelectedRowY`; both layout types prefilled in Manual Entry.
+**Goal:** Manual QA — instant keypad reject (wrong column / duplicate); partial digits still wait (B: 1→14, O: 6→68).
 
-**Verify:** MAIN_SHEET always opens Manual Entry (prefilled or empty); PLAY_PAPER + ONLINE unchanged; no scan image on Manual Entry. `./gradlew :app:assembleDebug` OK.
+**Previous:** `evaluateKeypadDraft` + immediate snackbar/clear; OK unchanged.
+
+**Verify:** Empty leave OK; one cell/LOS/SERIE/name → dialog; Keep Editing stays; Discard leaves; save clears dirty. `./gradlew :app:assembleDebug` OK.
+
+**Previous:** Unsaved-changes dialog + shell tab interception via `SavedStateHandle`.
 
 **Previous:** **Master Sheet → Manual Entry** — removed review screen; MAIN_SHEET routes to existing Manual Entry with prefill. Build OK.
 

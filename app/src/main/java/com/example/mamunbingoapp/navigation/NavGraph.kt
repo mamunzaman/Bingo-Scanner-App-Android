@@ -500,7 +500,25 @@ private fun NavHostController.onMainBottomBarTabSelected(
     tab: AppTab,
     tabsViewModel: MainTabsViewModel?,
 ) {
+    if (stageManualEntryPendingTabIfDirty(tab)) return
     navigateToMainTabRoot(tab, tabsViewModel)
+}
+
+/** When Manual Entry has unsaved edits, stash tab intent for the screen discard dialog. */
+private fun NavHostController.stageManualEntryPendingTabIfDirty(tab: AppTab): Boolean {
+    val entry = currentBackStackEntry ?: return false
+    val route = entry.destination.route ?: return false
+    if (!route.startsWith("manualEntry")) return false
+    if (entry.savedStateHandle.get<Boolean>(
+            com.example.mamunbingoapp.viewmodel.MANUAL_ENTRY_UNSAVED_DIRTY_KEY,
+        ) != true
+    ) {
+        return false
+    }
+    entry.savedStateHandle[
+        com.example.mamunbingoapp.viewmodel.MANUAL_ENTRY_PENDING_TAB_KEY,
+    ] = tab.name
+    return true
 }
 
 @Composable
@@ -547,7 +565,7 @@ private fun MainShellScaffold(
             AppBottomBar(
                 selectedTab = highlightedTab,
                 onTabSelected = { tab ->
-                    navController.navigateToMainTabRoot(tab, tabsViewModel)
+                    navController.onMainBottomBarTabSelected(tab, tabsViewModel)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

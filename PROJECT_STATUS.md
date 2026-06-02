@@ -1,6 +1,12 @@
 # Project status
 
-**Last update:** 2026-05-31 - **MainSheetBingoOcr geometry fallback:** 5-row OCR clustering between BINGO header and footer when cell/position grid &lt; 12 filled; partial/weak rows kept; `fallbackGridRowsFound` / `fallbackGridCellsFilled` logs. Build OK.
+**Last update:** 2026-05-31 - **Manual Entry unsaved discard guard:** Dirty tracking (grid, LOS, SERIE, sheet name, scan prefill); `AppConfirmDialog` on leave; main shell bottom nav interception. Build OK.
+
+**Previous:** 2026-05-31 - **Manual Entry empty sheet name while editing:** No default refill during edit; commit fallback. Build OK.
+
+**Previous:** 2026-05-31 - **Manual Entry sheet name edit stability:** Local edit buffer + deferred focus; prefill guarded after user rename. Build OK.
+
+**Previous:** 2026-05-31 - **MainSheetBingoOcr geometry fallback:** 5-row OCR clustering between BINGO header and footer when cell/position grid &lt; 12 filled; partial/weak rows kept; `fallbackGridRowsFound` / `fallbackGridCellsFilled` logs. Build OK.
 
 **Previous:** 2026-05-31 - **Master Sheet Manual Entry prefill hardening:** Batch row-major prefill, 25-cell normalize, duplicate-nav guard, image URI release before nav, `MainSheetManualPrefill` logcat. `./gradlew :app:assembleDebug` OK.
 

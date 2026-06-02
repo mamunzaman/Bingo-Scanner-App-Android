@@ -3,10 +3,10 @@
     <!-- Manual Entry -->
     <string name="manual_entry_partial_title">Some boxes not read</string>
     <string name="manual_entry_partial_message">Some boxes were not added. Please confirm the blank boxes manually.</string>
-    <string name="manual_entry_discard_title">Discard manual entry?</string>
-    <string name="manual_entry_discard_message">Leaving will discard the entered bingo numbers. They will be lost.</string>
+    <string name="manual_entry_discard_title">Discard changes?</string>
+    <string name="manual_entry_discard_message">Your current Bingo sheet has unsaved changes.</string>
     <string name="manual_entry_discard_confirm">Discard</string>
-    <string name="manual_entry_keep_editing">Keep editing</string>
+    <string name="manual_entry_keep_editing">Keep Editing</string>
     <string name="manual_entry_duplicate_sheet_title">Sheet Already Exists</string>
     <string name="manual_entry_duplicate_sheet_message">This sheet was already saved for the current play week.</string>
     <string name="manual_entry_duplicate_open_existing">Open Existing Sheet</string>
@@ -24,6 +24,8 @@
     <string name="manual_entry_invalid_number_message">%1$d is not allowed. Column %2$s only accepts numbers %3$d–%4$d.</string>
     <string name="manual_entry_number_used_title">Number Already Used</string>
     <string name="manual_entry_number_used_message">%1$s has already been added to the grid.</string>
+    <string name="manual_entry_keypad_number_already_added">Number already added</string>
+    <string name="manual_entry_keypad_column_not_allowed">Number not allowed in this column</string>
     <string name="manual_entry_default_sheet_name">Sheet %1$s</string>
     <string name="manual_entry_error_assign_failed">Could not add sheet to room</string>
     <string name="manual_entry_error_unknown">Unknown error</string>

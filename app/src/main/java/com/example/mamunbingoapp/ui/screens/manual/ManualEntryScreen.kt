@@ -1,6 +1,7 @@
 package com.example.mamunbingoapp.ui.screens.manual
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
@@ -9,7 +10,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -37,7 +40,6 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -109,6 +111,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.BuildConfig
+import com.example.mamunbingoapp.theme.AppAlpha
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.OnPrimary
 import com.example.mamunbingoapp.theme.OnSurface
@@ -119,6 +122,8 @@ import com.example.mamunbingoapp.ui.components.BingoGridMode
 import com.example.mamunbingoapp.ui.components.ManualEntryBingoCard
 import com.example.mamunbingoapp.ui.components.DuplicateSheetDialog
 import com.example.mamunbingoapp.ui.components.RoomConflictDialog
+import com.example.mamunbingoapp.ui.components.AppNumberKeypad
+import com.example.mamunbingoapp.ui.components.AppNumberKeypadMetrics
 import com.example.mamunbingoapp.ui.components.AppBottomBar
 import com.example.mamunbingoapp.ui.components.AppHeaderBackground
 import com.example.mamunbingoapp.ui.components.AppTab
@@ -126,7 +131,9 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.data.LiveRoom
 import com.example.mamunbingoapp.viewmodel.ManualEntryUiAction
 import com.example.mamunbingoapp.viewmodel.ManualEntryUiEvent
+import com.example.mamunbingoapp.viewmodel.ManualEntryUiState
 import com.example.mamunbingoapp.ui.model.BingoCellUi
+import com.example.mamunbingoapp.viewmodel.KeypadDraftEvaluation
 import com.example.mamunbingoapp.viewmodel.ManualEntryViewModel
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
 import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
@@ -147,6 +154,10 @@ private fun requestSheetTitleFocusSafely(requester: FocusRequester) {
     }
 }
 
+/** Seed for a new edit session only — no default / lastValid fallback while editing. */
+private fun sheetNameEditSeed(state: ManualEntryUiState): String =
+    state.sheetNameDraft ?: state.sheetName
+
 private fun clearSheetTitleFocusSafely(clearFocus: () -> Unit) {
     try {
         clearFocus()
@@ -165,11 +176,15 @@ private fun hideSheetTitleKeyboardSafely(hideKeyboard: () -> Unit) {
 
 /** Shared with live play so bottom keypad height matches manual-entry dock. */
 internal object ManualEntryKeypadDockMetrics {
-    val keyHeight: Dp get() = Dimens.spacing32 + Dimens.spacing12
-    val topRowHeight: Dp get() = maxOf(Dimens.inputBarHeight, Dimens.buttonHeight)
+    val keyHeight: Dp get() = AppNumberKeypadMetrics.keyHeight
+    val inputRowHeight: Dp get() = Dimens.inputBarHeight - Dimens.spacing8
+    val topRowHeight: Dp get() = inputRowHeight
+    /** Clears bottom-bar center action over the 6–0 digit row (Manual Entry only). */
+    val fabBottomClearance: Dp get() =
+        AppNumberKeypadMetrics.fabSafeBottomInset + Dimens.spacing32
     val estimatedDockHeight: Dp get() =
-        Dimens.spacing12 + Dimens.spacing16 + topRowHeight +
-            Dimens.spacing12 + keyHeight + Dimens.spacing8 + keyHeight
+        Dimens.spacing12 + Dimens.spacing16 + inputRowHeight +
+            Dimens.spacing12 + AppNumberKeypadMetrics.digitGridHeight + fabBottomClearance
 }
 
 private fun manualEntryKeypadLayoutHeightsPx(
@@ -245,15 +260,49 @@ fun ManualEntryScreen(
     var manualEntrySelectionBaseline by remember {
         mutableStateOf<Pair<Int, Int?>>(-1 to null)
     }
-    val hasEnteredValues =
-        state.cells.any { (it.number ?: "").isNotBlank() } ||
-            draftPerCell.any { it.isNotBlank() } ||
-            losNummerDraft.isNotBlank() ||
-            serialNummerDraft.isNotBlank()
-    BackHandler(enabled = hasEnteredValues) {
+    var lastRejectedKeypadDraft by remember { mutableStateOf<Pair<Int, String>?>(null) }
+    val hasUnsavedChanges = remember(
+        state.cells,
+        state.sheetName,
+        state.sheetNameDraft,
+        losNummerDraft,
+        serialNummerDraft,
+        draftPerCell,
+    ) {
+        viewModel.hasUnsavedChanges(losNummerDraft, serialNummerDraft) ||
+            draftPerCell.any { it.isNotBlank() }
+    }
+    LaunchedEffect(losNumber, serialNumber) {
+        viewModel.bindOpeningSnapshot(losNumber.orEmpty(), serialNumber.orEmpty())
+    }
+    LaunchedEffect(hasUnsavedChanges) {
+        viewModel.publishUnsavedDirtyFlag(hasUnsavedChanges)
+    }
+    val pendingBottomTab by viewModel.pendingBottomTab.collectAsState()
+    LaunchedEffect(pendingBottomTab) {
+        val tabName = pendingBottomTab ?: return@LaunchedEffect
+        viewModel.clearPendingBottomTab()
+        val tab = runCatching { AppTab.valueOf(tabName) }.getOrNull() ?: return@LaunchedEffect
+        Log.d(MANUAL_ENTRY_TAG, "discard dialog shown (pending tab=${tab.name})")
+        showDiscardDialog = true
+        pendingNavigateAction = {
+            if (showBottomBar) {
+                onBack()
+            }
+            onTabSelected(tab)
+        }
+    }
+    fun requestLeaveScreen(leave: () -> Unit) {
+        if (!hasUnsavedChanges) {
+            leave()
+            return
+        }
         Log.d(MANUAL_ENTRY_TAG, "discard dialog shown")
         showDiscardDialog = true
-        pendingNavigateAction = { onBack() }
+        pendingNavigateAction = leave
+    }
+    BackHandler(enabled = hasUnsavedChanges) {
+        requestLeaveScreen { onBack() }
     }
     var hasPrefilledScannedNumbers by rememberSaveable { mutableStateOf(false) }
     var hasAppliedQrSheetName by rememberSaveable { mutableStateOf(false) }
@@ -261,7 +310,8 @@ fun ManualEntryScreen(
     val qrSheetNameRenameMode = !initialSheetName.isNullOrBlank()
     var infoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var isEditingSheetName by remember { mutableStateOf(false) }
+    var isEditingSheetName by rememberSaveable { mutableStateOf(false) }
+    var localSheetNameEdit by rememberSaveable { mutableStateOf("") }
     var sheetTitleDismissInFlight by remember { mutableStateOf(false) }
     val sheetTitleFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -282,8 +332,11 @@ fun ManualEntryScreen(
             when (event) {
                 ManualEntryUiEvent.NavigateBack -> {
                     if (!allowNavigationByEvent) return@collect
-                    val hasValues = viewModel.state.value.cells.any { (it.number ?: "").isNotBlank() }
-                    if (hasValues) {
+                    val dirtyNow = viewModel.hasUnsavedChanges(
+                        losNummerDraft,
+                        serialNummerDraft,
+                    ) || draftPerCell.any { it.isNotBlank() }
+                    if (dirtyNow) {
                         Log.d(MANUAL_ENTRY_TAG, "discard dialog shown")
                         showDiscardDialog = true
                         pendingNavigateAction = { onBack() }
@@ -301,6 +354,13 @@ fun ManualEntryScreen(
                 }
                 is ManualEntryUiEvent.ShowSnackbar -> {
                     snackbarScope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is ManualEntryUiEvent.ClearKeypadDraft -> {
+                    val i = event.cellIndex
+                    if (i in 0..24) {
+                        draftPerCell = draftPerCell.draftListPaddedTo25().toMutableList()
+                            .apply { set(i, "") }
+                    }
                 }
                 is ManualEntryUiEvent.ShowInfoDialog -> infoDialog = event.title to event.message
                 is ManualEntryUiEvent.NavigateToHistoryDetail -> {
@@ -334,23 +394,25 @@ fun ManualEntryScreen(
             visible = true,
             title = discardTitle,
             message = discardMessage,
-            confirmText = discardConfirmText,
-            cancelText = keepEditingText,
+            confirmText = keepEditingText,
+            cancelText = discardConfirmText,
             showCancelButton = true,
             onConfirm = {
+                Log.d(MANUAL_ENTRY_TAG, "keep editing")
+                showDiscardDialog = false
+                pendingNavigateAction = null
+                viewModel.clearPendingBottomTab()
+            },
+            onCancel = {
                 Log.d(MANUAL_ENTRY_TAG, "discard confirmed")
                 pendingNavigateAction?.invoke()
                 pendingNavigateAction = null
                 showDiscardDialog = false
             },
-            onCancel = {
-                Log.d(MANUAL_ENTRY_TAG, "discard canceled")
-                showDiscardDialog = false
-                pendingNavigateAction = null
-            },
             onDismiss = {
                 showDiscardDialog = false
                 pendingNavigateAction = null
+                viewModel.clearPendingBottomTab()
             }
         )
     }
@@ -386,6 +448,7 @@ fun ManualEntryScreen(
     }
 
     LaunchedEffect(state.selectedIndex) {
+        lastRejectedKeypadDraft = null
         val i = state.selectedIndex
         if (i in 0..24) {
             val committed = state.cells.getOrNull(i)?.number?.orEmpty() ?: ""
@@ -399,36 +462,34 @@ fun ManualEntryScreen(
     }
 
     LaunchedEffect(isEditingSheetName) {
-        if (isEditingSheetName) {
-            val prev = state.selectedIndex
-            if (prev in 0..24) {
-                val d = draftPerCell.getOrNull(prev).orEmpty()
-                manualEntryApplyLeaveCellDraft(
-                    cellIndex = prev,
-                    draft = d,
-                    baselinePair = manualEntrySelectionBaseline,
-                    viewModel = viewModel,
-                    onDraftCleared = { clearedIdx ->
-                        draftPerCell =
-                            draftPerCell.draftListPaddedTo25().toMutableList()
-                                .apply { set(clearedIdx, "") }
-                    }
-                )
-            }
-            viewModel.onAction(ManualEntryUiAction.CellSelected(-1))
+        if (!isEditingSheetName) return@LaunchedEffect
+        val prev = state.selectedIndex
+        if (prev in 0..24) {
+            val d = draftPerCell.getOrNull(prev).orEmpty()
+            manualEntryApplyLeaveCellDraft(
+                cellIndex = prev,
+                draft = d,
+                baselinePair = manualEntrySelectionBaseline,
+                viewModel = viewModel,
+                onDraftCleared = { clearedIdx ->
+                    draftPerCell =
+                        draftPerCell.draftListPaddedTo25().toMutableList()
+                            .apply { set(clearedIdx, "") }
+                }
+            )
         }
-    }
-
-    LaunchedEffect(isEditingSheetName) {
-        if (isEditingSheetName) {
-            requestSheetTitleFocusSafely(sheetTitleFocusRequester)
-        }
+        viewModel.onAction(ManualEntryUiAction.CellSelected(-1))
+        delay(48)
+        requestSheetTitleFocusSafely(sheetTitleFocusRequester)
     }
 
     LaunchedEffect(initialSheetName) {
         if (!hasAppliedQrSheetName && !initialSheetName.isNullOrBlank()) {
             hasAppliedQrSheetName = true
-            viewModel.applyPrefilledSheetName(initialSheetName)
+            val trimmed = initialSheetName.trim()
+            viewModel.applyPrefilledSheetName(trimmed)
+            localSheetNameEdit = trimmed
+            viewModel.onAction(ManualEntryUiAction.SheetNameEditStarted)
             isEditingSheetName = true
         }
     }
@@ -488,11 +549,8 @@ fun ManualEntryScreen(
                 AppBottomBar(
                     selectedTab = AppTab.Scan,
                     onTabSelected = { tab ->
-                        if (hasEnteredValues) {
-                            Log.d(MANUAL_ENTRY_TAG, "discard dialog shown")
-                            showDiscardDialog = true
-                            pendingNavigateAction = { onBack(); onTabSelected(tab) }
-                        } else {
+                        requestLeaveScreen {
+                            onBack()
                             onTabSelected(tab)
                         }
                     },
@@ -536,16 +594,30 @@ fun ManualEntryScreen(
         val showKeypadSurface = keypadVisible || motionProgress > 0f
         val keyboardUiActive = showKeypadSurface
         val keypadTotalHeight = animatedKeypadDockDp + bottomInsetDp
+        val startSheetNameEdit: () -> Unit = {
+            if (!isEditingSheetName) {
+                localSheetNameEdit = sheetNameEditSeed(state)
+                viewModel.onAction(ManualEntryUiAction.SheetNameEditStarted)
+                isEditingSheetName = true
+                Log.d(MANUAL_ENTRY_TAG, "sheetNameEditStarted local=\"$localSheetNameEdit\"")
+            }
+        }
         val dismissSheetTitleEdit: () -> Unit = dismiss@{
             if (isEditingSheetName && !sheetTitleDismissInFlight) {
                 sheetTitleDismissInFlight = true
                 clearSheetTitleFocusSafely { focusManager.clearFocus(force = true) }
+                val finalName = localSheetNameEdit
+                if (finalName != state.sheetNameDraft) {
+                    viewModel.onAction(ManualEntryUiAction.SheetNameDraftChanged(finalName))
+                }
                 viewModel.onAction(ManualEntryUiAction.SheetNameEditCommitted)
                 keyboardController?.let { controller ->
                     hideSheetTitleKeyboardSafely { controller.hide() }
                 }
                 isEditingSheetName = false
+                localSheetNameEdit = ""
                 sheetTitleDismissInFlight = false
+                Log.d(MANUAL_ENTRY_TAG, "sheetNameEditCommitted")
             }
         }
         val flushManualEntryLeaveDraft: () -> Unit = {
@@ -622,12 +694,7 @@ fun ManualEntryScreen(
             showBack = true,
                         onBackClick = {
                             dismissSheetTitleEdit()
-                            if (hasEnteredValues) {
-                                showDiscardDialog = true
-                                pendingNavigateAction = { onBack() }
-                            } else {
-                                onBack()
-                            }
+                            requestLeaveScreen { onBack() }
                         },
                         actions = {
                             Box(
@@ -789,7 +856,7 @@ fun ManualEntryScreen(
                                             null
                                         },
                                         sheetName = if (isEditingSheetName) {
-                                            state.sheetNameDraft ?: state.sheetName
+                                            localSheetNameEdit
                                         } else {
                                             state.sheetName
                                         },
@@ -797,21 +864,20 @@ fun ManualEntryScreen(
                                         isEditingSheetName = isEditingSheetName,
                                         sheetTitleStyle = sheetTitleStyle,
                                         onSheetNameChange = { name ->
-                                            viewModel.onAction(
-                                                ManualEntryUiAction.SheetNameDraftChanged(name)
-                                            )
+                                            if (name != localSheetNameEdit) {
+                                                localSheetNameEdit = name
+                                                viewModel.onAction(
+                                                    ManualEntryUiAction.SheetNameDraftChanged(name)
+                                                )
+                                            }
                                         },
                                         onSheetNameDone = dismissSheetTitleEdit,
-                                        onRequestEditTitle = {
-                                            viewModel.onAction(ManualEntryUiAction.SheetNameEditStarted)
-                                            isEditingSheetName = true
-                                        },
+                                        onRequestEditTitle = startSheetNameEdit,
                                         onToggleEditSheet = {
                                             if (isEditingSheetName) {
                                                 dismissSheetTitleEdit()
                                             } else {
-                                                viewModel.onAction(ManualEntryUiAction.SheetNameEditStarted)
-                                                isEditingSheetName = true
+                                                startSheetNameEdit()
                                             }
                                         },
                                         onEditDate = { showDatePicker = true },
@@ -956,31 +1022,37 @@ fun ManualEntryScreen(
                                     cur.isEmpty() && hasCommitted -> digit.toString()
                                     else -> cur + digit.toString()
                                 }
-                                val col = idx % 5
-                                val columnRange = manualEntryBingoColumnRange(col)
-                                val lzValue = manualEntryLeadingZeroDraftValue(newDraft)
-                                if (lzValue != null && lzValue in columnRange) {
-                                    manualEntryCommitNumberAndAdvanceToEmpty(
-                                        viewModel,
-                                        lzValue,
-                                        committedCellIndex = idx
-                                    )
-                                    draftPerCell =
-                                        draftPerCell.draftListPaddedTo25().toMutableList()
-                                            .apply { set(idx, "") }
-                                } else {
-                                    val matches =
-                                        manualEntryNumbersMatchingDraft(col, newDraft)
-                                    if (matches.size == 1) {
+                                if (newDraft != lastRejectedKeypadDraft?.second ||
+                                    idx != lastRejectedKeypadDraft?.first
+                                ) {
+                                    lastRejectedKeypadDraft = null
+                                }
+                                when (
+                                    val eval = viewModel.evaluateKeypadDraft(idx, newDraft)
+                                ) {
+                                    is KeypadDraftEvaluation.Apply -> {
+                                        lastRejectedKeypadDraft = null
                                         manualEntryCommitNumberAndAdvanceToEmpty(
                                             viewModel,
-                                            matches.first(),
-                                            committedCellIndex = idx
+                                            eval.value,
+                                            committedCellIndex = idx,
                                         )
                                         draftPerCell =
                                             draftPerCell.draftListPaddedTo25().toMutableList()
                                                 .apply { set(idx, "") }
-                                    } else {
+                                    }
+                                    KeypadDraftEvaluation.WrongColumn,
+                                    KeypadDraftEvaluation.Duplicate -> {
+                                        val rejectKey = idx to newDraft
+                                        if (lastRejectedKeypadDraft != rejectKey) {
+                                            lastRejectedKeypadDraft = rejectKey
+                                            viewModel.rejectInvalidKeypadDraft(idx, eval)
+                                        }
+                                        draftPerCell =
+                                            draftPerCell.draftListPaddedTo25().toMutableList()
+                                                .apply { set(idx, "") }
+                                    }
+                                    KeypadDraftEvaluation.Incomplete -> {
                                         draftPerCell =
                                             draftPerCell.draftListPaddedTo25().toMutableList()
                                                 .apply { set(idx, newDraft) }
@@ -1126,19 +1198,13 @@ private fun manualEntryLeadingZeroDraftValue(draftDigits: String): Int? {
     return d.digitToInt()
 }
 
-private fun manualEntryParsedDraftValue(col: Int, draft: String): Int? {
-    if (draft.isEmpty() || !draft.all { it.isDigit() }) return null
-    val range = manualEntryBingoColumnRange(col)
-    manualEntryLeadingZeroDraftValue(draft)?.takeIf { it in range }?.let { return it }
-    if (draft.length == 1) {
-        val c = draft[0]
-        if (c in '1'..'9' && c.digitToInt() in range) return c.digitToInt()
-        return null
-    }
-    val matches = manualEntryNumbersMatchingDraft(col, draft)
-    if (matches.size == 1) return matches.first()
-    val v = draft.toIntOrNull() ?: return null
-    return v.takeIf { it in range }
+private fun manualEntryParsedDraftValue(
+    cellIndex: Int,
+    draft: String,
+    viewModel: ManualEntryViewModel,
+): Int? = when (val eval = viewModel.evaluateKeypadDraft(cellIndex, draft)) {
+    is KeypadDraftEvaluation.Apply -> eval.value
+    else -> null
 }
 
 private sealed interface ManualEntryLeaveVmEffect {
@@ -1186,7 +1252,7 @@ private fun manualEntryCommitNumberAndAdvanceToEmpty(
     }
     viewModel.onAction(ManualEntryUiAction.NumberPressed(value))
     val after = viewModel.state.value
-    val expected = value.toString().padStart(2, '0')
+    val expected = value.toString()
     if (after.cells.getOrNull(committedCellIndex)?.number != expected) return
     val target = manualEntryIndexOfNextEmptyCell(after.cells, committedCellIndex)
     if (target != null) {
@@ -1197,10 +1263,10 @@ private fun manualEntryCommitNumberAndAdvanceToEmpty(
 private fun manualEntryLeaveCellDraftEffect(
     cellIndex: Int,
     draft: String,
-    baselineInt: Int?
+    baselineInt: Int?,
+    viewModel: ManualEntryViewModel,
 ): ManualEntryLeaveVmEffect {
-    val col = cellIndex % 5
-    val parsed = manualEntryParsedDraftValue(col, draft)
+    val parsed = manualEntryParsedDraftValue(cellIndex, draft, viewModel)
     return when {
         parsed != null && baselineInt != null && parsed == baselineInt ->
             ManualEntryLeaveVmEffect.ClearDraftOnly
@@ -1222,7 +1288,7 @@ private fun manualEntryApplyLeaveCellDraft(
 ) {
     val baseline = manualEntryBaselineIntForCell(cellIndex, baselinePair)
     when (
-        val eff = manualEntryLeaveCellDraftEffect(cellIndex, draft, baseline)
+        val eff = manualEntryLeaveCellDraftEffect(cellIndex, draft, baseline, viewModel)
     ) {
         ManualEntryLeaveVmEffect.ClearDraftOnly -> onDraftCleared(cellIndex)
         is ManualEntryLeaveVmEffect.Number -> {
@@ -1260,52 +1326,6 @@ private fun ManualEntryDebugAutoFillTopBarAction(onAutoFill: () -> Unit) {
             text = stringResource(R.string.manual_entry_auto_fill),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-        )
-    }
-}
-
-@Composable
-private fun RowScope.ManualEntryKeypadDigitKey(
-    digit: Int,
-    keyHeight: Dp,
-    keyShape: RoundedCornerShape,
-    keyBgIdle: Color,
-    onDigit: (Int) -> Unit
-) {
-    val scheme = MaterialTheme.colorScheme
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = tween(75, easing = FastOutSlowInEasing),
-        label = "keypadDigitScale"
-    )
-    val keyBg = if (pressed) {
-        scheme.surfaceContainerHighest.copy(alpha = 0.62f)
-    } else {
-        keyBgIdle
-    }
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .height(keyHeight)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                transformOrigin = TransformOrigin(0.5f, 0.5f)
-            }
-            .clip(keyShape)
-            .background(keyBg)
-            .clickable(
-                interactionSource = interaction,
-                indication = null
-            ) { onDigit(digit) },
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$digit",
-            style = MaterialTheme.typography.titleMedium,
-            color = scheme.onSurface
         )
     }
 }
@@ -1375,12 +1395,31 @@ private fun ManualEntryNumericKeypad(
     val col = selectedIndex % 5
     val row = selectedIndex / 5
     val scheme = MaterialTheme.colorScheme
-    val keyHeight = Dimens.spacing32 + Dimens.spacing12
-    val keyShape = RoundedCornerShape(Dimens.radiusSmall)
-    val keyBg = scheme.surfaceContainerHighest.copy(alpha = 0.55f)
-    val pillShape = RoundedCornerShape(Dimens.radiusPill)
-    val confirmDiameter = Dimens.buttonHeight
+    val cellLabel = "${letters[col]}${row + 1}"
+    val inputRowHeight = ManualEntryKeypadDockMetrics.inputRowHeight
+    val compactActionSize = inputRowHeight
+    val chipShape = RoundedCornerShape(Dimens.radiusMedium)
+    val pillShape = RoundedCornerShape(Dimens.radiusButtonPill)
     val haptic = LocalHapticFeedback.current
+    val hasDraft = draft.isNotEmpty()
+    val inputBg by animateColorAsState(
+        targetValue = if (hasDraft) {
+            scheme.primaryContainer.copy(alpha = 0.34f)
+        } else {
+            scheme.surface
+        },
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "meInputBg",
+    )
+    val inputBorder by animateColorAsState(
+        targetValue = if (hasDraft) {
+            scheme.primary.copy(alpha = 0.48f)
+        } else {
+            scheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder)
+        },
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "meInputBorder",
+    )
     val numberPopScale = remember { Animatable(1f) }
     var draftPopLaunched by remember { mutableStateOf(false) }
     LaunchedEffect(draft) {
@@ -1394,16 +1433,6 @@ private fun ManualEntryNumericKeypad(
             numberPopScale.snapTo(1f)
         }
     }
-    val dividerHeight by animateDpAsState(
-        targetValue = if (draft.isNotEmpty()) Dimens.spacing24 else Dimens.spacing16,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
-        label = "meDividerH"
-    )
-    val dividerTone by animateFloatAsState(
-        targetValue = if (draft.isNotEmpty()) 1f else 0.72f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
-        label = "meDividerT"
-    )
     val clearPress = rememberKeypadSideIconPress("meClearPressScale", "meClearPressAlpha")
     val confirmPress = rememberKeypadSideIconPress("meConfirmPressScale", "meConfirmPressAlpha")
     val emDash = stringResource(R.string.common_em_dash)
@@ -1434,155 +1463,121 @@ private fun ManualEntryNumericKeypad(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
             ) {
+                Surface(
+                    shape = chipShape,
+                    color = scheme.primaryContainer.copy(alpha = 0.42f),
+                    border = BorderStroke(
+                        Dimens.cardBorderDefault,
+                        scheme.primary.copy(alpha = 0.32f),
+                    ),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                ) {
+                    Text(
+                        text = cellLabel,
+                        modifier = Modifier.padding(
+                            horizontal = Dimens.spacing12,
+                            vertical = Dimens.spacing8,
+                        ),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        ),
+                        color = scheme.primary,
+                        maxLines = 1,
+                    )
+                }
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .height(Dimens.inputBarHeight)
+                        .height(inputRowHeight)
                         .clip(pillShape)
+                        .background(inputBg)
                         .border(
                             width = Dimens.cardBorderDefault,
-                            color = scheme.primary,
-                            shape = pillShape
+                            color = inputBorder,
+                            shape = pillShape,
                         ),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .background(scheme.primary)
-                            .padding(horizontal = Dimens.spacing16),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4)
-                    ) {
-                        Text(
-                            text = letters[col],
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                platformStyle = PlatformTextStyle(includeFontPadding = false)
-                            ),
-                            color = scheme.primaryContainer,
-                            maxLines = 1,
-                            textAlign = TextAlign.Start
-                        )
-                        Text(
-                            text = "${row + 1}",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                platformStyle = PlatformTextStyle(includeFontPadding = false)
-                            ),
-                            color = scheme.onPrimary,
-                            maxLines = 1,
-                            textAlign = TextAlign.Start
-                        )
-                    }
-                    Row(
+                    val inputFontSize = (inputRowHeight.value * 0.44f).coerceIn(20f, 30f).sp
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .background(scheme.primaryContainer)
-                            .padding(
-                                start = Dimens.spacing12,
-                                end = Dimens.spacing8
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
+                            .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing4)
+                            .graphicsLayer {
+                                scaleX = numberPopScale.value
+                                scaleY = numberPopScale.value
+                                transformOrigin = TransformOrigin(0.5f, 0.5f)
+                            },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .graphicsLayer {
-                                    scaleX = numberPopScale.value
-                                    scaleY = numberPopScale.value
-                                    transformOrigin = TransformOrigin(0.08f, 0.5f)
-                                }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Crossfade(
-                                    targetState = draft.isEmpty(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    animationSpec = tween(
-                                        durationMillis = 85,
-                                        easing = FastOutSlowInEasing
-                                    ),
-                                    label = "meValueEmptyFade"
-                                ) { isEmpty ->
-                                    Text(
-                                        text = if (isEmpty) emDash else draft,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .offset(y = (-1).dp),
-                                        style = MaterialTheme.typography.headlineLarge.copy(
-                                            fontWeight = if (isEmpty) {
-                                                FontWeight.Medium
-                                            } else {
-                                                FontWeight.Bold
-                                            },
-                                            lineHeight = 40.sp,
-                                            letterSpacing = if (isEmpty) {
-                                                0.sp
-                                            } else {
-                                                0.5.sp
-                                            },
-                                            platformStyle = PlatformTextStyle(
-                                                includeFontPadding = false
-                                            )
-                                        ),
-                                        color = if (isEmpty) {
-                                            scheme.onPrimaryContainer.copy(alpha = 0.5f)
-                                        } else {
-                                            scheme.primary
-                                        },
-                                        maxLines = 1,
-                                        textAlign = TextAlign.Start
-                                    )
-                                }
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .width(Dimens.cardBorderDefault)
-                                .height(dividerHeight)
-                                .background(
-                                    scheme.primary.copy(alpha = 0.35f * dividerTone)
-                                )
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(Dimens.spacing32)
-                                .graphicsLayer {
-                                    scaleX = clearPress.scale
-                                    scaleY = clearPress.scale
-                                    alpha = clearPress.alpha
-                                    transformOrigin = TransformOrigin(0.5f, 0.5f)
-                                }
-                                .clip(CircleShape)
-                                .clickable(
-                                    interactionSource = clearPress.interaction,
-                                    indication = null
-                                ) { onClear() },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Crossfade(
+                            targetState = draft.isEmpty(),
+                            modifier = Modifier.fillMaxWidth(),
+                            animationSpec = tween(85, easing = FastOutSlowInEasing),
+                            label = "meValueEmptyFade",
+                        ) { isEmpty ->
                             Text(
-                                text = "×",
-                                modifier = Modifier.offset(y = (-1).dp),
+                                text = if (isEmpty) emDash else draft,
+                                modifier = Modifier.fillMaxWidth(),
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 26.sp
+                                    fontWeight = if (isEmpty) FontWeight.Medium else FontWeight.Bold,
+                                    fontSize = inputFontSize,
+                                    lineHeight = inputFontSize,
+                                    letterSpacing = if (isEmpty) 0.sp else 0.5.sp,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false),
                                 ),
-                                color = scheme.primary,
-                                textAlign = TextAlign.Center
+                                color = if (isEmpty) {
+                                    scheme.onSurfaceVariant.copy(alpha = 0.72f)
+                                } else {
+                                    scheme.onSurface
+                                },
+                                maxLines = 1,
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
+                    Box(
+                        modifier = Modifier
+                            .width(Dimens.cardBorderDefault)
+                            .height(Dimens.spacing20)
+                            .background(scheme.outlineVariant.copy(alpha = 0.55f)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .graphicsLayer {
+                                scaleX = clearPress.scale
+                                scaleY = clearPress.scale
+                                alpha = clearPress.alpha
+                            }
+                            .clip(CircleShape)
+                            .clickable(
+                                enabled = hasDraft,
+                                interactionSource = clearPress.interaction,
+                                indication = null,
+                            ) { onClear() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "×",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 18.sp,
+                            ),
+                            color = scheme.primary,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(Dimens.spacing8))
                 }
                 Box(
                     modifier = Modifier
-                        .size(confirmDiameter)
+                        .size(compactActionSize)
                         .graphicsLayer {
                             scaleX = confirmPress.scale
                             scaleY = confirmPress.scale
@@ -1628,37 +1623,11 @@ private fun ManualEntryNumericKeypad(
                 }
             }
             Spacer(modifier = Modifier.height(Dimens.spacing12))
-            val rowA = listOf(1, 2, 3, 4, 5)
-            val rowB = listOf(6, 7, 8, 9, 0)
-            Row(
+            AppNumberKeypad(
+                onDigit = onDigit,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-            ) {
-                for (d in rowA) {
-                    ManualEntryKeypadDigitKey(
-                        digit = d,
-                        keyHeight = keyHeight,
-                        keyShape = keyShape,
-                        keyBgIdle = keyBg,
-                        onDigit = onDigit
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(Dimens.spacing8))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8)
-            ) {
-                for (d in rowB) {
-                    ManualEntryKeypadDigitKey(
-                        digit = d,
-                        keyHeight = keyHeight,
-                        keyShape = keyShape,
-                        keyBgIdle = keyBg,
-                        onDigit = onDigit
-                    )
-                }
-            }
+                bottomSafeSpacing = ManualEntryKeypadDockMetrics.fabBottomClearance,
+            )
             }
         }
     }
