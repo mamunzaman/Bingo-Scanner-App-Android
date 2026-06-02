@@ -433,28 +433,41 @@ fun ManualEntryScreen(
         }
     }
 
+    val scannedNumbersPrefillKey = remember(scannedNumbers) {
+        scannedNumbers.take(25).joinToString(",")
+    }
     /** Grid prefill from `manualEntry?scannedNumbers=…` (Import Ticket handoff, History, room routes). */
-    LaunchedEffect(scannedNumbers) {
+    LaunchedEffect(scannedNumbersPrefillKey, prefillAsRowMajor) {
         if (!hasPrefilledScannedNumbers && scannedNumbers.isNotEmpty()) {
-            Log.d(MANUAL_ENTRY_TAG, "prefill input count=${scannedNumbers.size}, prefillAsRowMajor=$prefillAsRowMajor")
-            Log.d(MANUAL_ENTRY_TAG, "scannedNumbers raw list (first 8)=${scannedNumbers.take(8)}")
-            hasPrefilledScannedNumbers = true
-            isApplyingScannedPrefill = true
-            val padded = if (scannedNumbers.size < 25) scannedNumbers + List(25 - scannedNumbers.size) { 0 } else scannedNumbers
-            val valuesToFill = if (prefillAsRowMajor) {
-                Log.d(MANUAL_ENTRY_TAG, "prefill using OCR order as-is (row-major)")
-                padded
-            } else {
-                val rowMajor = storedColumnOrderToRowMajor(padded)
-                Log.d(MANUAL_ENTRY_TAG, "mapped row-major list (first 8)=${rowMajor.take(8)}")
-                rowMajor
+            try {
+                Log.d(MANUAL_ENTRY_TAG, "prefill input count=${scannedNumbers.size}, prefillAsRowMajor=$prefillAsRowMajor")
+                hasPrefilledScannedNumbers = true
+                isApplyingScannedPrefill = true
+                val padded = scannedNumbers.take(25).let { list ->
+                    if (list.size < 25) list + List(25 - list.size) { 0 } else list
+                }
+                val valuesToFill = if (prefillAsRowMajor) {
+                    Log.d(MANUAL_ENTRY_TAG, "prefill row-major batch")
+                    padded
+                } else {
+                    val rowMajor = storedColumnOrderToRowMajor(padded)
+                    if (rowMajor.isEmpty()) padded else rowMajor
+                }
+                if (prefillAsRowMajor) {
+                    viewModel.applyScannedGridPrefill(valuesToFill)
+                } else {
+                    for (i in 0..24) {
+                        viewModel.onAction(ManualEntryUiAction.CellSelected(i))
+                        val v = valuesToFill.getOrNull(i) ?: 0
+                        if (v in 1..75) viewModel.onAction(ManualEntryUiAction.NumberPressed(v))
+                    }
+                    viewModel.onAction(ManualEntryUiAction.CellSelected(-1))
+                }
+            } catch (e: Exception) {
+                Log.e(MANUAL_ENTRY_TAG, "scanned grid prefill failed", e)
+                hasPrefilledScannedNumbers = false
+                isApplyingScannedPrefill = false
             }
-            for (i in 0..24) {
-                viewModel.onAction(ManualEntryUiAction.CellSelected(i))
-                val v = valuesToFill.getOrNull(i) ?: 0
-                if (v != 0) viewModel.onAction(ManualEntryUiAction.NumberPressed(v))
-            }
-            viewModel.onAction(ManualEntryUiAction.CellSelected(-1))
         }
     }
 
@@ -1082,9 +1095,12 @@ fun ManualEntryScreen(
 }
 
 private fun storedColumnOrderToRowMajor(numbers: List<Int>): List<Int> {
-    if (numbers.size != 25) return emptyList()
+    val base = numbers.take(25).let { list ->
+        if (list.size < 25) list + List(25 - list.size) { 0 } else list
+    }
+    if (base.size != 25) return emptyList()
     return (0..4).flatMap { row ->
-        (0..4).map { col -> numbers[col * 5 + row] }
+        (0..4).map { col -> base[col * 5 + row] }
     }
 }
 

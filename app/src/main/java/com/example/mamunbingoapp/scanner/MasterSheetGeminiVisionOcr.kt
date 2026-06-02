@@ -64,7 +64,12 @@ Example shape:
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    suspend fun analyzeUri(context: Context, uri: Uri): HistoryImportOcrOutcome? =
+    data class AiVisionResult(
+        val outcome: HistoryImportOcrOutcome,
+        val confidence: Float?,
+    )
+
+    suspend fun analyzeUri(context: Context, uri: Uri): AiVisionResult? =
         withTimeout(REQUEST_TIMEOUT_MS) {
             if (!isConfigured()) return@withTimeout null
             val bitmap = loadBitmapDownsampled(context, uri, MAX_IMAGE_SIDE)
@@ -92,7 +97,7 @@ Example shape:
             }
         }
 
-    internal fun parseResponse(rawText: String): HistoryImportOcrOutcome? {
+    internal fun parseResponse(rawText: String): AiVisionResult? {
         val jsonBody = extractJsonObject(rawText) ?: return null
         val parsed = runCatching {
             json.decodeFromString<GeminiMasterSheetJson>(jsonBody)
@@ -106,11 +111,15 @@ Example shape:
         val serie = parsed.serie?.filter { it.isDigit() }?.takeIf { it.isNotEmpty() }
         val los = parsed.losNumber?.filter { it.isDigit() }?.takeIf { it.isNotEmpty() }
         if (serie == null || los == null) return null
-        Log.d(TAG, "AI parsed confidence=${parsed.confidence} serie=$serie los=$los gridFilled=${grid.count { it != 0 }}")
-        return HistoryImportOcrOutcome(
-            numbersRowMajor = grid,
-            losNumber = los,
-            serialNumber = serie,
+        val confidence = parsed.confidence?.toFloat()?.coerceIn(0f, 1f)
+        Log.d(TAG, "AI parsed confidence=$confidence serie=$serie los=$los gridFilled=${grid.count { it != 0 }}")
+        return AiVisionResult(
+            outcome = HistoryImportOcrOutcome(
+                numbersRowMajor = grid,
+                losNumber = los,
+                serialNumber = serie,
+            ),
+            confidence = confidence,
         )
     }
 

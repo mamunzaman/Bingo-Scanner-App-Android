@@ -18,7 +18,7 @@ object MainSheetScanAnalyzer {
         uri: Uri,
         bypassInternalGridCrop: Boolean = false,
         preCropCameraForStripOcr: Boolean = false,
-    ): HistoryImportOcrOutcome {
+    ): MainSheetAnalyzeResult {
         val appContext = context.applicationContext
         val canTryAi = MasterSheetGeminiVisionOcr.isConfigured() &&
             MasterSheetGeminiVisionOcr.hasInternet(appContext)
@@ -33,15 +33,22 @@ object MainSheetScanAnalyzer {
                 Log.w(TAG, "AI request failed: ${e.message}")
                 null
             }
-            if (aiOutcome != null && isValidAiOutcome(aiOutcome)) {
-                Log.i(TAG, "AI success serie=${aiOutcome.serialNumber} los=${aiOutcome.losNumber}")
-                return aiOutcome
+            if (aiOutcome != null && isValidAiOutcome(aiOutcome.outcome)) {
+                val o = aiOutcome.outcome
+                Log.i(TAG, "AI success serie=${o.serialNumber} los=${o.losNumber}")
+                return MainSheetAnalyzeResult(
+                    outcome = o,
+                    usedAi = true,
+                    usedLocalFallback = false,
+                    aiConfidence = aiOutcome.confidence,
+                )
             }
             if (aiOutcome != null) {
+                val o = aiOutcome.outcome
                 Log.w(
                     TAG,
-                    "AI validation failed serie=${aiOutcome.serialNumber} los=${aiOutcome.losNumber} " +
-                        "gridSize=${aiOutcome.numbersRowMajor.size}",
+                    "AI validation failed serie=${o.serialNumber} los=${o.losNumber} " +
+                        "gridSize=${o.numbersRowMajor.size}",
                 )
             }
         } else {
@@ -54,11 +61,17 @@ object MainSheetScanAnalyzer {
         }
 
         Log.i(TAG, "Fallback activated → MainSheetBingoOcr")
-        return MainSheetBingoOcr.analyzeUri(
+        val local = MainSheetBingoOcr.analyzeUri(
             appContext,
             uri,
             bypassInternalGridCrop = bypassInternalGridCrop,
             preCropCameraForStripOcr = preCropCameraForStripOcr,
+        )
+        return MainSheetAnalyzeResult(
+            outcome = local,
+            usedAi = false,
+            usedLocalFallback = true,
+            aiConfidence = null,
         )
     }
 

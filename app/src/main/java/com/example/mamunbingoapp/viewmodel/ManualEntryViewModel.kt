@@ -111,6 +111,48 @@ class ManualEntryViewModel(
         }
     }
 
+    /**
+     * Applies OCR row-major grid in one update (Master Sheet import). Skips invalid/duplicate numbers
+     * instead of showing per-cell dialogs.
+     */
+    fun applyScannedGridPrefill(rowMajorValues: List<Int>) {
+        try {
+            val values = rowMajorValues.take(25).let { list ->
+                if (list.size < 25) list + List(25 - list.size) { 0 } else list
+            }
+            val used = mutableSetOf<String>()
+            val current = _state.value
+            val cells = values.mapIndexed { i, v ->
+                val formatted = when {
+                    v !in 1..75 -> null
+                    else -> {
+                        val f = v.toString().padStart(2, '0')
+                        if (f in used) null else {
+                            used.add(f)
+                            f
+                        }
+                    }
+                }
+                current.cells.getOrNull(i)?.copy(
+                    number = formatted,
+                    isMarked = false,
+                    isSelected = false,
+                ) ?: BingoCellUi(formatted, false, false, true, false, isSelected = false)
+            }
+            val filled = cells.count { !it.number.isNullOrBlank() }
+            _state.update {
+                it.copy(
+                    cells = cells,
+                    selectedIndex = -1,
+                    isComplete = filled >= 25,
+                )
+            }
+            Log.d(MANUAL_ENTRY_VM_TAG, "applyScannedGridPrefill filled=$filled/25")
+        } catch (e: Exception) {
+            Log.e(MANUAL_ENTRY_VM_TAG, "applyScannedGridPrefill failed", e)
+        }
+    }
+
     fun applyPrefilledSheetName(name: String?) {
         val trimmed = name?.trim().orEmpty()
         if (trimmed.isBlank()) return

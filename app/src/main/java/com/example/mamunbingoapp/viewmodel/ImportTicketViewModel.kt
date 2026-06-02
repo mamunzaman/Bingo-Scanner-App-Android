@@ -16,6 +16,8 @@ import com.example.mamunbingoapp.scanner.BingoNumberAnalyzer
 import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
 import com.example.mamunbingoapp.scanner.MainSheetBingoOcr
+import com.example.mamunbingoapp.scanner.HistoryImportOcrOutcome
+import com.example.mamunbingoapp.scanner.MainSheetAnalyzeResult
 import com.example.mamunbingoapp.scanner.MainSheetScanAnalyzer
 import com.example.mamunbingoapp.scanner.OnlineBingoOcr
 import com.example.mamunbingoapp.scanner.PlayPaperBingoOcr
@@ -146,6 +148,24 @@ internal fun finalUiGridRowMajor(numbers: List<Int>): List<Int> {
     return if (t.size < 25) t + List(25 - t.size) { 0 } else t
 }
 
+/** Exactly 25 cells for Manual Entry nav args; invalid values become empty (0). */
+internal fun normalizeManualEntryGridPrefill(numbers: List<Int>): List<Int> =
+    finalUiGridRowMajor(numbers).map { if (it in 1..75) it else 0 }
+
+private const val MAIN_SHEET_MANUAL_PREFILL_LOG = "MainSheetManualPrefill"
+
+internal fun logMasterSheetManualPrefill(
+    grid: List<Int>,
+    losNumber: String?,
+    serialNumber: String?,
+) {
+    val filled = grid.count { it in 1..75 }
+    Log.d(
+        MAIN_SHEET_MANUAL_PREFILL_LOG,
+        "grid=${grid.size} filled=$filled hasSerie=${!serialNumber.isNullOrBlank()} hasLos=${!losNumber.isNullOrBlank()}",
+    )
+}
+
 /**
  * Set on [ScanResultUiState.Success]. [QR] is used for static-image decodes, gallery auto-probe, and
  * the same data shape as [com.example.mamunbingoapp.ui.screens.camera.BingoLiveCameraImportScreen] (navigates
@@ -177,6 +197,9 @@ sealed class ScanResultUiState {
         val sheetName: String? = null,
         val ocrSource: HistoryOcrSource? = null,
         val scanSource: ImportScanSource = ImportScanSource.PHOTO_OCR,
+        val mainSheetUsedAi: Boolean = false,
+        val mainSheetUsedLocalFallback: Boolean = false,
+        val mainSheetAiConfidence: Float? = null,
     ) : ScanResultUiState()
     data class Error(
         val message: String,
@@ -235,6 +258,9 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun peekPendingScanType(): BingoScanType? = _pendingScanType.value
+
+    /** Scan type for the active import session (pending or gallery snapshot). */
+    fun effectiveImportScanType(): BingoScanType? = _pendingScanType.value ?: galleryImportScanTypeSnapshot
 
     /**
      * Updates selection to [ScanResultUiState.Idle] (image preview only). UI shows analyzing overlay only after [analyzeTicketFromUri] sets [ScanResultUiState.Loading].
@@ -422,12 +448,14 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                         .copy(stageLabel = app.getString(R.string.ocr_stage_reading_markers))
                 }
             }
-            val result = withContext(Dispatchers.IO) {
-                when (effectiveScanType) {
-                    BingoScanType.ONLINE -> runCatching {
-                        OnlineBingoOcr.analyzeUri(context.applicationContext, uri)
-                    }
-                    BingoScanType.MAIN_SHEET -> try {
+            markerStageJob.cancel()
+            if (uri != _selectedImageUri.value) {
+                Log.w(IMPORT_TICKET_LOG, "analyze aborted after OCR: uri no longer selected")
+                return@launch
+            }
+            if (effectiveScanType == BingoScanType.MAIN_SHEET) {
+                val sheetResult = withContext(Dispatchers.IO) {
+                    try {
                         Result.success(
                             MainSheetScanAnalyzer.analyzeUri(
                                 context.applicationContext,
@@ -439,6 +467,56 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     } catch (e: Exception) {
                         Result.failure(e)
                     }
+                }
+                sheetResult.fold(
+                    onSuccess = { analyzed ->
+                        val outcome = analyzed.outcome
+                        val validCount = validFilledCellCount(outcome.numbersRowMajor)
+                        _ocrProgress.value = ImportOcrProgressUiState(
+                            stageLabel = app.getString(R.string.ocr_stage_finalizing),
+                            detectedGridCells = validCount,
+                            losStatus = if (!outcome.losNumber.isNullOrBlank()) {
+                                DetectionStatus.Found
+                            } else {
+                                DetectionStatus.NotFound
+                            },
+                            serialStatus = if (!outcome.serialNumber.isNullOrBlank()) {
+                                DetectionStatus.Found
+                            } else {
+                                DetectionStatus.NotFound
+                            },
+                        )
+                        setScanResult(
+                            ScanResultUiState.Success(
+                                numbers = outcome.numbersRowMajor,
+                                losNumber = outcome.losNumber?.takeIf { it.isNotBlank() },
+                                serialNumber = outcome.serialNumber?.takeIf { it.isNotBlank() },
+                                ocrSource = if (analyzed.usedAi) {
+                                    HistoryOcrSource.GEMINI
+                                } else {
+                                    HistoryOcrSource.ML_KIT
+                                },
+                                scanSource = ImportScanSource.PHOTO_OCR,
+                                mainSheetUsedAi = analyzed.usedAi,
+                                mainSheetUsedLocalFallback = analyzed.usedLocalFallback,
+                                mainSheetAiConfidence = analyzed.aiConfidence,
+                            ),
+                        )
+                    },
+                    onFailure = { e ->
+                        Log.e(IMPORT_TICKET_LOG, "OCR failed type=MAIN_SHEET", e)
+                        _scanResult.value = ScanResultUiState.Error(
+                            e.message ?: app.getString(R.string.import_ticket_error_ocr_failed),
+                        )
+                    },
+                )
+                return@launch
+            }
+            val result = withContext(Dispatchers.IO) {
+                when (effectiveScanType) {
+                    BingoScanType.ONLINE -> runCatching {
+                        OnlineBingoOcr.analyzeUri(context.applicationContext, uri)
+                    }
                     BingoScanType.PLAY_PAPER -> runCatching {
                         PlayPaperBingoOcr.analyzeUri(
                             context.applicationContext,
@@ -447,26 +525,29 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                             preCropCameraForStripOcr = false,
                         )
                     }
+                    else -> Result.failure(IllegalStateException("Unhandled scan type"))
                 }
-            }
-            markerStageJob.cancel()
-            if (uri != _selectedImageUri.value) {
-                Log.w(IMPORT_TICKET_LOG, "analyze aborted after OCR: uri no longer selected")
-                return@launch
             }
             val minValidForScan = when (effectiveScanType) {
                 BingoScanType.ONLINE -> OnlineBingoOcr.MIN_VALID_CELLS_FOR_SUCCESS
-                BingoScanType.MAIN_SHEET -> MainSheetBingoOcr.MIN_VALID_CELLS_FOR_SUCCESS
                 else -> MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
             }
             result.fold(
-                onSuccess = { outcome ->
-                    val validCount = validFilledCellCount(outcome.numbersRowMajor)
+                onSuccess = { ocrOutcome ->
+                    val validCount = validFilledCellCount(ocrOutcome.numbersRowMajor)
                     _ocrProgress.value = ImportOcrProgressUiState(
                         stageLabel = app.getString(R.string.ocr_stage_finalizing),
                         detectedGridCells = validCount,
-                        losStatus = if (!outcome.losNumber.isNullOrBlank()) DetectionStatus.Found else DetectionStatus.NotFound,
-                        serialStatus = if (!outcome.serialNumber.isNullOrBlank()) DetectionStatus.Found else DetectionStatus.NotFound,
+                        losStatus = if (!ocrOutcome.losNumber.isNullOrBlank()) {
+                            DetectionStatus.Found
+                        } else {
+                            DetectionStatus.NotFound
+                        },
+                        serialStatus = if (!ocrOutcome.serialNumber.isNullOrBlank()) {
+                            DetectionStatus.Found
+                        } else {
+                            DetectionStatus.NotFound
+                        },
                     )
                     when {
                         validCount < minValidForScan -> {
@@ -478,16 +559,16 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                             _scanResult.value = ScanResultUiState.Error(
                                 message = message,
                                 detectedValidCount = validCount,
-                                losNumber = outcome.losNumber?.takeIf { it.isNotBlank() },
-                                serialNumber = outcome.serialNumber?.takeIf { it.isNotBlank() },
+                                losNumber = ocrOutcome.losNumber?.takeIf { it.isNotBlank() },
+                                serialNumber = ocrOutcome.serialNumber?.takeIf { it.isNotBlank() },
                             )
                         }
                         else ->
                             setScanResult(
                                 ScanResultUiState.Success(
-                                    numbers = outcome.numbersRowMajor,
-                                    losNumber = outcome.losNumber?.takeIf { it.isNotBlank() },
-                                    serialNumber = outcome.serialNumber?.takeIf { it.isNotBlank() },
+                                    numbers = ocrOutcome.numbersRowMajor,
+                                    losNumber = ocrOutcome.losNumber?.takeIf { it.isNotBlank() },
+                                    serialNumber = ocrOutcome.serialNumber?.takeIf { it.isNotBlank() },
                                     ocrSource = HistoryOcrSource.ML_KIT,
                                     scanSource = ImportScanSource.PHOTO_OCR,
                                 ),
@@ -549,6 +630,12 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         )
         _prefilledSource.value = source
         _prefilledConfidence.value = confidence
+    }
+
+    /** Drop gallery/camera URI refs before Manual Entry handoff (keeps scan result until [clear]). */
+    fun releaseImportImageMemory() {
+        _galleryPendingEditUri.value = null
+        _selectedImageUri.value = null
     }
 
     fun clear() {
