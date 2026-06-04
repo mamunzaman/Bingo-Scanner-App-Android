@@ -134,6 +134,12 @@ const val PENDING_HISTORY_PHOTO_IMPORT_URI_KEY = "pendingHistoryPhotoImportUri"
 /** Optional [com.example.mamunbingoapp.domain.model.BingoScanType] name from camera handoff. */
 const val PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY = "pendingHistoryPhotoImportScanType"
 
+/** After duplicate-sheet “Scan Another”, Scan tab opens [ScanTypeSelectionSheet] once. */
+const val REQUEST_SHOW_SCAN_TYPE_SHEET_KEY = "requestShowScanTypeSheet"
+
+/** True while import OCR / gallery apply blocks main-shell tab navigation. */
+const val SCAN_PIPELINE_BUSY_KEY = "scanPipelineBusy"
+
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
@@ -366,6 +372,7 @@ fun ImportTicketScreen(
     onSaveAndRoomClicked: () -> Unit = onReviewClicked,
     showBottomBar: Boolean = true,
     imageSource: String? = null,
+    onScanPipelineBusyChanged: (Boolean) -> Unit = {},
     viewModel: ImportTicketViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -381,6 +388,15 @@ fun ImportTicketScreen(
     var pendingReplaceAction by remember { mutableStateOf<PendingReplace?>(null) }
     val isDirty = viewModel.hasActiveImportSession()
     val isAnalyzing = scanResult is ScanResultUiState.Loading
+    LaunchedEffect(scanResult) {
+        when (scanResult) {
+            is ScanResultUiState.Loading -> onScanPipelineBusyChanged(true)
+            is ScanResultUiState.Idle,
+            is ScanResultUiState.Success,
+            is ScanResultUiState.Error,
+            -> onScanPipelineBusyChanged(false)
+        }
+    }
     val allowScroll = scanResult !is ScanResultUiState.Error
     val scrollState = rememberScrollState()
     var previousScanResult by remember { mutableStateOf<ScanResultUiState?>(null) }

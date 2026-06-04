@@ -244,6 +244,31 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
     /** Probes gallery pick for app QR before Apply; cancelled on Apply, cancel, or new pick. */
     private var galleryQrProbeJob: Job? = null
 
+    private val _scanPipelineBusy = MutableStateFlow(false)
+    val scanPipelineBusy: StateFlow<Boolean> = _scanPipelineBusy.asStateFlow()
+
+    /** Clears pipeline busy after terminal OCR/import outcome (not while [ScanResultUiState.Loading]). */
+    private fun finishScanPipelineBusy() {
+        analysisJob = null
+        if (_scanPipelineBusy.value) {
+            _scanPipelineBusy.value = false
+            Log.d("ScanPipelineBusy", "vm scanPipelineBusy=false (finished)")
+        }
+    }
+
+    private fun updateScanPipelineBusy() {
+        val busy =
+            _scanResult.value is ScanResultUiState.Loading ||
+                galleryApplyJob?.isActive == true ||
+                galleryQrProbeJob?.isActive == true
+        if (_scanPipelineBusy.value != busy) {
+            _scanPipelineBusy.value = busy
+            Log.d("ScanPipelineBusy", "vm scanPipelineBusy=$busy")
+        }
+    }
+
+    fun isScanPipelineBusy(): Boolean = _scanPipelineBusy.value
+
     private val _pendingScanType = MutableStateFlow<BingoScanType?>(null)
 
     /**
@@ -275,6 +300,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _candidateNumbers.value = emptyList()
         _candidateBuckets.value = emptyMap()
         _scanResult.value = ScanResultUiState.Idle
+        updateScanPipelineBusy()
     }
 
     /** After gallery flow (picker + optional external crop). Tries app QR in the background; on success clears pending and sets [ImportScanSource.QR] without Apply. */
@@ -288,6 +314,8 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _candidateBuckets.value = emptyMap()
         val app = getApplication<Application>().applicationContext
         galleryQrProbeJob = viewModelScope.launch {
+            updateScanPipelineBusy()
+            try {
             val qrPre = withContext(Dispatchers.IO) {
                 tryDecodeBingoQrFromImageUri(app, uri)
             }
@@ -306,6 +334,9 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     scanSource = ImportScanSource.QR,
                 ),
             )
+            } finally {
+                updateScanPipelineBusy()
+            }
         }
     }
 
@@ -316,6 +347,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         galleryQrProbeJob = null
         galleryImportScanTypeSnapshot = null
         _galleryPendingEditUri.value = null
+        finishScanPipelineBusy()
     }
 
     /** Resolves OCR scan type for gallery Apply: prefers snapshot taken when uCrop delivered the image. */
@@ -355,6 +387,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         }
         if (galleryApplyJob?.isActive == true) return
         galleryApplyJob = viewModelScope.launch {
+            updateScanPipelineBusy()
             try {
                 val trimmedUri = withContext(Dispatchers.IO) {
                     GalleryManualTrim.buildApplyTempJpegUri(app, uri, l, t, r, b)
@@ -371,6 +404,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 )
             } finally {
                 galleryApplyJob = null
+                updateScanPipelineBusy()
             }
         }
     }
@@ -391,13 +425,17 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         }
         analysisJob?.cancel()
         analysisJob = viewModelScope.launch {
+            try {
+            updateScanPipelineBusy()
             _scanResult.value = ScanResultUiState.Loading
+            updateScanPipelineBusy()
             _ocrProgress.value = ImportOcrProgressUiState(stageLabel = app.getString(R.string.ocr_stage_checking_qr))
             val qrPre = withContext(Dispatchers.IO) {
                 tryDecodeBingoQrFromImageUri(context.applicationContext, uri)
             }
             if (uri != _selectedImageUri.value) {
                 Log.w(IMPORT_TICKET_LOG, "analyze aborted: uri no longer matches selected image")
+                finishScanPipelineBusy()
                 return@launch
             }
             when (qrPre) {
@@ -424,6 +462,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 }
                 if (uri != _selectedImageUri.value) {
                     Log.w(IMPORT_TICKET_LOG, "analyze aborted after zoom check: stale uri")
+                    finishScanPipelineBusy()
                     return@launch
                 }
                 if (tooZoomed) {
@@ -434,6 +473,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                     _scanResult.value = ScanResultUiState.Error(
                         message = app.getString(R.string.import_ticket_zoom_hint),
                     )
+                    finishScanPipelineBusy()
                     return@launch
                 }
             }
@@ -451,6 +491,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
             markerStageJob.cancel()
             if (uri != _selectedImageUri.value) {
                 Log.w(IMPORT_TICKET_LOG, "analyze aborted after OCR: uri no longer selected")
+                finishScanPipelineBusy()
                 return@launch
             }
             if (effectiveScanType == BingoScanType.MAIN_SHEET) {
@@ -508,6 +549,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                         _scanResult.value = ScanResultUiState.Error(
                             e.message ?: app.getString(R.string.import_ticket_error_ocr_failed),
                         )
+                        finishScanPipelineBusy()
                     },
                 )
                 return@launch
@@ -562,6 +604,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                                 losNumber = ocrOutcome.losNumber?.takeIf { it.isNotBlank() },
                                 serialNumber = ocrOutcome.serialNumber?.takeIf { it.isNotBlank() },
                             )
+                            finishScanPipelineBusy()
                         }
                         else ->
                             setScanResult(
@@ -577,9 +620,16 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
                 },
                 onFailure = { e ->
                     Log.e(IMPORT_TICKET_LOG, "OCR failed type=${effectiveScanType.name}", e)
-                    _scanResult.value = ScanResultUiState.Error(e.message ?: app.getString(R.string.import_ticket_error_ocr_failed))
+                    _scanResult.value = ScanResultUiState.Error(
+                        e.message ?: app.getString(R.string.import_ticket_error_ocr_failed),
+                    )
+                    finishScanPipelineBusy()
                 },
             )
+            } finally {
+                analysisJob = null
+                updateScanPipelineBusy()
+            }
         }
     }
 
@@ -595,6 +645,10 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
             setCandidateNumbers(toSet.numbers.filter { it != 0 })
         }
         _scanResult.value = toSet
+        when (toSet) {
+            is ScanResultUiState.Loading -> updateScanPipelineBusy()
+            else -> finishScanPipelineBusy()
+        }
     }
 
     fun setCandidateNumbers(values: List<Int>) {
@@ -655,6 +709,7 @@ class ImportTicketViewModel(application: Application) : AndroidViewModel(applica
         _ocrProgress.value = null
         galleryImportScanTypeSnapshot = null
         _pendingScanType.value = null
+        finishScanPipelineBusy()
     }
 
     fun hasActiveImportSession(): Boolean =

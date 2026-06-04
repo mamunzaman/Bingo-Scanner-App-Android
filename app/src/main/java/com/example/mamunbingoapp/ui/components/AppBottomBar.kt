@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.annotation.StringRes
+import android.util.Log
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.OnPrimary
@@ -110,14 +111,23 @@ private val BottomBarTabHeight = 52.dp
 private val BottomBarLabelBottomPad = Dimens.spacing4
 private val BottomBarPillShape = RoundedCornerShape(Dimens.radiusSearchField)
 private const val BottomBarSelectedPillAlpha = 0.42f
+private const val SCAN_PIPELINE_BOTTOM_BAR_LOG = "ScanPipelineBusy"
 
 @Composable
 fun AppBottomBar(
     selectedTab: AppTab,
     onTabSelected: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
-    showTopShadow: Boolean = true
+    showTopShadow: Boolean = true,
+    tabsEnabled: Boolean = true,
 ) {
+    val selectTab: (AppTab) -> Unit = selectTab@{ tab ->
+        if (!tabsEnabled) {
+            Log.d(SCAN_PIPELINE_BOTTOM_BAR_LOG, "bottom tab ignored (scan busy): ${tab.name}")
+            return@selectTab
+        }
+        onTabSelected(tab)
+    }
     val cs = MaterialTheme.colorScheme
     val jackpotLabel = stringResource(AppTab.Jackpot.labelResId)
     val jackpotSelected = selectedTab == AppTab.Jackpot
@@ -163,7 +173,8 @@ fun AppBottomBar(
                             BottomBarJackpotLabelTab(
                                 selected = selected,
                                 label = tabLabel,
-                                onClick = { onTabSelected(tab) },
+                                onClick = { selectTab(tab) },
+                                tabsEnabled = tabsEnabled,
                                 modifier = Modifier.width(itemWidth),
                             )
                         } else {
@@ -171,7 +182,8 @@ fun AppBottomBar(
                                 tab = tab,
                                 selected = selected,
                                 label = tabLabel,
-                                onClick = { onTabSelected(tab) },
+                                onClick = { selectTab(tab) },
+                                tabsEnabled = tabsEnabled,
                                 modifier = Modifier.width(itemWidth),
                             )
                         }
@@ -183,7 +195,8 @@ fun AppBottomBar(
         BottomBarJackpotDiamondOverlay(
             selected = jackpotSelected,
             label = jackpotLabel,
-            onClick = { onTabSelected(AppTab.Jackpot) },
+            onClick = { selectTab(AppTab.Jackpot) },
+            tabsEnabled = tabsEnabled,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -200,6 +213,7 @@ private fun BottomBarStandardTab(
     selected: Boolean,
     label: String,
     onClick: () -> Unit,
+    tabsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -244,6 +258,7 @@ private fun BottomBarStandardTab(
             .height(BottomBarTabHeight)
             .semantics { this[SemanticsProperties.Selected] = selected }
             .clickable(
+                enabled = tabsEnabled,
                 indication = null,
                 interactionSource = interactionSource,
                 onClick = onClick,
@@ -286,6 +301,7 @@ private fun BottomBarJackpotLabelTab(
     selected: Boolean,
     label: String,
     onClick: () -> Unit,
+    tabsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -300,6 +316,7 @@ private fun BottomBarJackpotLabelTab(
             .height(BottomBarTabHeight)
             .semantics { this[SemanticsProperties.Selected] = selected }
             .clickable(
+                enabled = tabsEnabled,
                 indication = null,
                 interactionSource = interactionSource,
                 onClick = onClick,
@@ -330,6 +347,7 @@ private fun BottomBarJackpotDiamondOverlay(
     selected: Boolean,
     label: String,
     onClick: () -> Unit,
+    tabsEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -357,6 +375,7 @@ private fun BottomBarJackpotDiamondOverlay(
             .size(JackpotDiamondSize)
             .semantics { this[SemanticsProperties.Selected] = selected }
             .clickable(
+                enabled = tabsEnabled,
                 indication = null,
                 interactionSource = interactionSource,
                 onClick = onClick,

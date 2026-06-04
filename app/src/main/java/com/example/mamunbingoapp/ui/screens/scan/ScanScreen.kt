@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -128,10 +129,18 @@ fun ScanScreen(
     onBackClick: () -> Unit,
     onLaunchCamera: (BingoScanType) -> Unit,
     onOpenNumberPad: () -> Unit,
+    requestShowScanTypeSheet: Boolean = false,
+    onScanTypeSheetRequestConsumed: () -> Unit = {},
 ) {
     val colors = MaterialTheme.colorScheme
     val heroGreen = colors.primaryContainer
-    var showScanTypeSheet by remember { mutableStateOf(false) }
+    var showScanTypeSheet by remember { mutableStateOf(requestShowScanTypeSheet) }
+    LaunchedEffect(requestShowScanTypeSheet) {
+        if (requestShowScanTypeSheet) {
+            showScanTypeSheet = true
+            onScanTypeSheetRequestConsumed()
+        }
+    }
     var showScanTipsDialog by remember { mutableStateOf(false) }
     val animationsEnabled = rememberScanAnimationsEnabled()
 

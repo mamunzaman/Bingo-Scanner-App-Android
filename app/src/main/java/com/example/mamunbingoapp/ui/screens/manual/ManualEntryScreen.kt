@@ -216,6 +216,7 @@ fun ManualEntryScreen(
     onBack: () -> Unit,
     onNavigateToLivePlay: (roomId: String) -> Unit,
     onOpenExistingSheet: (ticketId: String) -> Unit = {},
+    onScanAnother: () -> Unit = {},
     onSaveOnlySuccess: (ticketId: String, roomId: String?) -> Unit = { _, _ -> },
     onTabSelected: (AppTab) -> Unit = {},
     scannedNumbers: List<Int> = emptyList(),
@@ -422,7 +423,7 @@ fun ManualEntryScreen(
         losNumber = state.sheetDuplicate.losNumber.takeIf { it.isNotBlank() },
         serialNumber = state.sheetDuplicate.serialNumber.takeIf { it.isNotBlank() },
         onOpenExistingSheet = { viewModel.openExistingSheetFromDuplicate() },
-        onScanAnother = { viewModel.dismissSheetDuplicate() },
+        onScanAnother = onScanAnother,
         onSaveAnyway = { viewModel.saveDespiteSheetDuplicate() },
     )
 

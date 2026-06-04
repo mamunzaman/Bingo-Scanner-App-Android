@@ -99,6 +99,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
@@ -205,6 +206,10 @@ import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCompactSheetPreview
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketListSheetPreview
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketLosSerieRow
+import com.example.mamunbingoapp.ui.components.home.BingoSheetTicketCard
+import com.example.mamunbingoapp.ui.components.home.LiveSheetTicketGridStyleClosed
+import com.example.mamunbingoapp.ui.components.home.LiveSheetTicketGridStyleOpen
+import com.example.mamunbingoapp.ui.components.home.bingoGridCellsToActiveTicketCellStates
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.SettingsRepository
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
@@ -245,8 +250,45 @@ private suspend fun applyRoomCompletionEffects(
     onShowConfetti()
 }
 
-private val LivePagerPagePeek = 24.dp
-private val LivePagerPageSpacing = 12.dp
+private data class LiveCarouselCardSizingProfile(
+    val heightRatio: Float,
+    val widthFactor: Float,
+)
+
+private val LiveCarouselSizingKeypadOpen = LiveCarouselCardSizingProfile(
+    heightRatio = 1.36f,
+    widthFactor = 0.96f,
+)
+private val LiveCarouselSizingKeypadClosed = LiveCarouselCardSizingProfile(
+    heightRatio = 1.36f,
+    widthFactor = 0.96f,
+)
+
+private fun liveCarouselSizingProfile(keypadExpanded: Boolean): LiveCarouselCardSizingProfile =
+    if (keypadExpanded) LiveCarouselSizingKeypadOpen else LiveCarouselSizingKeypadClosed
+
+private const val LiveCarouselSizingAnimMs = 200
+/** Matches [com.example.mamunbingoapp.ui.components.LiveCallInputBar] keypad visibility anim. */
+private const val LiveKeypadVisibilityAnimMs = 200
+private const val LiveCarouselKeypadSettleBufferMs = 50
+private const val LiveCarouselKeypadSettleDelayMs = LiveKeypadVisibilityAnimMs + LiveCarouselKeypadSettleBufferMs
+
+// Quick visual tuning for Live Bingo sheet size.
+// Negative = smaller, Positive = larger.
+// Final min can drop below 180dp when negative, but never below 150dp.
+private val LiveCarouselCardWidthAdjustment = 12.dp
+private val LiveCarouselCardHeightAdjustment = 8.dp
+
+private val LiveCarouselCardToDotsGap = 3.dp
+private val LiveCarouselDotsToBottomGap = 5.dp
+private val LiveCarouselPagerDotSize = 8.dp
+private val LiveCarouselPagerTopInset = Dimens.spacing8
+private fun liveCarouselDotsChrome(showDots: Boolean): Dp =
+    if (showDots) {
+        LiveCarouselCardToDotsGap + LiveCarouselPagerDotSize + LiveCarouselDotsToBottomGap
+    } else {
+        LiveCarouselDotsToBottomGap
+    }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -779,49 +821,99 @@ fun LivePlayScreen(
                     }
                 }
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Dimens.screenHorizontalPadding)
-                ) {
-                    AnimatedVisibility(
-                        visible = roomSettings?.isRunning == true && !isCallLimitReached,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        ResumeAutoCallBanner(roomId = roomId, onResume = { RoomTimerManager.setAutoCallRunning(roomId, true) })
+                var stableCarouselOpenAreaHeight by remember { mutableStateOf<Dp?>(null) }
+                var stableCarouselClosedAreaHeight by remember { mutableStateOf<Dp?>(null) }
+                var carouselAreaHeightSettled by remember { mutableStateOf(true) }
+                LaunchedEffect(showNumberKeypad) {
+                    carouselAreaHeightSettled = false
+                    if (showNumberKeypad) {
+                        stableCarouselOpenAreaHeight = null
+                    } else {
+                        stableCarouselClosedAreaHeight = null
                     }
-                    LiveRoomWithHistoryCard(
-                        uiState = LivePlayUiState(
-                            sheetName = sheetName,
-                            calledNumbers = calledNumbers,
-                            lastCalled = lastCalled,
-                            lastCalledAtMillis = lastCalledAtMillis,
-                            effectiveStatus = effectiveStatus
-                        ),
-                        isCallLimitReached = isCallLimitReached,
-                        onOpenCalledNumbers = { showCalledNumbersSheet = true },
-                        onShareCalledNumbers = onShareCalledNumbers,
-                        lastCalled = lastCalled,
+                    delay(LiveCarouselKeypadSettleDelayMs.toLong())
+                    if (showNumberKeypad) {
+                        stableCarouselOpenAreaHeight = null
+                    } else {
+                        stableCarouselClosedAreaHeight = null
+                    }
+                    carouselAreaHeightSettled = true
+                }
+                Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .appClickable(
-                                rippleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-                            ) { showCalledNumbersSheet = true },
-                    )
+                            .padding(horizontal = Dimens.screenHorizontalPadding),
+                    ) {
+                        AnimatedVisibility(
+                            visible = roomSettings?.isRunning == true && !isCallLimitReached,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            ResumeAutoCallBanner(
+                                roomId = roomId,
+                                onResume = { RoomTimerManager.setAutoCallRunning(roomId, true) },
+                            )
+                        }
+                        LiveRoomWithHistoryCard(
+                            uiState = LivePlayUiState(
+                                sheetName = sheetName,
+                                calledNumbers = calledNumbers,
+                                lastCalled = lastCalled,
+                                lastCalledAtMillis = lastCalledAtMillis,
+                                effectiveStatus = effectiveStatus
+                            ),
+                            isCallLimitReached = isCallLimitReached,
+                            onOpenCalledNumbers = { showCalledNumbersSheet = true },
+                            onShareCalledNumbers = onShareCalledNumbers,
+                            lastCalled = lastCalled,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .appClickable(
+                                    rippleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                                ) { showCalledNumbersSheet = true },
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Dimens.spacing16))
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    ) {
+                        if (carouselAreaHeightSettled) {
+                            if (showNumberKeypad) {
+                                if (stableCarouselOpenAreaHeight == null) {
+                                    stableCarouselOpenAreaHeight = maxHeight
+                                }
+                            } else {
+                                if (stableCarouselClosedAreaHeight == null) {
+                                    stableCarouselClosedAreaHeight = maxHeight
+                                }
+                            }
+                        }
+                        val stableCarouselAreaHeight = if (showNumberKeypad) {
+                            stableCarouselOpenAreaHeight ?: maxHeight
+                        } else {
+                            stableCarouselClosedAreaHeight ?: maxHeight
+                        }
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            BingoSheetsCarousel(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                stableCarouselAreaHeight = stableCarouselAreaHeight,
+                                keypadExpanded = showNumberKeypad,
+                                sheets = displaySheets,
+                                initialSelectedTicketId = initialSelectedTicketId,
+                                onSheetClick = { detailSheet = it },
+                            )
+                            Spacer(modifier = Modifier.height(Dimens.spacing12))
+                        }
+                    }
                 }
-                BingoSheetsCarousel(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(top = Dimens.spacing16, bottom = Dimens.spacing16),
-                    sheets = displaySheets,
-                    initialSelectedTicketId = initialSelectedTicketId,
-                    onSheetClick = { detailSheet = it }
-                )
             }
         }
-        }
+    }
     }
     if (showConfetti) {
         ConfettiOverlay(
@@ -970,41 +1062,41 @@ private fun LivePlayBottomArea(
             thickness = Dimens.cardBorderDefault,
             color = scheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
         )
-        if (callingLocked) {
-            SundayLivePlayLockedBanner(helperText = callingLockedMessage)
-        }
-        Box(
-            modifier = if (callingLocked) {
-                Modifier.graphicsLayer { alpha = 0.42f }
-            } else {
-                Modifier
+        LivePlayCallKeypad(
+            latestCalled = calledNumbers.lastOrNull(),
+            draft = inputText,
+            onDraftChange = onInputChange,
+            canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached && !callingLocked,
+            undoEnabled = calledNumbers.isNotEmpty() && !callingLocked,
+            actionInProgress = actionGuard.value,
+            showNumberKeypad = showNumberKeypad,
+            onToggleNumberKeypad = onToggleNumberKeypad,
+            contentAlpha = if (callingLocked) 0.42f else 1f,
+            lockedOverlay = {
+                if (callingLocked) {
+                    SundayLivePlayLockedBanner(
+                        helperText = callingLockedMessage,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = Dimens.spacing16),
+                    )
+                }
             },
-        ) {
-            LivePlayCallKeypad(
-                latestCalled = calledNumbers.lastOrNull(),
-                draft = inputText,
-                onDraftChange = onInputChange,
-                canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached && !callingLocked,
-                undoEnabled = calledNumbers.isNotEmpty() && !callingLocked,
-                actionInProgress = actionGuard.value,
-                showNumberKeypad = showNumberKeypad,
-                onToggleNumberKeypad = onToggleNumberKeypad,
-                onCallClick = {
-                    if (!actionGuard.value) {
-                        actionGuard.value = true
-                        sizeWhenGuardSet.value = calledNumbers.size
-                        handleCallClick()
-                    }
-                },
-                onUndoClick = {
-                    if (calledNumbers.isNotEmpty() && !actionGuard.value) {
-                        actionGuard.value = true
-                        sizeWhenGuardSet.value = calledNumbers.size
-                        onUndoLastCall()
-                    }
-                },
-            )
-        }
+            onCallClick = {
+                if (!actionGuard.value) {
+                    actionGuard.value = true
+                    sizeWhenGuardSet.value = calledNumbers.size
+                    handleCallClick()
+                }
+            },
+            onUndoClick = {
+                if (calledNumbers.isNotEmpty() && !actionGuard.value) {
+                    actionGuard.value = true
+                    sizeWhenGuardSet.value = calledNumbers.size
+                    onUndoLastCall()
+                }
+            },
+        )
         if (showBottomBar) {
             AppBottomBar(
                 selectedTab = selectedTabForBottomBar,
@@ -1022,10 +1114,7 @@ private fun SundayLivePlayLockedBanner(
 ) {
     val shape = RoundedCornerShape(Dimens.radiusMedium)
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimens.screenHorizontalPadding)
-            .padding(top = Dimens.spacing8, bottom = Dimens.spacing4),
+        modifier = modifier.fillMaxWidth(),
         shape = shape,
         color = WarningContainer,
         border = BorderStroke(Dimens.cardBorderDefault, WarningBorder.copy(alpha = 0.55f)),
@@ -1798,10 +1887,23 @@ private fun CallANumberCard(
 @Composable
 private fun BingoSheetsCarousel(
     modifier: Modifier = Modifier,
+    stableCarouselAreaHeight: Dp,
+    keypadExpanded: Boolean = true,
     sheets: List<LiveSheetUi>,
     initialSelectedTicketId: String = "",
     onSheetClick: (LiveSheetUi) -> Unit = {}
 ) {
+    val sizingProfile = liveCarouselSizingProfile(keypadExpanded)
+    val cardHeightRatio by animateFloatAsState(
+        targetValue = sizingProfile.heightRatio,
+        animationSpec = tween(LiveCarouselSizingAnimMs, easing = FastOutSlowInEasing),
+        label = "liveCarouselHeightRatio",
+    )
+    val cardWidthFactor by animateFloatAsState(
+        targetValue = sizingProfile.widthFactor,
+        animationSpec = tween(LiveCarouselSizingAnimMs, easing = FastOutSlowInEasing),
+        label = "liveCarouselWidthFactor",
+    )
     val initialIndex = sheets.indexOfFirst { it.ticketId == initialSelectedTicketId }.coerceAtLeast(0)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
@@ -1811,49 +1913,72 @@ private fun BingoSheetsCarousel(
                 .minByOrNull { kotlin.math.abs(it.offset) }?.index ?: 0
         }
     }
-    Column(modifier = modifier) {
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
+    val showPagerDots = sheets.size > 1
+    val dotsChrome = liveCarouselDotsChrome(showPagerDots)
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
             val horizontalPadding = Dimens.screenHorizontalPadding
-            val naturalCardWidth = maxWidth - horizontalPadding * 2
-            val cardNonGridOverhead = 100.dp
-            val maxCardWidthFromHeight = maxHeight - cardNonGridOverhead
-            val cardWidth = minOf(naturalCardWidth, maxCardWidthFromHeight).coerceAtLeast(180.dp)
+            val pageWidth = maxWidth
+            val pagerAreaHeight = (
+                stableCarouselAreaHeight -
+                    Dimens.spacing12 -
+                    dotsChrome -
+                    LiveCarouselPagerTopInset
+            ).coerceAtLeast(180.dp)
+            val maxCardWidth = pageWidth - horizontalPadding * 2
+            val maxCardHeight = pagerAreaHeight
+            val rawCardWidth = minOf(maxCardWidth, maxCardHeight / cardHeightRatio)
+                .coerceAtLeast(180.dp)
+            val calculatedCardWidth = (rawCardWidth * cardWidthFactor).coerceAtLeast(180.dp)
+            val calculatedCardHeight = (calculatedCardWidth * cardHeightRatio)
+                .coerceAtMost(maxCardHeight)
+            val minCardWidth = (180.dp + LiveCarouselCardWidthAdjustment).coerceAtLeast(150.dp)
+            val minCardHeight = (180.dp + LiveCarouselCardHeightAdjustment).coerceAtLeast(150.dp)
+            val cardWidth = (calculatedCardWidth + LiveCarouselCardWidthAdjustment)
+                .coerceIn(minCardWidth, maxCardWidth)
+            val cardHeight = (calculatedCardHeight + LiveCarouselCardHeightAdjustment)
+                .coerceIn(minCardHeight, maxCardHeight)
             LazyRow(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = LiveCarouselPagerTopInset),
                 state = listState,
                 flingBehavior = flingBehavior,
-                contentPadding = PaddingValues(horizontal = (maxWidth - cardWidth) / 2),
-                horizontalArrangement = Arrangement.spacedBy(LivePagerPageSpacing),
-                verticalAlignment = Alignment.CenterVertically
+                contentPadding = PaddingValues(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                itemsIndexed(sheets, key = { _, s -> s.ticketId }) { index, sheet ->
-                    val isCentered = index == currentIndex
+                itemsIndexed(sheets, key = { _, s -> s.ticketId }) { _, sheet ->
                     Box(
                         modifier = Modifier
-                            .width(cardWidth)
-                            .wrapContentHeight()
-                            .graphicsLayer {
-                                alpha = if (isCentered) 1f else 0.92f
-                                scaleX = if (isCentered) 1f else 0.98f
-                                scaleY = if (isCentered) 1f else 0.98f
-                            },
-                        contentAlignment = Alignment.Center
+                            .width(pageWidth)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center,
                     ) {
                         SheetCard(
-                            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                            modifier = Modifier
+                                .width(cardWidth)
+                                .height(cardHeight),
                             sheet = sheet,
-                            onClick = { onSheetClick(sheet) }
+                            keypadExpanded = keypadExpanded,
+                            onClick = { onSheetClick(sheet) },
                         )
                     }
                 }
             }
         }
-        if (sheets.size > 1) {
-            Spacer(modifier = Modifier.height(Dimens.spacing4))
+        if (showPagerDots) {
+            Spacer(modifier = Modifier.height(LiveCarouselCardToDotsGap))
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = Dimens.spacing8),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 repeat(sheets.size) { idx ->
                     Box(
@@ -1861,94 +1986,103 @@ private fun BingoSheetsCarousel(
                             .padding(horizontal = 4.dp)
                             .size(if (idx == currentIndex) 8.dp else 6.dp)
                             .clip(CircleShape)
-                            .background(if (idx == currentIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                            .background(
+                                if (idx == currentIndex) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                }
+                            )
                     )
                 }
             }
         }
+        Spacer(modifier = Modifier.height(LiveCarouselDotsToBottomGap))
     }
 }
 
 @Composable
-private fun SheetCard(modifier: Modifier = Modifier, sheet: LiveSheetUi, onClick: () -> Unit = {}) {
+private fun SheetCard(
+    modifier: Modifier = Modifier,
+    sheet: LiveSheetUi,
+    keypadExpanded: Boolean,
+    onClick: () -> Unit = {},
+) {
     val gridCells = when {
         sheet.cells.size == 25 && sheet.cells.any { !it.number.isNullOrBlank() } -> sheet.cells
         sheet.cells.size == 25 -> BingoCellUi.placeholderCells25()
         sheet.cells.isNotEmpty() -> sheet.cells + List(25 - sheet.cells.size) { BingoCellUi(null, false, false, false, false) }
         else -> BingoCellUi.placeholderCells25()
     }
+    val cellStates = remember(gridCells) { bingoGridCellsToActiveTicketCellStates(gridCells) }
     val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
-    val winResult = BingoWinChecker.check(markedSet)
-    val winningCells = winResult.winningCells
-    val isWin = winResult.isWin
-    val cardBg = if (isWin) WarningContainer else MaterialTheme.colorScheme.surfaceVariant
-    val cardBorder = if (isWin) WarningBorder else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+    val isWin = BingoWinChecker.check(markedSet).isWin
+    val cs = MaterialTheme.colorScheme
+    val cardBorder = if (isWin) WarningBorder else cs.primary.copy(alpha = 0.45f)
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
-    BoxWithConstraints(
-        modifier = modifier
-            .clip(cardShape)
-            .background(cardBg)
-            .border(1.dp, cardBorder, cardShape)
-            .clickable(
-                indication = rememberRipple(),
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = onClick
+    val markedLabel = stringResource(
+        R.string.live_play_marked_count,
+        BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
+        BingoPlayableNumbers.PLAYABLE_COUNT,
+    )
+    val liveLosLabelStyle = MaterialTheme.typography.labelSmall.copy(
+        fontSize = 11.sp,
+        lineHeight = 12.sp,
+        fontWeight = FontWeight.Medium,
+    )
+    val liveLosValueStyle = MaterialTheme.typography.labelLarge.copy(
+        fontSize = 16.sp,
+        lineHeight = 17.sp,
+        fontWeight = FontWeight.Bold,
+    )
+    BingoSheetTicketCard(
+        sheetName = sheet.title,
+        losNumber = sheet.losNumber,
+        serieNumber = sheet.serialNumber,
+        cellStates = cellStates,
+        neutralGrid = false,
+        onClick = onClick,
+        gridStyle = if (keypadExpanded) {
+            LiveSheetTicketGridStyleOpen
+        } else {
+            LiveSheetTicketGridStyleClosed
+        },
+        modifier = modifier,
+        shape = cardShape,
+        borderColor = cardBorder,
+        shadowElevation = if (isWin) 8.dp else 5.dp,
+        contentPadding = PaddingValues(
+            start = Dimens.spacing12,
+            end = Dimens.spacing12,
+            top = 14.dp,
+            bottom = 14.dp,
+        ),
+        headerContent = {
+            ActiveTicketLosSerieRow(
+                losNumber = sheet.losNumber,
+                serieNumber = sheet.serialNumber,
+                modifier = Modifier.fillMaxWidth(),
+                labelStyle = liveLosLabelStyle,
+                valueStyle = liveLosValueStyle,
             )
-    ) {
-        val referenceWidth = 300.dp
-        val scale = (maxWidth / referenceWidth).coerceIn(0.65f, 1.15f)
-        val outerDensity = LocalDensity.current
-        val scaledDensity = remember(outerDensity, scale) {
-            Density(density = outerDensity.density * scale, fontScale = outerDensity.fontScale * scale)
-        }
-        CompositionLocalProvider(LocalDensity provides scaledDensity) {
-            Column(modifier = Modifier.padding(Dimens.spacing12)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = sheet.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        softWrap = false
+        },
+        trailingHeader = {
+            Text(
+                text = markedLabel,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (isWin) WarningText else cs.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .background(
+                        if (isWin) Warning.copy(alpha = 0.18f) else cs.primary.copy(alpha = 0.1f),
+                        RoundedCornerShape(100.dp),
                     )
-                    Text(
-                        text = stringResource(
-                            R.string.live_play_marked_count,
-                            BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
-                            BingoPlayableNumbers.PLAYABLE_COUNT,
-                        ),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = if (isWin) WarningText else MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .background(
-                                if (isWin) Warning.copy(alpha = 0.18f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                RoundedCornerShape(100.dp)
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(Dimens.spacing8))
-                BingoCardGrid(
-                    cells = gridCells,
-                    modifier = Modifier.fillMaxWidth(),
-                    mode = BingoGridMode.PLAY,
-                    winningCells = winningCells,
-                    onCellClick = {}
-                )
-            }
-        }
-    }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        },
+    )
 }
 
 /** Live room sheet list row — compact B–O preview + LOS/SERIE (aligned with [HistorySheetCard]). */
@@ -1969,26 +2103,7 @@ private fun ListSheetRow(
         if (selected) R.string.live_play_a11y_selected else R.string.live_play_a11y_not_selected
     )
     val markedCount = marked.substringBefore('/').toIntOrNull() ?: 0
-    val gridCellStates = remember(cells) {
-        val normalized = when {
-            cells.size >= BingoPlayableNumbers.GRID_CELL_COUNT ->
-                cells.take(BingoPlayableNumbers.GRID_CELL_COUNT)
-            else ->
-                cells + List(BingoPlayableNumbers.GRID_CELL_COUNT - cells.size) {
-                    BingoCellUi(null, false, false, false, false)
-                }
-        }
-        normalized.map { cell ->
-            val display = cell.number?.trim().orEmpty().let { raw ->
-                when {
-                    raw.isEmpty() -> ""
-                    raw.equals("FREE", ignoreCase = true) -> "FREE"
-                    else -> raw
-                }
-            }
-            ActiveTicketCellState(display = display, isCalled = cell.isMarked)
-        }
-    }
+    val gridCellStates = remember(cells) { bingoGridCellsToActiveTicketCellStates(cells) }
     val rowShape = RoundedCornerShape(Dimens.radiusLarge)
     val leadingSlotWidth = 42.dp
     val cs = MaterialTheme.colorScheme
@@ -2897,15 +3012,16 @@ private fun CalledHistoryPanelDarkPreview() {
 @Composable
 private fun BingoSheetsCarouselLightPreview() {
     val sheets = listOf(
-        LiveSheetUi("1", "Manual 33", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 9),
-        LiveSheetUi("2", "Manual 34", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 0)
+        LiveSheetUi("1", "Manual 33", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 9, losNumber = "4231", serialNumber = "8821"),
+        LiveSheetUi("2", "Manual 34", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 0, serialNumber = "1205"),
     )
     MamunBingoTheme {
-        Column(Modifier.padding(16.dp)) {
+        BoxWithConstraints(Modifier.padding(16.dp).fillMaxWidth().height(480.dp)) {
             BingoSheetsCarousel(
                 modifier = Modifier.fillMaxWidth(),
+                stableCarouselAreaHeight = maxHeight,
                 sheets = sheets,
-                initialSelectedTicketId = "1"
+                initialSelectedTicketId = "1",
             )
         }
     }
@@ -2915,15 +3031,16 @@ private fun BingoSheetsCarouselLightPreview() {
 @Composable
 private fun BingoSheetsCarouselDarkPreview() {
     val sheets = listOf(
-        LiveSheetUi("1", "Manual 33", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 9),
-        LiveSheetUi("2", "Manual 34", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 0)
+        LiveSheetUi("1", "Manual 33", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 9, losNumber = "4231", serialNumber = "8821"),
+        LiveSheetUi("2", "Manual 34", System.currentTimeMillis(), BingoCellUi.placeholderCells25(), 0, serialNumber = "1205"),
     )
     MamunBingoTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) {
+        BoxWithConstraints(Modifier.padding(16.dp).fillMaxWidth().height(480.dp)) {
             BingoSheetsCarousel(
                 modifier = Modifier.fillMaxWidth(),
+                stableCarouselAreaHeight = maxHeight,
                 sheets = sheets,
-                initialSelectedTicketId = "1"
+                initialSelectedTicketId = "1",
             )
         }
     }

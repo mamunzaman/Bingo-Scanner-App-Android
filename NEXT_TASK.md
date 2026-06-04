@@ -1,13 +1,7 @@
 ﻿# Next task
 
-**Goal:** Manual QA — Manual Entry bingo sheet polish (depth, cells, header); other screens unchanged.
+**Goal:** QA equal-width BINGO header on device (Live + Home).
 
-**Previous:** Shared grid + `ManualEntrySheet` visual variant; no extraction needed.
+**Verify:** B/I/N/G/O boxes visually identical width; open/closed Live fonts OK.
 
-**Verify:** Empty leave OK; one cell/LOS/SERIE/name → dialog; Keep Editing stays; Discard leaves; save clears dirty. `./gradlew :app:assembleDebug` OK.
-
-**Previous:** Unsaved-changes dialog + shell tab interception via `SavedStateHandle`.
-
-**Previous:** **Master Sheet → Manual Entry** — removed review screen; MAIN_SHEET routes to existing Manual Entry with prefill. Build OK.
-
-**Previous:** **Ktor 3 + Gemini KMP SDK** — Supabase + `generativeai-google` for Master Sheet AI. Build OK.
+**Previous:** Explicit `letterWidth` in `ActiveTicketBingoHeaderRow`. Build OK.

@@ -1,6 +1,74 @@
 # Project status
 
-**Last update:** 2026-05-31 - **Manual Entry bingo sheet polish:** Reused `BingoCardGrid`/`BingoGrid5x5`; `ManualEntryBingoCard` depth + green header; `ManualEntrySheet` cell variant (empty/selected/filled). Build OK.
+**Last update:** 2026-06-04 - **BINGO header:** equal box width via `(maxWidth - 4×gap) / 5`. Build OK.
+
+**Previous:** 2026-06-04 - **Live sheet grid polish.** Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel pager:** full-page centered sheet. Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel size:** min peek 20%; no post-peek scale. Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel size audit.** Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel card sizing:** scale 0.85; peek floor 28%. Build OK.
+
+**Previous:** 2026-06-04 - **Live cards layout:** status top; carousel bottom-aligned. Build OK.
+
+**Previous:** 2026-06-04 - **Live cards flex gap fix.** Build OK.
+
+**Previous:** 2026-06-04 - **Live Play bottom gap audit.** Build OK.
+
+**Previous:** 2026-06-04 - **Live Sunday lock overlay:** floating banner in keypad. Build OK.
+
+**Previous:** 2026-06-04 - **Live Sunday lock banner:** in-panel header (superseded). Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel dots spacing:** card→dots 3dp; dots→bottom 7dp. Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel card ratio:** `cardHeight = cardWidth × 1.10`. Home unchanged. Build OK.
+
+**Previous:** 2026-06-04 - **Live sheet card bottom gap:** `anchorGridToBottom` workaround (superseded). Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel gap fix:** measure-once unwrap for cards column; keypad closer. Build OK.
+
+**Previous:** 2026-05-31 - **Live carousel peek (~1/3):** card width ×0.80; peek-aware padding; 8/4/8dp stack. Build OK.
+
+**Previous:** 2026-05-31 - **Live carousel peek:** card ×0.90. Build OK.
+
+**Previous:** 2026-05-31 - **Live carousel bottom space:** wrap-height + flex spacer below. Build OK.
+
+**Previous:** 2026-05-31 - **Live carousel alignment:** top-aligned card + dots under `LazyRow`. Build OK.
+
+**Previous:** 2026-05-31 - **Live Practice Room spacing polish:** carousel top gap + live LOS padding. Build OK.
+
+**Previous:** 2026-05-31 - **Live sheet card reuse:** `BingoSheetTicketCard` shared with Home. Build OK.
+
+**Previous:** 2026-05-31 - **Live sheet grid size:** width-first `BingoCardGrid` compact. Build OK.
+
+**Previous:** 2026-05-31 - **Live `SheetCard` grid fit:** height-aware compact grid. Build OK.
+
+**Previous:** 2026-05-31 - **Live `SheetCard` header rhythm:** title 20sp; LOS padding 8/10dp. Build OK.
+
+**Previous:** 2026-05-31 - **Live `SheetCard` typography:** title 18sp; LOS 17sp; grid gap 10dp. Build OK.
+
+**Previous:** 2026-05-31 - **Live carousel stable size:** keypad toggle does not resize cards. Build OK.
+
+**Previous:** 2026-05-31 - **Live carousel peek:** `SheetCard` scale cap `1.0f`. Build OK.
+
+**Previous:** 2026-05-31 - **Live sheet LOS/SERIE data path:** `TicketRepository.seedDemoTickets()` + demo meta; `SheetCardLosSerieRow` 12sp Bold. Build OK.
+
+**Previous:** 2026-05-31 - **Live sheet card LOS/SERIE typography:** `SheetCardLosSerieRow` (8sp labels) in `SheetCard`. Build OK.
+
+**Previous:** 2026-05-31 - **Live room sheet card LOS/SERIE:** carousel `SheetCard` metadata row. Build OK.
+
+**Previous:** 2026-05-31 - **Live Sheet detail LOS/SERIE header:** `LiveSheetDetailScreen` + `ActiveTicketLosSerieRow`. Build OK.
+
+**Previous:** 2026-05-31 - **Scan-busy clears on OCR failure:** `finishScanPipelineBusy()`. Build OK.
+
+**Previous:** 2026-05-31 - **Bottom nav scan-busy enforcement:** `AppBottomBar.tabsEnabled`; main-shell busy key. Build OK.
+
+**Previous:** 2026-05-31 - **Scan-busy navigation lock:** `ImportTicketViewModel.scanPipelineBusy`; block back/tabs during capture/OCR. Build OK.
+
+**Previous:** 2026-05-31 - **Manual Entry bingo sheet polish:** Reused `BingoCardGrid`/`BingoGrid5x5`; `ManualEntryBingoCard` depth + green header; `ManualEntrySheet` cell variant (empty/selected/filled). Build OK.
 
 **Previous:** 2026-05-31 - **Manual Entry unsaved discard guard.** Build OK.
 

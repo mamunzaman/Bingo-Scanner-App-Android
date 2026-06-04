@@ -165,6 +165,52 @@ object TicketRepository {
         ticketDao().upsertCells(newCells)
         newTicketId
     }
+
+    /** Upserts demo room tickets + cells with sample LOS/SERIE when missing (debug `DEMO_MODE` only). */
+    suspend fun seedDemoTickets() = withContext(Dispatchers.IO) {
+        val cellsByTicket = DemoDataFactory.createDemoTicketCells()
+        val now = System.currentTimeMillis()
+        for (seed in DemoDataFactory.demoTicketSeeds()) {
+            val existing = ticketDao().observeTicket(seed.ticketId).first()
+            val cells = cellsByTicket[seed.ticketId].orEmpty().take(25)
+            if (existing == null) {
+                ticketDao().upsertTicket(
+                    TicketEntity(
+                        ticketId = seed.ticketId,
+                        sheetName = seed.sheetName,
+                        playedAtMillis = seed.playedAtMillis,
+                        createdAt = now,
+                        source = "demo",
+                        losNumber = seed.losNumber,
+                        serialNumber = seed.serialNumber,
+                    )
+                )
+                if (cells.isNotEmpty()) {
+                    ticketDao().upsertCells(
+                        cells.mapIndexed { index, cell ->
+                            TicketCellEntity(
+                                ticketId = seed.ticketId,
+                                cellIndex = index,
+                                value = cell.number,
+                                isMarked = cell.isMarked,
+                            )
+                        }
+                    )
+                }
+            } else {
+                val losBlank = existing.losNumber.isNullOrBlank()
+                val serialBlank = existing.serialNumber.isNullOrBlank()
+                if (losBlank && serialBlank) {
+                    ticketDao().upsertTicket(
+                        existing.copy(
+                            losNumber = seed.losNumber,
+                            serialNumber = seed.serialNumber,
+                        )
+                    )
+                }
+            }
+        }
+    }
 }
 
 private fun TicketEntity.toHistorySession(): HistorySession {

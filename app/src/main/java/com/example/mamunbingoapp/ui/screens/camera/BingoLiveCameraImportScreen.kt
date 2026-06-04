@@ -507,6 +507,7 @@ fun BingoLiveCameraImportScreen(
     onFullTicketPhotoCaptured: (uri: Uri) -> Unit,
     onScanFullTicket: () -> Unit,
     onBack: () -> Unit,
+    onScanBusyChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -626,6 +627,7 @@ fun BingoLiveCameraImportScreen(
                                 val l = res.los
                                 mainExecutor.execute {
                                     fullTicketImportLocked = true
+                                    onScanBusyChanged(true)
                                     torchEnabled = false
                                     runCatching {
                                         boundCameraRef.getAndSet(null)?.cameraControl?.enableTorch(false)
@@ -679,7 +681,12 @@ fun BingoLiveCameraImportScreen(
         }
     }
     val captureActionEnabled = cameraSessionReady && !fullTicketImportLocked
-    BackHandler(enabled = !capturing, onBack = onBack)
+    val isScanBusy = capturing || fullTicketImportLocked
+    androidx.compose.runtime.LaunchedEffect(isScanBusy) {
+        onScanBusyChanged(isScanBusy)
+    }
+    BackHandler(enabled = isScanBusy) { }
+    BackHandler(enabled = !isScanBusy, onBack = onBack)
     val view = LocalView.current
     DisposableEffect(view) {
         if (!view.isInEditMode) {
@@ -767,11 +774,11 @@ fun BingoLiveCameraImportScreen(
         BingoCameraImportTopHeader(
             modifier = Modifier.align(Alignment.TopCenter),
             onBack = onBack,
-            capturing = capturing,
+            navigationBlocked = isScanBusy,
             hasFlashUnit = hasFlashUnit,
             torchEnabled = torchEnabled,
             onTorchToggle = { torchEnabled = !torchEnabled },
-            flashControlEnabled = captureActionEnabled && !capturing,
+            flashControlEnabled = captureActionEnabled && !capturing && !isScanBusy,
         )
         Box(
             modifier = Modifier
@@ -837,6 +844,7 @@ fun BingoLiveCameraImportScreen(
                             return@Button
                         }
                         capturing = true
+                        onScanBusyChanged(true)
                         scope.launch {
                             coroutineScope {
                                 launch {
@@ -869,6 +877,9 @@ fun BingoLiveCameraImportScreen(
                                     result: ImageCapture.OutputFileResults,
                                 ) {
                                     capturing = false
+                                    if (!fullTicketImportLocked) {
+                                        onScanBusyChanged(false)
+                                    }
                                     val vw = previewView.width
                                     val vh = previewView.height
                                     val cropped = tryCropToViewfinderFrame(outFile, context, vw, vh)
@@ -899,6 +910,9 @@ fun BingoLiveCameraImportScreen(
                                     e: ImageCaptureException,
                                 ) {
                                     capturing = false
+                                    if (!fullTicketImportLocked) {
+                                        onScanBusyChanged(false)
+                                    }
                                     outFile.delete()
                                     Log.w(TAG, "takePicture failed, fallback GMS: ${e.message}")
                                     onScanFullTicketState.value()
@@ -981,7 +995,7 @@ fun BingoLiveCameraImportScreen(
 @Composable
 private fun BingoCameraImportTopHeader(
     onBack: () -> Unit,
-    capturing: Boolean,
+    navigationBlocked: Boolean,
     hasFlashUnit: Boolean,
     torchEnabled: Boolean,
     onTorchToggle: () -> Unit,
@@ -1011,7 +1025,7 @@ private fun BingoCameraImportTopHeader(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack, enabled = !capturing) {
+                    IconButton(onClick = onBack, enabled = !navigationBlocked) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             stringResource(R.string.common_back),

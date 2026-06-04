@@ -35,6 +35,7 @@ import com.example.mamunbingoapp.ui.components.TicketInfoCard
 import com.example.mamunbingoapp.ui.components.TicketInfoItem
 import com.example.mamunbingoapp.ui.components.TicketInfoStatusChip
 import com.example.mamunbingoapp.ui.components.SectionHeader
+import com.example.mamunbingoapp.ui.components.home.ActiveTicketLosSerieRow
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -64,6 +65,8 @@ fun LiveSheetDetailScreen(
     ticketId: String,
     roomId: String = "",
     sheetName: String = "",
+    losNumber: String? = null,
+    serialNumber: String? = null,
     playedAtMillis: Long = System.currentTimeMillis(),
     cells: List<BingoCellUi>? = null,
     calledNumbers: List<Int> = emptyList(),
@@ -167,7 +170,17 @@ fun LiveSheetDetailScreen(
                 )
             }
             item {
-                SectionHeader(title = stringResource(R.string.live_play_bingo_sheet_section))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                ) {
+                    SectionHeader(title = stringResource(R.string.live_play_bingo_sheet_section))
+                    ActiveTicketLosSerieRow(
+                        losNumber = losNumber,
+                        serieNumber = serialNumber,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             item {
                 val gridCells = liveSheetDetailGridCells(cells)

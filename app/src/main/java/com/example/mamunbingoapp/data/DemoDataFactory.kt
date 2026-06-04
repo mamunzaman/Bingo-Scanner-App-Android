@@ -14,7 +14,26 @@ object DemoDataFactory {
     const val TICKET_2 = "demo-t2"
     const val TICKET_COMPLETED = "demo-t-completed"
 
+    /** Sample LOS/SERIE for debug `DEMO_MODE` carousel QA only — not used in release. */
+    const val DEMO_LOS_1 = "12"
+    const val DEMO_SERIAL_1 = "345678"
+    const val DEMO_LOS_2 = "08"
+    const val DEMO_SERIAL_2 = "901234"
+
     private val baseTime = System.currentTimeMillis() - 86_400_000
+
+    data class DemoTicketSeed(
+        val ticketId: String,
+        val sheetName: String,
+        val losNumber: String,
+        val serialNumber: String,
+        val playedAtMillis: Long,
+    )
+
+    fun demoTicketSeeds(): List<DemoTicketSeed> = listOf(
+        DemoTicketSeed(TICKET_1, "Demo Sheet 1", DEMO_LOS_1, DEMO_SERIAL_1, baseTime),
+        DemoTicketSeed(TICKET_2, "Demo Sheet 2", DEMO_LOS_2, DEMO_SERIAL_2, baseTime + 1_800_000),
+    )
 
     fun createDemoRooms(): List<LiveRoom> = listOf(
         LiveRoom(ROOM_1, "Friday Night Bingo", baseTime, true),
@@ -35,7 +54,9 @@ object DemoDataFactory {
                 SheetPlayed(TICKET_1, "Demo Sheet 1", "Marked: 0/25", 0, 25)
             ),
             sheetName = "Demo Sheet 1",
-            playedAtMillis = baseTime
+            playedAtMillis = baseTime,
+            losNumber = DEMO_LOS_1,
+            serialNumber = DEMO_SERIAL_1,
         ),
         HistorySession(
             id = SESSION_2,
@@ -49,7 +70,9 @@ object DemoDataFactory {
                 SheetPlayed(TICKET_2, "Demo Sheet 2", "Marked: 0/25", 0, 25)
             ),
             sheetName = "Demo Sheet 2",
-            playedAtMillis = baseTime + 1800_000
+            playedAtMillis = baseTime + 1800_000,
+            losNumber = DEMO_LOS_2,
+            serialNumber = DEMO_SERIAL_2,
         ),
         HistorySession(
             id = SESSION_COMPLETED,

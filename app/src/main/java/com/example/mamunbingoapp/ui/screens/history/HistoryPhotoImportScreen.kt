@@ -70,6 +70,7 @@ fun HistoryPhotoImportScreen(
     onScanAgainClick: () -> Unit = {},
     onRetryAnalysisClick: () -> Unit = {},
     onRegisterLeaveHandler: (((() -> Unit) -> Unit)?) -> Unit = {},
+    onScanPipelineBusyChanged: (Boolean) -> Unit = {},
     @Suppress("UNUSED_PARAMETER") handoffLosNumber: String? = null,
     @Suppress("UNUSED_PARAMETER") handoffSerialNumber: String? = null,
     @Suppress("UNUSED_PARAMETER") selectedImageUri: Uri? = null,
@@ -91,7 +92,23 @@ fun HistoryPhotoImportScreen(
     val galleryPendingUri by importVm.galleryPendingEditUri.collectAsState()
     val displayUri = galleryPendingUri ?: selectedUriVm
     val scanResult by importVm.scanResult.collectAsState()
+    val isScanBusy by importVm.scanPipelineBusy.collectAsState()
     val isAnalyzingUi = scanResult is ScanResultUiState.Loading
+    LaunchedEffect(scanResult) {
+        when (scanResult) {
+            is ScanResultUiState.Loading -> onScanPipelineBusyChanged(true)
+            is ScanResultUiState.Idle,
+            is ScanResultUiState.Success,
+            is ScanResultUiState.Error,
+            -> onScanPipelineBusyChanged(false)
+        }
+    }
+    LaunchedEffect(isScanBusy) {
+        if (isScanBusy) onScanPipelineBusyChanged(true)
+    }
+    DisposableEffect(Unit) {
+        onDispose { onScanPipelineBusyChanged(false) }
+    }
     val ocrProgress by importVm.ocrProgress.collectAsState()
     val hasActiveSession = importVm.hasActiveImportSession()
     var showDiscardDialog by remember { mutableStateOf(false) }
@@ -110,6 +127,7 @@ fun HistoryPhotoImportScreen(
     }
 
     fun handleExitRequest(onExit: () -> Unit) {
+        if (isScanBusy) return
         if (galleryPendingUri != null) {
             importVm.cancelGalleryPendingEdit()
             return
@@ -125,7 +143,8 @@ fun HistoryPhotoImportScreen(
         onRegisterLeaveHandler { action -> handleExitRequest(action) }
         onDispose { onRegisterLeaveHandler(null) }
     }
-    BackHandler {
+    BackHandler(enabled = isScanBusy) { }
+    BackHandler(enabled = !isScanBusy) {
         when {
             showDiscardDialog -> showDiscardDialog = false
             galleryPendingUri != null -> importVm.cancelGalleryPendingEdit()
@@ -199,7 +218,10 @@ fun HistoryPhotoImportScreen(
                 showBack = true,
                 onBackClick = { handleExitRequest(onBackClick) },
                 actions = {
-                    IconButton(onClick = { showScanTipsDialog = true }) {
+                    IconButton(
+                        onClick = { showScanTipsDialog = true },
+                        enabled = !isScanBusy,
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Info,
                             contentDescription = stringResource(R.string.import_ticket_scan_tips_title),
@@ -234,9 +256,11 @@ fun HistoryPhotoImportScreen(
                             isAnalyzing = isAnalyzingUi,
                             imageSource = null,
                             idleHint = idleHint,
-                            onTakePhoto = { scanTypeSheetTarget = HistoryImportScanTypeTarget.Camera },
+                            onTakePhoto = {
+                                if (!isScanBusy) scanTypeSheetTarget = HistoryImportScanTypeTarget.Camera
+                            },
                             onPickFromGallery = {
-                                scanTypeSheetTarget = HistoryImportScanTypeTarget.Gallery
+                                if (!isScanBusy) scanTypeSheetTarget = HistoryImportScanTypeTarget.Gallery
                             },
                             onSecondaryOutlinedClick = onScanAgainClick,
                             onGalleryApply = { l, t, r, b -> importVm.applyGalleryPendingEdit(context, l, t, r, b) },
@@ -249,18 +273,22 @@ fun HistoryPhotoImportScreen(
             }
         }
     }
+    if (!isScanBusy) {
     scanTypeSheetTarget?.let { target ->
         ScanTypeSelectionSheet(
             onDismiss = { scanTypeSheetTarget = null },
             onScanTypeSelected = { type ->
+                if (!isScanBusy) {
                 scanTypeSheetTarget = null
                 importVm.setPendingScanType(type)
                 when (target) {
                     HistoryImportScanTypeTarget.Camera -> onLaunchCamera(type)
                     HistoryImportScanTypeTarget.Gallery -> pickImageFromGallery()
                 }
+                }
             },
         )
+    }
     }
 }
 

@@ -1,17 +1,25 @@
 package com.example.mamunbingoapp.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.screens.scan.ScanScreen
 import com.example.mamunbingoapp.viewmodel.AccountViewModel
 
+private const val SCAN_PIPELINE_MAIN_TABS_LOG = "ScanPipelineBusy"
+
 @Composable
 fun MainTabsScreen(
     selectedTab: AppTab,
+    mainBackStackEntry: NavBackStackEntry? = null,
     onTabSelected: (AppTab) -> Unit,
     onNavigateToLiveRoom: (String) -> Unit,
     onNavigateToLiveRooms: () -> Unit,
@@ -46,7 +54,21 @@ fun MainTabsScreen(
         com.example.mamunbingoapp.ui.components.AppAuthMessageType.Info,
     isProfileRefreshing: Boolean = false,
     onProfileRefresh: () -> Unit = {},
+    requestShowScanTypeSheet: Boolean = false,
+    onScanTypeSheetRequestConsumed: () -> Unit = {},
 ) {
+    val scanBusyFlow = remember(mainBackStackEntry?.id) {
+        mainBackStackEntry?.savedStateHandle?.getStateFlow(SCAN_PIPELINE_BUSY_KEY, false)
+    }
+    val isGlobalScanBusy by scanBusyFlow?.collectAsStateWithLifecycle()
+        ?: remember { androidx.compose.runtime.mutableStateOf(false) }
+    val guardedTabSelected: (AppTab) -> Unit = guardedTabSelected@{ tab ->
+        if (isGlobalScanBusy) {
+            Log.d(SCAN_PIPELINE_MAIN_TABS_LOG, "MainTabs tab ignored (scan busy): ${tab.name}")
+            return@guardedTabSelected
+        }
+        onTabSelected(tab)
+    }
     // Bottom navigation is provided by [MainShellScaffold] in NavGraph for all main-graph routes.
     Column(modifier = Modifier.fillMaxSize()) {
         when (selectedTab) {
@@ -55,14 +77,14 @@ fun MainTabsScreen(
                 onQuickActionClick = { action ->
                     when (action) {
                         "tickets" -> onNavigateToHistory()
-                        "results" -> onTabSelected(AppTab.Jackpot)
+                        "results" -> guardedTabSelected(AppTab.Jackpot)
                         "help" -> onNavigateToSupport()
                         else -> onJackpotScanSheet(BingoScanType.PLAY_PAPER)
                     }
                 },
                 onTicketClick = onNavigateToHistoryDetail,
                 onViewAllTickets = onNavigateToHistory,
-                onTabSelected = onTabSelected,
+                onTabSelected = guardedTabSelected,
                 showBottomBar = false,
                 profileDisplayName = authDisplayName,
                 profileAvatarUrl = authAvatarUrl,
@@ -72,9 +94,11 @@ fun MainTabsScreen(
             )
             AppTab.Scan -> ScanScreen(
                 modifier = Modifier.fillMaxSize(),
-                onBackClick = { onTabSelected(AppTab.Home) },
+                onBackClick = { guardedTabSelected(AppTab.Home) },
                 onLaunchCamera = onNavigateToBingoLiveCamera,
-                onOpenNumberPad = onNavigateToManualEntry
+                onOpenNumberPad = onNavigateToManualEntry,
+                requestShowScanTypeSheet = requestShowScanTypeSheet,
+                onScanTypeSheetRequestConsumed = onScanTypeSheetRequestConsumed,
             )
             AppTab.Jackpot -> com.example.mamunbingoapp.ui.screens.live.LiveRoomsScreen(
                 onEnterRoom = onNavigateToLiveRoom,
@@ -85,14 +109,14 @@ fun MainTabsScreen(
                 onHistory = onNavigateToHistory,
                 onArchivedGames = onNavigateToArchivedGames,
                 onGoLivePlay = onNavigateToLiveRooms,
-                onTabSelected = onTabSelected,
+                onTabSelected = guardedTabSelected,
                 showBottomBar = false
             )
             AppTab.Projects -> com.example.mamunbingoapp.ui.projects.ProjectsScreen(
                 modifier = Modifier.fillMaxSize(),
             )
             AppTab.Profile -> com.example.mamunbingoapp.ui.screens.profile.ProfileScreen(
-                onTabSelected = onTabSelected,
+                onTabSelected = guardedTabSelected,
                 onSettings = onNavigateToSettings,
                 onMyAccount = onNavigateToMyAccount,
                 onPaymentMethods = onNavigateToPaymentMethods,

@@ -18,6 +18,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -106,6 +107,8 @@ fun LivePlayCallKeypad(
     onCallClick: () -> Unit,
     onUndoClick: () -> Unit,
     modifier: Modifier = Modifier,
+    lockedOverlay: @Composable BoxScope.() -> Unit = {},
+    contentAlpha: Float = 1f,
 ) {
     val scheme = MaterialTheme.colorScheme
     val callNumberA11y = stringResource(R.string.live_play_a11y_call_number)
@@ -116,6 +119,7 @@ fun LivePlayCallKeypad(
     )
     val haptic = LocalHapticFeedback.current
     val actionsEnabled = !actionInProgress
+    val inputVisuallyActive = canAddNumber
     // Allow Add when there is text so invalid/edge values can be submitted; empty stays off (no feedback on type-only).
     val hasNonBlankInput = draft.trim().isNotEmpty()
     val callEnabled = canAddNumber && actionsEnabled && hasNonBlankInput
@@ -123,19 +127,19 @@ fun LivePlayCallKeypad(
     val compactActionSize = topRowHeight
     val hasDraft = draft.isNotEmpty()
     val inputBg by animateColorAsState(
-        targetValue = if (hasDraft) {
-            scheme.primaryContainer.copy(alpha = 0.38f)
-        } else {
-            scheme.surface
+        targetValue = when {
+            !inputVisuallyActive -> scheme.surface
+            hasDraft -> scheme.primaryContainer.copy(alpha = 0.38f)
+            else -> scheme.surface
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveInputBg"
     )
     val inputBorder by animateColorAsState(
-        targetValue = if (hasDraft) {
-            scheme.primary.copy(alpha = 0.5f)
-        } else {
-            scheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder)
+        targetValue = when {
+            !inputVisuallyActive -> scheme.outlineVariant.copy(alpha = 0.24f)
+            hasDraft -> scheme.primary.copy(alpha = 0.5f)
+            else -> scheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder)
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveInputBorder"
@@ -200,6 +204,16 @@ fun LivePlayCallKeypad(
                     bottom = Dimens.spacing16,
                 ),
         ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = if (contentAlpha < 1f) {
+                        Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = contentAlpha }
+                    } else {
+                        Modifier.fillMaxWidth()
+                    },
+                ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -247,10 +261,10 @@ fun LivePlayCallKeypad(
                                     letterSpacing = if (isEmpty) 0.5.sp else 1.sp,
                                     platformStyle = PlatformTextStyle(includeFontPadding = false),
                                 ),
-                                color = if (isEmpty) {
-                                    scheme.onSurfaceVariant.copy(alpha = 0.82f)
-                                } else {
-                                    scheme.onSurface
+                                color = when {
+                                    !inputVisuallyActive -> scheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                    isEmpty -> scheme.onSurfaceVariant.copy(alpha = 0.82f)
+                                    else -> scheme.onSurface
                                 },
                                 maxLines = 1,
                                 textAlign = TextAlign.Center,
@@ -286,7 +300,11 @@ fun LivePlayCallKeypad(
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 18.sp
                                 ),
-                                color = scheme.primary,
+                                color = if (inputVisuallyActive) {
+                                    scheme.primary
+                                } else {
+                                    scheme.onSurfaceVariant.copy(alpha = 0.34f)
+                                },
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -356,7 +374,7 @@ fun LivePlayCallKeypad(
                     keypadOpen = showNumberKeypad,
                     onClick = onToggleNumberKeypad,
                     size = compactActionSize,
-                    inactive = !showNumberKeypad,
+                    inactive = !inputVisuallyActive,
                 )
             }
             AnimatedVisibility(
@@ -391,6 +409,9 @@ fun LivePlayCallKeypad(
                         bottomSafeSpacing = LivePlayCallKeypadMetrics.fabSafeBottomInset,
                     )
                 }
+            }
+                }
+                lockedOverlay()
             }
         }
     }

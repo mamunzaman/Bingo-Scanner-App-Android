@@ -78,7 +78,9 @@ fun BingoCardGrid(
     historyDetailContentMaxWidth: Dp? = null,
     historyDetailContentMaxHeight: Dp? = null,
     historyDetailMaxCellSize: Dp = 44.dp,
+    historyDetailMinCellSize: Dp = 22.dp,
     historyDetailCellGap: Dp = Dimens.spacing4,
+    historyDetailPreferWidthFirst: Boolean = false,
     historyDetailUseSheetSection: Boolean = true,
     visualVariant: BingoGridVisualVariant = BingoGridVisualVariant.Default,
 ) {
@@ -97,10 +99,44 @@ fun BingoCardGrid(
             historyDetailContentMaxWidth = historyDetailContentMaxWidth,
             historyDetailContentMaxHeight = historyDetailContentMaxHeight,
             historyDetailMaxCellSize = historyDetailMaxCellSize,
+            historyDetailMinCellSize = historyDetailMinCellSize,
             historyDetailCellGap = historyDetailCellGap,
+            historyDetailPreferWidthFirst = historyDetailPreferWidthFirst,
             historyDetailUseSheetSection = historyDetailUseSheetSection,
         )
     }
+}
+
+private fun compactGridBlockHeight(cellSize: Dp, gap: Dp): Dp = gap * 5 + cellSize * 6
+
+private fun resolveCompactCellSize(
+    contentW: Dp,
+    contentH: Dp?,
+    gap: Dp,
+    maxCell: Dp,
+    minCell: Dp,
+    preferWidthFirst: Boolean,
+): Pair<Dp, Dp> {
+    if (!preferWidthFirst || contentH == null) {
+        val rawFromWidth = (contentW - gap * 4) / 5f
+        val cell = if (contentH != null) {
+            val rawFromHeight = (contentH - gap * 5) / 6f
+            minOf(rawFromWidth, rawFromHeight).coerceIn(minCell, maxCell)
+        } else {
+            rawFromWidth.coerceIn(minCell, maxCell)
+        }
+        return cell to gap
+    }
+    val gapOptions = listOf(gap, 8.dp, 7.dp).distinct().sortedByDescending { it.value }
+    for (g in gapOptions) {
+        val cellFromWidth = ((contentW - g * 4) / 5f).coerceIn(minCell, maxCell)
+        if (compactGridBlockHeight(cellFromWidth, g) <= contentH) {
+            return cellFromWidth to g
+        }
+    }
+    val tightGap = gapOptions.last()
+    val cellFromHeight = ((contentH - tightGap * 5) / 6f).coerceIn(minCell, maxCell)
+    return cellFromHeight to tightGap
 }
 
 @Composable
@@ -118,22 +154,24 @@ private fun BingoCardGridContent(
     historyDetailContentMaxWidth: Dp?,
     historyDetailContentMaxHeight: Dp?,
     historyDetailMaxCellSize: Dp,
+    historyDetailMinCellSize: Dp,
     historyDetailCellGap: Dp,
+    historyDetailPreferWidthFirst: Boolean,
     historyDetailUseSheetSection: Boolean,
 ) {
     if (historyDetailCompact) {
-        BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-            val gap = historyDetailCellGap
-            val headerGap = historyDetailCellGap
+        BoxWithConstraints(modifier = modifier) {
             val contentW = historyDetailContentMaxWidth ?: maxWidth
             val contentH = historyDetailContentMaxHeight
-            val rawFromWidth = (contentW - gap * 4) / 5f
-            val compactCellSize = if (contentH != null) {
-                val rawFromHeight = (contentH - headerGap - gap * 4) / 6f
-                minOf(rawFromWidth, rawFromHeight).coerceIn(22.dp, historyDetailMaxCellSize)
-            } else {
-                rawFromWidth.coerceIn(22.dp, historyDetailMaxCellSize)
-            }
+            val (compactCellSize, gap) = resolveCompactCellSize(
+                contentW = contentW,
+                contentH = contentH,
+                gap = historyDetailCellGap,
+                maxCell = historyDetailMaxCellSize,
+                minCell = historyDetailMinCellSize,
+                preferWidthFirst = historyDetailPreferWidthFirst,
+            )
+            val headerGap = gap
             val bingoGridWidth = gap * 4 + compactCellSize * 5
             val letterStyle = when {
                 compactCellSize < 28.dp ->

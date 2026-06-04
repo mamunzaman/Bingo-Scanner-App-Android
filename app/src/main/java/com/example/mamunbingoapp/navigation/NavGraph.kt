@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -43,6 +44,8 @@ import com.example.mamunbingoapp.ui.screens.manual.ManualEntryScreen
 import com.example.mamunbingoapp.ui.screens.MainTabsScreen
 import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY
 import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_URI_KEY
+import com.example.mamunbingoapp.ui.screens.REQUEST_SHOW_SCAN_TYPE_SHEET_KEY
+import com.example.mamunbingoapp.ui.screens.SCAN_PIPELINE_BUSY_KEY
 import com.example.mamunbingoapp.ui.screens.RegisterScreen
 import com.example.mamunbingoapp.ui.screens.OnboardingScreen
 import com.example.mamunbingoapp.ui.screens.SplashScreen
@@ -117,6 +120,7 @@ import com.example.mamunbingoapp.history.HistoryOcrSource
  * Legacy `directScan` / `directDocumentScan` routes removed from the graph.
  */
 private const val SCAN_ENTRY_HANDOFF_TAG = "scan-entry-handoff"
+private const val SCAN_PIPELINE_LOG = "ScanPipelineBusy"
 private const val MAIN_GRAPH_ROUTE = "main"
 private const val MAIN_TABS_ROUTE = "tabs"
 
@@ -501,7 +505,14 @@ private fun NavHostController.onMainBottomBarTabSelected(
     tabsViewModel: MainTabsViewModel?,
 ) {
     if (stageManualEntryPendingTabIfDirty(tab)) return
+    if (isMainShellScanPipelineBusy()) return
     navigateToMainTabRoot(tab, tabsViewModel)
+}
+
+private fun NavHostController.isMainShellScanPipelineBusy(): Boolean {
+    val mainHandle = runCatching { getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle }.getOrNull()
+        ?: return false
+    return mainHandle.get<Boolean>(SCAN_PIPELINE_BUSY_KEY) == true
 }
 
 /** When Manual Entry has unsaved edits, stash tab intent for the screen discard dialog. */
@@ -549,6 +560,11 @@ private fun MainShellScaffold(
     }
     val tabHintRaw by tabHintFlow?.collectAsStateWithLifecycle()
         ?: remember { mutableStateOf("") }
+    val scanPipelineBusyFlow = remember(mainGraphEntry?.id) {
+        mainGraphEntry?.savedStateHandle?.getStateFlow(SCAN_PIPELINE_BUSY_KEY, false)
+    }
+    val isGlobalScanBusy by scanPipelineBusyFlow?.collectAsStateWithLifecycle()
+        ?: remember { mutableStateOf(false) }
     val highlightedTab = appTabHighlightForRoute(currentRoute)
         ?: parseMainShellTabHint(tabHintRaw)
         ?: vmSelectedTab
@@ -564,7 +580,12 @@ private fun MainShellScaffold(
         if (showBottomBar) {
             AppBottomBar(
                 selectedTab = highlightedTab,
+                tabsEnabled = !isGlobalScanBusy,
                 onTabSelected = { tab ->
+                    if (isGlobalScanBusy) {
+                        Log.d(SCAN_PIPELINE_LOG, "MainShell bottom tab ignored: ${tab.name}")
+                        return@AppBottomBar
+                    }
                     navController.onMainBottomBarTabSelected(tab, tabsViewModel)
                 },
                 modifier = Modifier
@@ -581,12 +602,41 @@ private fun ArchivedNavInvalidArgs(onDismiss: () -> Unit) {
     LaunchedEffect(Unit) { onDismiss() }
 }
 
+private fun SavedStateHandle.setScanPipelineBusy(busy: Boolean) {
+    if (get<Boolean>(SCAN_PIPELINE_BUSY_KEY) == busy) return
+    set(SCAN_PIPELINE_BUSY_KEY, busy)
+    Log.d(SCAN_PIPELINE_LOG, "main savedStateHandle busy=$busy")
+}
+
+private fun NavHostController.setMainScanPipelineBusy(busy: Boolean) {
+    runCatching {
+        getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle.setScanPipelineBusy(busy)
+    }
+}
+
 private fun clearPendingHistoryPhotoImportHandoff(navController: NavHostController) {
     runCatching {
         val mainHandle = navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
         mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
         mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
+        mainHandle.setScanPipelineBusy(false)
     }
+}
+
+/** Duplicate-sheet Scan Another: clear import handoff, pop to tabs, show scan type sheet (Option A). */
+private fun NavHostController.restartFreshScanAfterDuplicate(
+    tabsViewModel: MainTabsViewModel?,
+) {
+    clearPendingHistoryPhotoImportHandoff(this)
+    runCatching {
+        getBackStackEntry(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE).savedStateHandle["clearImportSession"] = true
+    }
+    runCatching {
+        val mainHandle = getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
+        mainHandle[REQUEST_SHOW_SCAN_TYPE_SHEET_KEY] = true
+        mainHandle["selectedTab"] = AppTab.Scan.name
+    }
+    navigateToMainTabRoot(AppTab.Scan, tabsViewModel)
 }
 
 @Composable
@@ -797,8 +847,16 @@ fun NavGraph(
                     }
                 }
             }
+            val requestShowScanTypeSheet by mainGraphEntry.savedStateHandle
+                .getStateFlow(REQUEST_SHOW_SCAN_TYPE_SHEET_KEY, false)
+                .collectAsStateWithLifecycle()
             MainTabsScreen(
                 selectedTab = selectedTab,
+                mainBackStackEntry = mainGraphEntry,
+                requestShowScanTypeSheet = requestShowScanTypeSheet,
+                onScanTypeSheetRequestConsumed = {
+                    mainGraphEntry.savedStateHandle[REQUEST_SHOW_SCAN_TYPE_SHEET_KEY] = false
+                },
                 onTabSelected = { tabsViewModel.setSelectedTab(it) },
                 onNavigateToLiveRoom = { roomId ->
                     stageMainShellTab(tabsViewModel, AppTab.Jackpot)
@@ -1000,6 +1058,8 @@ fun NavGraph(
                 ticketId = ticketId,
                 roomId = routeRoomId,
                 sheetName = sheet?.title ?: repoData?.sheetName?.ifEmpty { "Unnamed sheet" } ?: "Unnamed sheet",
+                losNumber = sheet?.losNumber ?: repoData?.losNumber,
+                serialNumber = sheet?.serialNumber ?: repoData?.serialNumber,
                 playedAtMillis = sheet?.playedAtMillis ?: repoData?.playedAtMillis ?: System.currentTimeMillis(),
                 cells = sheet?.cells ?: repoData?.cells,
                 calledNumbers = calledNumbers,
@@ -1064,6 +1124,7 @@ fun NavGraph(
         ) { backStackEntry ->
             val me = parseManualEntryFromNav(backStackEntry)
             val shellTabsVm = rememberShellTabsViewModel(navController)
+            val manualEntryVm: com.example.mamunbingoapp.viewmodel.ManualEntryViewModel = viewModel(backStackEntry)
             ManualEntryScreen(
                 onBack = { navController.popBackStack() },
                 scannedNumbers = me.scannedNumbers,
@@ -1076,6 +1137,10 @@ fun NavGraph(
                 onOpenExistingSheet = { ticketId ->
                     navController.navigate("historyDetail/$ticketId")
                 },
+                onScanAnother = {
+                    manualEntryVm.dismissSheetDuplicate()
+                    navController.restartFreshScanAfterDuplicate(shellTabsVm)
+                },
                 onSaveOnlySuccess = { _, _ ->
                     navController.popBackStack()
                 },
@@ -1086,7 +1151,8 @@ fun NavGraph(
                     navController.navigate("livePlayRoom/$roomId") {
                         popUpTo(me.entryRouteForPopUpTo) { inclusive = true }
                     }
-                }
+                },
+                viewModel = manualEntryVm,
             )
         }
         composable(
@@ -1122,6 +1188,8 @@ fun NavGraph(
         ) { backStackEntry ->
             val mer = parseManualEntryForRoomFromNav(backStackEntry)
             val shellTabsVm = rememberShellTabsViewModel(navController)
+            val manualEntryRoomVm: com.example.mamunbingoapp.viewmodel.ManualEntryViewModel =
+                viewModel(backStackEntry)
             ManualEntryScreen(
                 onBack = { navController.popBackStack() },
                 scannedNumbers = mer.scannedNumbers,
@@ -1132,6 +1200,10 @@ fun NavGraph(
                 showBottomBar = false,
                 onOpenExistingSheet = { ticketId ->
                     navController.navigate("historyDetail/$ticketId")
+                },
+                onScanAnother = {
+                    manualEntryRoomVm.dismissSheetDuplicate()
+                    navController.restartFreshScanAfterDuplicate(shellTabsVm)
                 },
                 onSaveOnlySuccess = { ticketId, savedRoomId ->
                     val targetRoomId = savedRoomId ?: mer.roomId
@@ -1153,7 +1225,8 @@ fun NavGraph(
                     navController.navigate("livePlayRoom/$roomId") {
                         popUpTo(mer.entryRouteForPopUpTo) { inclusive = true }
                     }
-                }
+                },
+                viewModel = manualEntryRoomVm,
             )
         }
         composable("history") { backStackEntry ->
@@ -1238,6 +1311,10 @@ fun NavGraph(
             val context = LocalContext.current
             val importVm: com.example.mamunbingoapp.viewmodel.ImportTicketViewModel =
                 viewModel(backStackEntry)
+            val scanPipelineBusy by importVm.scanPipelineBusy.collectAsStateWithLifecycle()
+            LaunchedEffect(scanPipelineBusy) {
+                navController.setMainScanPipelineBusy(scanPipelineBusy)
+            }
             LaunchedEffect(backStackEntry) {
                 if (backStackEntry.savedStateHandle.remove<Boolean>("clearImportSession") == true) {
                     importVm.clear()
@@ -1274,6 +1351,7 @@ fun NavGraph(
                         .get<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
                         ?.takeIf { it.isNotBlank() }
                         ?: return
+                    navController.setMainScanPipelineBusy(true)
                     val pendingScanTypeName =
                         mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
                     mainEntry.savedStateHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
@@ -1449,7 +1527,11 @@ fun NavGraph(
                                 scanResult is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error))
                     HistoryPhotoImportScreen(
                         importViewModel = importVm,
+                        onScanPipelineBusyChanged = { busy ->
+                            navController.setMainScanPipelineBusy(busy)
+                        },
                         onBackClick = {
+                            if (importVm.isScanPipelineBusy()) return@HistoryPhotoImportScreen
                             val leave: () -> Unit = {
                                 clearPendingHistoryPhotoImportHandoff(navController)
                                 navController.popBackStack()
@@ -1787,7 +1869,9 @@ fun NavGraph(
             val lastActiveRoomId by (tabsViewModel?.lastActiveRoomId ?: fallbackRoomFlow).collectAsState()
             BingoLiveCameraImportScreen(
                 scanType = scanType,
+                onScanBusyChanged = { busy -> navController.setMainScanPipelineBusy(busy) },
                 onBingoQrDecoded = { nums, serial, los, sheetName ->
+                    navController.setMainScanPipelineBusy(true)
                     val route = if (!lastActiveRoomId.isNullOrBlank()) {
                         buildManualEntryForRoomRoute(
                             lastActiveRoomId!!,
@@ -1811,6 +1895,7 @@ fun NavGraph(
                     navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
                 },
                 onFullTicketPhotoCaptured = { uri ->
+                    navController.setMainScanPipelineBusy(true)
                     runCatching {
                         val mainHandle = navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
                         mainHandle[PENDING_HISTORY_PHOTO_IMPORT_URI_KEY] = uri.toString()

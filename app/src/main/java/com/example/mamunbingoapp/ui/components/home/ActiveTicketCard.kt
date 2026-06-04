@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,16 +19,21 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +43,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
@@ -50,6 +58,7 @@ import com.example.mamunbingoapp.theme.TicketPaperBorder
 import com.example.mamunbingoapp.theme.TicketPaperCell
 import com.example.mamunbingoapp.theme.TicketPaperTop
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
+import com.example.mamunbingoapp.ui.model.BingoCellUi
 
 private val CARD_WIDTH = 200.dp
 private val CARD_HEIGHT = 296.dp
@@ -68,6 +77,34 @@ private val MINI_CELL_PAPER = TicketPaperCell
 private val MINI_CELL_BORDER_COLOR = TicketPaperBorder
 private val SHEET_PADDING = 7.dp
 private val HEADER_ROW_HEIGHT = 30.dp
+
+/** Optional B–O grid overrides (Live carousel only; Home passes null). */
+data class ActiveTicketGridStyle(
+    val sheetPadding: Dp,
+    val gridGap: Dp,
+    val numberFontExtraSp: Float = 0f,
+    val letterBoxHeight: Dp? = null,
+    val letterFontSize: TextUnit? = null,
+    val numberFontSize: TextUnit? = null,
+)
+
+// Live grid typography when keypad is OPEN
+val LiveSheetTicketGridStyleOpen = ActiveTicketGridStyle(
+    sheetPadding = 10.dp,
+    gridGap = 5.dp,
+    letterBoxHeight = 24.dp,
+    letterFontSize = 14.sp,
+    numberFontSize = 13.sp,
+)
+
+// Live grid typography when keypad is CLOSED
+val LiveSheetTicketGridStyleClosed = ActiveTicketGridStyle(
+    sheetPadding = 10.dp,
+    gridGap = 5.dp,
+    letterBoxHeight = 28.dp,
+    letterFontSize = 16.sp,
+    numberFontSize = 18.sp,
+)
 
 /**
  * Default size for [ActiveTicketCompactSheetPreview] on sheet list rows (History, Live, etc.).
@@ -94,6 +131,26 @@ data class ActiveTicketCellState(
     val display: String,
     val isCalled: Boolean,
 )
+
+/** Maps live/history grid cells to Active Ticket preview cell states (marked = called highlight). */
+fun bingoGridCellsToActiveTicketCellStates(cells: List<BingoCellUi>): List<ActiveTicketCellState> {
+    val normalized = when {
+        cells.size >= 25 -> cells.take(25)
+        else -> cells + List(25 - cells.size.coerceAtMost(25)) {
+            BingoCellUi(null, false, false, false, false)
+        }
+    }
+    return normalized.map { cell ->
+        val display = cell.number?.trim().orEmpty().let { raw ->
+            when {
+                raw.isEmpty() -> ""
+                raw.equals("FREE", ignoreCase = true) -> "FREE"
+                else -> raw
+            }
+        }
+        ActiveTicketCellState(display = display, isCalled = cell.isMarked)
+    }
+}
 
 data class ActiveTicketCardModel(
     val sheetName: String,
@@ -134,52 +191,23 @@ fun ActiveTicketCard(
     }
     val cardElevation = if (model.isInLiveRoom) 8.dp else 5.dp
 
-    Box(
+    BingoSheetTicketCard(
+        sheetName = model.sheetName,
+        losNumber = model.losNumber,
+        serieNumber = model.serieNumber,
+        cellStates = model.cellStates,
+        neutralGrid = model.neutralGrid,
+        onClick = onClick,
         modifier = modifier
             .width(CARD_WIDTH)
-            .height(CARD_HEIGHT)
-            .iosElevatedShadow(elevation = cardElevation, shape = shape)
-            .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(PAPER_TOP, PAPER_BOTTOM),
-                ),
-            )
-            .border(Dimens.cardBorderDefault, borderColor, shape)
-            .clickable(onClick = onClick)
-            .padding(
-                start = Dimens.spacing12,
-                end = Dimens.spacing12,
-                top = Dimens.spacing12,
-                bottom = Dimens.spacing12,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(22.dp),
-            ) {
-                Text(
-                    text = model.sheetName,
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(end = STATUS_CHIP_MIN_WIDTH + Dimens.spacing8),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                ActiveTicketStatusChip(
-                    isInLiveRoom = model.isInLiveRoom,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                )
-            }
-            Spacer(modifier = Modifier.height(Dimens.spacing4))
+            .height(CARD_HEIGHT),
+        shape = shape,
+        borderColor = borderColor,
+        shadowElevation = cardElevation,
+        trailingHeader = {
+            ActiveTicketStatusChip(isInLiveRoom = model.isInLiveRoom)
+        },
+        headerContent = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
@@ -209,14 +237,8 @@ fun ActiveTicketCard(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(Dimens.spacing8))
-            ActiveTicketSheetPreview(
-                cellStates = model.cellStates,
-                neutralGrid = model.neutralGrid,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            )
+        },
+        bottomSlot = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -235,6 +257,93 @@ fun ActiveTicketCard(
                     )
                 }
             }
+        },
+    )
+}
+
+/**
+ * Shared ticket paper card: title row, optional meta, LOS/SERIE, and flexible B–O grid
+ * ([ActiveTicketSheetPreview]). Used by Home Active Ticket and Live room carousel cards.
+ */
+@Composable
+fun BingoSheetTicketCard(
+    sheetName: String,
+    losNumber: String?,
+    serieNumber: String?,
+    cellStates: List<ActiveTicketCellState>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    neutralGrid: Boolean = false,
+    shape: RoundedCornerShape = RoundedCornerShape(Dimens.radiusLarge),
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f),
+    shadowElevation: Dp = 5.dp,
+    contentPadding: PaddingValues = PaddingValues(Dimens.spacing12),
+    /** Pushes the B–O grid to the card bottom (square Live carousel cards). */
+    anchorGridToBottom: Boolean = false,
+    gridStyle: ActiveTicketGridStyle? = null,
+    headerContent: @Composable () -> Unit = {},
+    trailingHeader: @Composable () -> Unit = {},
+    bottomSlot: @Composable () -> Unit = {},
+) {
+    val titleInteraction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .iosElevatedShadow(elevation = shadowElevation, shape = shape)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(PAPER_TOP, PAPER_BOTTOM),
+                ),
+            )
+            .border(Dimens.cardBorderDefault, borderColor, shape)
+            .clickable(
+                indication = rememberRipple(),
+                interactionSource = titleInteraction,
+                onClick = onClick,
+            )
+            .padding(contentPadding),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = sheetName,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = Dimens.spacing8),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                trailingHeader()
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing4))
+            headerContent()
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+            if (anchorGridToBottom) {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+            ActiveTicketSheetPreview(
+                cellStates = cellStates,
+                neutralGrid = neutralGrid,
+                layoutFromWidth = anchorGridToBottom,
+                gridStyle = gridStyle,
+                modifier = if (anchorGridToBottom) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                },
+            )
+            bottomSlot()
         }
     }
 }
@@ -268,12 +377,14 @@ fun ActiveTicketLosSerieRow(
     losNumber: String?,
     serieNumber: String?,
     modifier: Modifier = Modifier,
+    labelStyle: TextStyle? = null,
     valueStyle: TextStyle? = null,
 ) {
     ActiveTicketLosSerieMeta(
         losNumber = losNumber,
         serieNumber = serieNumber,
         modifier = modifier,
+        labelStyle = labelStyle,
         valueStyle = valueStyle,
     )
 }
@@ -283,6 +394,7 @@ private fun ActiveTicketLosSerieMeta(
     losNumber: String?,
     serieNumber: String?,
     modifier: Modifier = Modifier,
+    labelStyle: TextStyle? = null,
     valueStyle: TextStyle? = null,
 ) {
     val los = losNumber?.trim()?.takeIf { it.isNotEmpty() }
@@ -290,7 +402,7 @@ private fun ActiveTicketLosSerieMeta(
     if (los == null && serie == null) return
 
     val cs = MaterialTheme.colorScheme
-    val labelStyle = activeTicketMetaLabelStyle()
+    val resolvedLabelStyle = labelStyle ?: activeTicketMetaLabelStyle()
     val resolvedValueStyle = valueStyle ?: activeTicketMetaValueStyle()
 
     Row(
@@ -301,7 +413,7 @@ private fun ActiveTicketLosSerieMeta(
             ActiveTicketMetaField(
                 label = stringResource(R.string.home_active_ticket_los_label),
                 value = los,
-                labelStyle = labelStyle,
+                labelStyle = resolvedLabelStyle,
                 valueStyle = resolvedValueStyle,
                 labelColor = cs.onSurfaceVariant,
                 valueColor = cs.onSurface,
@@ -313,7 +425,7 @@ private fun ActiveTicketLosSerieMeta(
             ActiveTicketMetaField(
                 label = stringResource(R.string.home_active_ticket_serie_label),
                 value = serie,
-                labelStyle = labelStyle,
+                labelStyle = resolvedLabelStyle,
                 valueStyle = resolvedValueStyle,
                 labelColor = cs.onSurfaceVariant,
                 valueColor = cs.onSurface,
@@ -424,29 +536,96 @@ private fun ActiveTicketSheetPreview(
     neutralGrid: Boolean,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    layoutFromWidth: Boolean = false,
+    gridStyle: ActiveTicketGridStyle? = null,
 ) {
     val sheetShape = RoundedCornerShape(if (compact) COMPACT_SHEET_CORNER else Dimens.spacing12)
-    val gridGap = if (compact) COMPACT_GRID_GAP else MINI_GRID_GAP
-    val sheetPadding = if (compact) COMPACT_SHEET_PADDING else SHEET_PADDING
+    val gridGap = when {
+        compact -> COMPACT_GRID_GAP
+        gridStyle != null -> gridStyle.gridGap
+        else -> MINI_GRID_GAP
+    }
+    val sheetPadding = when {
+        compact -> COMPACT_SHEET_PADDING
+        gridStyle != null -> gridStyle.sheetPadding
+        else -> SHEET_PADDING
+    }
+    val numberFontExtraSp = if (compact) 0f else gridStyle?.numberFontExtraSp ?: 0f
+    val letterBoxHeight = if (compact) null else gridStyle?.letterBoxHeight
+    val letterFontSize = if (compact) null else gridStyle?.letterFontSize
+    val numberFontSize = if (compact) null else gridStyle?.numberFontSize
+    val sheetModifier = modifier
+        .then(
+            if (layoutFromWidth || compact) Modifier.wrapContentHeight() else Modifier.fillMaxSize()
+        )
+        .iosElevatedShadow(
+            elevation = if (compact) 3.dp else 5.dp,
+            shape = sheetShape,
+        )
+        .clip(sheetShape)
+        .background(Color.White)
+        .border(MINI_BORDER, MINI_CELL_BORDER_COLOR, sheetShape)
+        .padding(sheetPadding)
+
+    if (layoutFromWidth && !compact) {
+        BoxWithConstraints(modifier = sheetModifier.fillMaxWidth()) {
+            val contentWidth = maxWidth
+            val cellSize = ((contentWidth - gridGap * 4) / 5f).coerceAtLeast(24.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                ActiveTicketBingoHeaderRow(
+                    compact = compact,
+                    gridGap = gridGap,
+                    letterBoxHeight = letterBoxHeight,
+                    letterFontSize = letterFontSize,
+                )
+                Spacer(modifier = Modifier.height(gridGap))
+                cellStates.take(25).chunked(5).forEachIndexed { rowIndex, row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(cellSize),
+                        horizontalArrangement = Arrangement.spacedBy(gridGap),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        row.forEachIndexed { colIndex, cell ->
+                            val cellIndex = rowIndex * 5 + colIndex
+                            ActiveTicketSheetCell(
+                                cell = cell,
+                                cellIndex = cellIndex,
+                                neutralGrid = neutralGrid,
+                                compact = compact,
+                                numberFontExtraSp = numberFontExtraSp,
+                                numberFontSize = numberFontSize,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(cellSize),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .iosElevatedShadow(
-                elevation = if (compact) 3.dp else 5.dp,
-                shape = sheetShape,
-            )
-            .clip(sheetShape)
-            .background(Color.White)
-            .border(MINI_BORDER, MINI_CELL_BORDER_COLOR, sheetShape)
-            .padding(sheetPadding),
+        modifier = sheetModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ActiveTicketBingoHeaderRow(compact = compact)
+        ActiveTicketBingoHeaderRow(
+            compact = compact,
+            gridGap = gridGap,
+            letterBoxHeight = letterBoxHeight,
+            letterFontSize = letterFontSize,
+        )
         Spacer(modifier = Modifier.height(gridGap))
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+                .weight(1f)
+                .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(gridGap),
         ) {
             cellStates.take(25).chunked(5).forEachIndexed { rowIndex, row ->
@@ -455,7 +634,7 @@ private fun ActiveTicketSheetPreview(
                         .fillMaxWidth()
                         .weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(gridGap),
-                    verticalAlignment = if (compact) Alignment.CenterVertically else Alignment.Top,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     row.forEachIndexed { colIndex, cell ->
                         val cellIndex = rowIndex * 5 + colIndex
@@ -473,6 +652,8 @@ private fun ActiveTicketSheetPreview(
                             cellIndex = cellIndex,
                             neutralGrid = neutralGrid,
                             compact = compact,
+                            numberFontExtraSp = numberFontExtraSp,
+                            numberFontSize = numberFontSize,
                             modifier = cellModifier,
                         )
                     }
@@ -483,36 +664,59 @@ private fun ActiveTicketSheetPreview(
 }
 
 @Composable
-private fun ActiveTicketBingoHeaderRow(compact: Boolean = false) {
+private fun ActiveTicketBingoHeaderRow(
+    compact: Boolean = false,
+    gridGap: Dp = if (compact) COMPACT_GRID_GAP else MINI_GRID_GAP,
+    letterBoxHeight: Dp? = null,
+    letterFontSize: TextUnit? = null,
+) {
     val headerShape = RoundedCornerShape(
         if (compact) COMPACT_HEADER_RADIUS else MINI_HEADER_RADIUS,
     )
-    val gridGap = if (compact) COMPACT_GRID_GAP else MINI_GRID_GAP
-    Row(
+    val rowHeight = when {
+        compact -> COMPACT_HEADER_HEIGHT
+        letterBoxHeight != null -> letterBoxHeight
+        else -> HEADER_ROW_HEIGHT
+    }
+    val letterFont = when {
+        compact -> 9.sp
+        letterFontSize != null -> letterFontSize
+        else -> 14.sp
+    }
+    val letterLineHeight = when {
+        compact -> 10.sp
+        letterFontSize != null -> (letterFontSize.value * 1.07f).sp
+        else -> 15.sp
+    }
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(if (compact) COMPACT_HEADER_HEIGHT else HEADER_ROW_HEIGHT),
-        horizontalArrangement = Arrangement.spacedBy(gridGap),
+            .height(rowHeight),
     ) {
-        BINGO_LETTERS.forEach { letter ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(headerShape)
-                    .background(MaterialTheme.colorScheme.onSurface),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = letter,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = if (compact) 9.sp else 14.sp,
-                        lineHeight = if (compact) 10.sp else 15.sp,
-                    ),
-                    color = OnPrimary,
-                    textAlign = TextAlign.Center,
-                )
+        val letterWidth = (maxWidth - gridGap * 4) / 5
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(gridGap),
+        ) {
+            BINGO_LETTERS.forEach { letter ->
+                Box(
+                    modifier = Modifier
+                        .width(letterWidth)
+                        .height(rowHeight)
+                        .clip(headerShape)
+                        .background(MaterialTheme.colorScheme.onSurface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = letter,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = letterFont,
+                            lineHeight = letterLineHeight,
+                        ),
+                        color = OnPrimary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
@@ -524,6 +728,8 @@ private fun ActiveTicketSheetCell(
     cellIndex: Int,
     neutralGrid: Boolean,
     compact: Boolean = false,
+    numberFontExtraSp: Float = 0f,
+    numberFontSize: TextUnit? = null,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -548,24 +754,36 @@ private fun ActiveTicketSheetCell(
             else -> ""
         }
         if (label.isNotEmpty()) {
+            val cellFontSize = when {
+                numberFontSize != null && !compact -> numberFontSize
+                else -> (
+                    when {
+                        compact && isCenterFree -> 6f
+                        compact && label.length >= 2 -> 9f
+                        compact -> 10f
+                        isCenterFree -> 7f
+                        label.length >= 2 -> 10f
+                        else -> 11f
+                    } + numberFontExtraSp
+                ).sp
+            }
+            val cellLineHeight = when {
+                numberFontSize != null && !compact -> (numberFontSize.value * 1.1f).sp
+                else -> (
+                    when {
+                        compact -> 10f
+                        else -> 11f
+                    } + numberFontExtraSp
+                ).sp
+            }
             Text(
                 text = label,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 2.dp),
                 style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = when {
-                        compact && isCenterFree -> 6.sp
-                        compact && label.length >= 2 -> 9.sp
-                        compact -> 10.sp
-                        isCenterFree -> 7.sp
-                        label.length >= 2 -> 10.sp
-                        else -> 11.sp
-                    },
-                    lineHeight = when {
-                        compact -> 10.sp
-                        else -> 11.sp
-                    },
+                    fontSize = cellFontSize,
+                    lineHeight = cellLineHeight,
                     fontWeight = FontWeight.Bold,
                 ),
                 color = if (highlight) Color.White else cs.onSurface,
