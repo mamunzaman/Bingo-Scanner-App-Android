@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-06-04 - **Scan type sheet UI:** premium option cards, header hierarchy, safe-area padding. Build OK.
+**Last update:** 2026-06-04 - **Live carousel win reuse:** `BingoWinningMarker` shared with `BingoCell`; carousel `winningCells` + red ellipse + overlay BINGO! badge. Home unchanged. Build OK.
+
+**Previous:** 2026-06-04 - **Scan type sheet UI:** premium option cards, header hierarchy, safe-area padding. Build OK.
 
 **Previous:** 2026-06-04 - **Live sheet grid polish.** Build OK.
 

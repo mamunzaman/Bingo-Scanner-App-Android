@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -28,9 +27,6 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun BingoCell(
@@ -88,27 +84,7 @@ fun BingoCell(
                 drawContent()
                 drawRect(SolidColor(nearWinStrokeColor), style = Stroke(width = 1.2.dp.toPx()))
             } else Modifier)
-            .then(if (isWinning) Modifier.drawWithContent {
-                drawContent()
-                val strokeWidth = 2.5.dp.toPx()
-                val margin = maxOf(strokeWidth * 2f, minOf(size.width, size.height) * 0.12f)
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                val rx = (size.width / 2f - margin).coerceAtLeast(2f)
-                val ry = (size.height / 2f - margin).coerceAtLeast(2f)
-                val steps = 40
-                val p = Path()
-                for (i in 0..steps) {
-                    val t = i.toFloat() / steps * 2f * PI.toFloat()
-                    val jitter = (sin(t * 7f) * 0.02f + sin(t * 11f) * 0.015f)
-                    val r = 1f + jitter
-                    val x = cx + rx * cos(t) * r
-                    val y = cy + ry * sin(t) * r
-                    if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
-                }
-                p.close()
-                drawPath(p, winningStrokeColor, style = Stroke(width = strokeWidth, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
-            } else Modifier)
+            .bingoWinningMarker(isWinning, winningStrokeColor)
             .then(if (isClickable) Modifier.clickable(onClick = onClick!!) else Modifier)
     ) {
         BingoNumberBox(

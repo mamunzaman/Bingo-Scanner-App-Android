@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** QA scan type sheet card weight on device.
+**Goal:** Device QA Live in-card win badge (1/2 BINGO, JACKPOT) per line count.
 
-**Verify:** Border-first, light shadow (0.5dp); tap flows unchanged.
+**Verify:** 1/2/3+ lines → correct pill color + label inside white sheet top-right; overlay only; red ellipses unchanged; Home unchanged.
 
-**Previous:** Scan option shadow reduced from 2dp → 0.5dp. Build OK.
+**Previous:** `ActiveTicketLiveWinBadge` + `winLineCount` from `SheetCard`. Build OK.

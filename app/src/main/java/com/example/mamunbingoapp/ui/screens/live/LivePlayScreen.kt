@@ -2016,7 +2016,8 @@ private fun SheetCard(
     }
     val cellStates = remember(gridCells) { bingoGridCellsToActiveTicketCellStates(gridCells) }
     val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
-    val isWin = BingoWinChecker.check(markedSet).isWin
+    val winResult = BingoWinChecker.check(markedSet)
+    val isWin = winResult.isWin
     val cs = MaterialTheme.colorScheme
     val cardBorder = if (isWin) WarningBorder else cs.primary.copy(alpha = 0.45f)
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
@@ -2082,6 +2083,9 @@ private fun SheetCard(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         },
+        winningCells = winResult.winningCells,
+        liveWinStyling = true,
+        winLineCount = if (isWin) winResult.winningLines.size else 0,
     )
 }
 
@@ -2178,6 +2182,7 @@ private fun ListSheetRow(
                 ActiveTicketCompactSheetPreview(
                     cellStates = gridCellStates,
                     neutralGrid = false,
+                    liveWinStyling = true,
                 )
                 Column(
                     modifier = Modifier
