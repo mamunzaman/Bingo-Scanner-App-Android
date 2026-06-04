@@ -1,6 +1,8 @@
 # Project status
 
-**Last update:** 2026-06-04 - **Live carousel win reuse:** `BingoWinningMarker` shared with `BingoCell`; carousel `winningCells` + red ellipse + overlay BINGO! badge. Home unchanged. Build OK.
+**Last update:** 2026-06-04 - **Demo history marks:** room calls from Demo Sheet 1 values; `demo-t-completed` Room seed; list room lookup by `ticketId`; detail demo cell fallback. Build OK.
+
+**Previous:** 2026-06-04 - **Live carousel win reuse:** `BingoWinningMarker` shared with `BingoCell`; carousel `winningCells` + red ellipse + overlay BINGO! badge. Home unchanged. Build OK.
 
 **Previous:** 2026-06-04 - **Scan type sheet UI:** premium option cards, header hierarchy, safe-area padding. Build OK.
 

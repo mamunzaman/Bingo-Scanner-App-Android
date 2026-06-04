@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,10 +29,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,11 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,12 +60,10 @@ import com.example.mamunbingoapp.theme.PrimaryDark
 import com.example.mamunbingoapp.theme.TicketPaperBorder
 import com.example.mamunbingoapp.theme.TicketPaperCell
 import com.example.mamunbingoapp.theme.TicketPaperTop
-import com.example.mamunbingoapp.theme.Warning
+import com.example.mamunbingoapp.ui.components.BingoWinLineBadge
 import com.example.mamunbingoapp.ui.components.bingoWinningMarker
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
 import com.example.mamunbingoapp.ui.model.BingoCellUi
-import kotlin.math.cos
-import kotlin.math.sin
 
 private val CARD_WIDTH = 200.dp
 private val CARD_HEIGHT = 296.dp
@@ -88,8 +78,6 @@ private val MINI_GRID_GAP = 3.dp
 private val MINI_CELL_RADIUS = 9.dp
 private val MINI_HEADER_RADIUS = 10.dp
 private val MINI_BORDER = 1.dp
-private val LiveWinBadgeTwoLineColor = Color(0xFF0D9488)
-private val LiveWinBadgeJackpotColor = Color(0xFFE6A817)
 private val LiveWinBadgeCardOffsetX = 8.dp
 private val LiveWinBadgeCardOffsetY = (-10).dp
 private val MINI_CELL_PAPER = TicketPaperCell
@@ -375,7 +363,7 @@ fun BingoSheetTicketCard(
             }
         }
         if (showWinBadge) {
-            ActiveTicketLiveWinBadge(
+            BingoWinLineBadge(
                 lineCount = winLineCount,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -764,91 +752,6 @@ private fun ActiveTicketBingoHeaderRow(
                     )
                 }
             }
-        }
-    }
-}
-
-private data class LiveWinBadgeStyle(
-    val label: String,
-    val background: Color,
-    val icon: ImageVector,
-)
-
-private fun liveWinBadgeStyle(lineCount: Int): LiveWinBadgeStyle? = when {
-    lineCount <= 0 -> null
-    lineCount >= 3 -> LiveWinBadgeStyle("JACKPOT", LiveWinBadgeJackpotColor, Icons.Filled.EmojiEvents)
-    lineCount == 2 -> LiveWinBadgeStyle("2 BINGO", LiveWinBadgeTwoLineColor, Icons.Filled.Star)
-    else -> LiveWinBadgeStyle("1 BINGO", Primary, Icons.Filled.Star)
-}
-
-@Composable
-private fun ActiveTicketLiveWinBadgeBurst(
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    Canvas(modifier = modifier.size(width = 14.dp, height = 10.dp)) {
-        val origin = Offset(size.width * 0.72f, size.height * 0.85f)
-        val strokePx = 1.2.dp.toPx()
-        val length = size.minDimension * 0.9f
-        listOf(-145f, -110f, -75f).forEach { degrees ->
-            val radians = Math.toRadians(degrees.toDouble()).toFloat()
-            val end = Offset(
-                x = origin.x + cos(radians) * length,
-                y = origin.y + sin(radians) * length,
-            )
-            drawLine(
-                color = color,
-                start = origin,
-                end = end,
-                strokeWidth = strokePx,
-                cap = StrokeCap.Round,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActiveTicketLiveWinBadge(
-    lineCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    val style = liveWinBadgeStyle(lineCount) ?: return
-    val pillShape = RoundedCornerShape(100.dp)
-    Box(modifier = modifier.wrapContentWidth()) {
-        ActiveTicketLiveWinBadgeBurst(
-            color = style.background.copy(alpha = 0.85f),
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 2.dp),
-        )
-        Row(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .heightIn(min = 20.dp)
-                .iosElevatedShadow(elevation = 3.dp, shape = pillShape)
-                .clip(pillShape)
-                .background(style.background)
-                .padding(horizontal = 9.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(
-                imageVector = style.icon,
-                contentDescription = null,
-                tint = OnPrimary,
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                text = style.label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    lineHeight = 11.sp,
-                    letterSpacing = 0.2.sp,
-                ),
-                color = OnPrimary,
-                maxLines = 1,
-            )
         }
     }
 }

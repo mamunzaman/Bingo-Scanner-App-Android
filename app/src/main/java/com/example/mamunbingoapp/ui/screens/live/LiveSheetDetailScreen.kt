@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.theme.Dimens
@@ -29,7 +31,7 @@ import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.ui.components.BingoDetailGridCard
-import com.example.mamunbingoapp.ui.components.BingoWinBanner
+import com.example.mamunbingoapp.ui.components.BingoWinLineBadge
 import com.example.mamunbingoapp.ui.components.CompactAlmostBingoRow
 import com.example.mamunbingoapp.ui.components.TicketInfoCard
 import com.example.mamunbingoapp.ui.components.TicketInfoItem
@@ -201,22 +203,29 @@ fun LiveSheetDetailScreen(
                             markedCells = markedSet,
                         )
                     }
-                    if (winResult != null && winResult.isWin) {
-                        BingoWinBanner(
-                            lineCount = winResult.winningLines.size,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    if (winResult != null && winResult.isWin) {
-                        Spacer(modifier = Modifier.height(Dimens.spacing8))
-                    }
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        BingoDetailGridCard(
-                            cells = gridCells,
-                            winningCells = if (winResult?.isWin == true) winResult.winningCells else emptySet(),
-                            historyDetailOuterMaxWidth = maxWidth,
-                            historyDetailOuterMaxHeight = null,
-                        )
+                        val gridMaxWidth = maxWidth
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            BingoDetailGridCard(
+                                cells = gridCells,
+                                winningCells = if (winResult?.isWin == true) {
+                                    winResult.winningCells
+                                } else {
+                                    emptySet()
+                                },
+                                historyDetailOuterMaxWidth = gridMaxWidth,
+                                historyDetailOuterMaxHeight = null,
+                            )
+                            if (winResult != null && winResult.isWin) {
+                                BingoWinLineBadge(
+                                    lineCount = winResult.winningLines.size,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .zIndex(1f)
+                                        .offset(x = 8.dp, y = (-6).dp),
+                                )
+                            }
+                        }
                     }
                 }
             }

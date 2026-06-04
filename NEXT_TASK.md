@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** Device QA Live in-card win badge (1/2 BINGO, JACKPOT) per line count.
+**Goal:** Device QA demo history after fresh install (`DEMO_MODE`).
 
-**Verify:** 1/2/3+ lines → correct pill color + label inside white sheet top-right; overlay only; red ellipses unchanged; Home unchanged.
+**Verify:** Demo Sheet 1 detail — 6 called, 6 marked (2, 11, 14, 22, 38, 52); list counts match detail; Completed Demo — full grid + 12/12 marks; LOS/SERIE on completed ticket.
 
-**Previous:** `ActiveTicketLiveWinBadge` + `winLineCount` from `SheetCard`. Build OK.
+**Previous:** Demo called numbers, `demo-t-completed` seed, History room lookup + detail cell fallback. Build OK.

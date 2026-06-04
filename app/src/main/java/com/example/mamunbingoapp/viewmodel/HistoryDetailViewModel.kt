@@ -139,13 +139,14 @@ class HistoryDetailViewModel(
                         cells to testDateMillis
                     }.flatMapLatest { (cells, testDateMillis) ->
                         flow {
+                            val baseCells = resolveDetailCells(session.ticketId, cells)
                             val archivedCalledNumbers = playLogs.maxByOrNull { it.archivedAt }?.calledNumbers.orEmpty()
                             if (testDateMillis != null) {
                                 emit(
                                     buildOfflineDetailState(
                                         session = session,
                                         playLogs = playLogs,
-                                        cells = cells,
+                                        cells = baseCells,
                                         calledNumbers = archivedCalledNumbers.ifEmpty { session.calledNumbersFull },
                                         testDateMillis = testDateMillis,
                                         testDrawDateLabel = null,
@@ -168,7 +169,7 @@ class HistoryDetailViewModel(
                                     buildOfflineDetailState(
                                         session = session,
                                         playLogs = playLogs,
-                                        cells = cells,
+                                        cells = baseCells,
                                         calledNumbers = resolved.calledNumbers,
                                         testDateMillis = testDateMillis,
                                         testDrawDateLabel = resolved.drawDateLabel,
@@ -181,7 +182,7 @@ class HistoryDetailViewModel(
                                     buildOfflineDetailState(
                                         session = session,
                                         playLogs = playLogs,
-                                        cells = cells,
+                                        cells = baseCells,
                                         calledNumbers = archivedCalledNumbers.ifEmpty { session.calledNumbersFull },
                                         testDateMillis = null,
                                         testDrawDateLabel = null,
@@ -194,28 +195,35 @@ class HistoryDetailViewModel(
                     }
             else -> combine(
                 RoomRepository.calledNumbersFlow(assignedRoomId),
-                TicketRepository.ticketCellsFlow(session.ticketId)
+                TicketRepository.ticketCellsFlow(session.ticketId),
             ) { called: List<Int>, baseCells: List<BingoCellUi> ->
-                val roomStatus = RoomStatusResolver.resolve(called.size)
-                val calledSet = called.toSet()
-                val merged = mergeCellsWithCalledNumbers(baseCells, calledSet)
-                val sheetStatus = when (roomStatus) {
-                    RoomStatus.RUNNING -> SheetStatus.ACTIVE
-                    RoomStatus.IDLE -> SheetStatus.COMPLETED
-                    RoomStatus.FINISHED -> SheetStatus.COMPLETED
+                called to baseCells
+            }.flatMapLatest { (called, baseCells) ->
+                flow {
+                    val cells = resolveDetailCells(session.ticketId, baseCells)
+                    val roomStatus = RoomStatusResolver.resolve(called.size)
+                    val calledSet = called.toSet()
+                    val merged = mergeCellsWithCalledNumbers(cells, calledSet)
+                    val sheetStatus = when (roomStatus) {
+                        RoomStatus.RUNNING -> SheetStatus.ACTIVE
+                        RoomStatus.IDLE -> SheetStatus.COMPLETED
+                        RoomStatus.FINISHED -> SheetStatus.COMPLETED
+                    }
+                    emit(
+                        HistoryDetailUiState(
+                            isLoading = false,
+                            session = session,
+                            ticketId = session.ticketId,
+                            assignedRoomId = assignedRoomId,
+                            roomStatus = roomStatus,
+                            sheetStatus = sheetStatus,
+                            calledNumbers = called,
+                            cells = merged.takeIf { it.size == MAX_CALLED_NUMBERS },
+                            playLogs = playLogs,
+                            errorMessage = null,
+                        )
+                    )
                 }
-                HistoryDetailUiState(
-                    isLoading = false,
-                    session = session,
-                    ticketId = session.ticketId,
-                    assignedRoomId = assignedRoomId,
-                    roomStatus = roomStatus,
-                    sheetStatus = sheetStatus,
-                    calledNumbers = called,
-                    cells = merged.takeIf { it.size == MAX_CALLED_NUMBERS },
-                    playLogs = playLogs,
-                    errorMessage = null
-                )
             }
         }
     }
@@ -262,6 +270,16 @@ class HistoryDetailViewModel(
     ): List<BingoCellUi> = cells.map { cell ->
         val num = cell.number?.trim()?.takeIf { it.uppercase() != "FREE" }?.toIntOrNull()
         cell.copy(isMarked = (num != null && num in calledSet) || cell.isMarked)
+    }
+
+    private suspend fun resolveDetailCells(
+        ticketId: String,
+        fromRoom: List<BingoCellUi>,
+    ): List<BingoCellUi> {
+        if (fromRoom.size == MAX_CALLED_NUMBERS && fromRoom.any { !it.number.isNullOrBlank() }) {
+            return fromRoom
+        }
+        return HistoryRepository.getTicketCells(ticketId) ?: fromRoom
     }
 
     fun setTestDate(dateMillis: Long) {

@@ -163,7 +163,7 @@ class HistoryViewModel : ViewModel() {
         val markedCountsByTicket = markedBundle.markedCountsByTicket
         val cellsByTicket = markedBundle.cellsByTicket
         sessionsList.map { session ->
-            val roomId = ticketToRoom[session.id]
+            val roomId = ticketToRoom[session.ticketId] ?: ticketToRoom[session.id]
             val roomName = roomId?.let { id -> rooms.find { it.roomId == id }?.name }
             val archivedCalled = archivedCalledByTicket[session.id].orEmpty()
             val resolvedCalledCount = if (roomId != null) {

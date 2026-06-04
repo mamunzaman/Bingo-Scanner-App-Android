@@ -1,5 +1,6 @@
 package com.example.mamunbingoapp.data
 
+import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 
 object DemoDataFactory {
@@ -19,8 +20,16 @@ object DemoDataFactory {
     const val DEMO_SERIAL_1 = "345678"
     const val DEMO_LOS_2 = "08"
     const val DEMO_SERIAL_2 = "901234"
+    const val DEMO_LOS_COMPLETED = "99"
+    const val DEMO_SERIAL_COMPLETED = "111222"
 
     private val baseTime = System.currentTimeMillis() - 86_400_000
+
+    /** Six calls for [ROOM_1]; every value exists on [TICKET_1] (assigned in demo room seed). */
+    private val DEMO_ROOM_1_CALLED = listOf(2, 11, 14, 22, 38, 52)
+
+    private val DEMO_COMPLETED_CALLED =
+        listOf(3, 7, 14, 22, 29, 38, 42, 51, 55, 61, 68, 74)
 
     data class DemoTicketSeed(
         val ticketId: String,
@@ -33,6 +42,13 @@ object DemoDataFactory {
     fun demoTicketSeeds(): List<DemoTicketSeed> = listOf(
         DemoTicketSeed(TICKET_1, "Demo Sheet 1", DEMO_LOS_1, DEMO_SERIAL_1, baseTime),
         DemoTicketSeed(TICKET_2, "Demo Sheet 2", DEMO_LOS_2, DEMO_SERIAL_2, baseTime + 1_800_000),
+        DemoTicketSeed(
+            TICKET_COMPLETED,
+            "Completed Demo",
+            DEMO_LOS_COMPLETED,
+            DEMO_SERIAL_COMPLETED,
+            baseTime - 86_400_000,
+        ),
     )
 
     fun createDemoRooms(): List<LiveRoom> = listOf(
@@ -41,7 +57,11 @@ object DemoDataFactory {
         LiveRoom(ROOM_3, "Practice Room", baseTime + 7200_000, true)
     )
 
-    fun createDemoSessions(): List<HistorySession> = listOf(
+    fun createDemoSessions(): List<HistorySession> {
+        val cellsByTicket = createDemoTicketCells()
+        val completedCells = cellsByTicket[TICKET_COMPLETED].orEmpty()
+        val completedMarked = demoMarkedPlayableCount(completedCells, DEMO_COMPLETED_CALLED)
+        return listOf(
         HistorySession(
             id = SESSION_1,
             title = "Demo Sheet 1",
@@ -79,16 +99,25 @@ object DemoDataFactory {
             title = "Completed Demo",
             isCompleted = true,
             sheetsCount = 1,
-            calledCount = 12,
+            calledCount = DEMO_COMPLETED_CALLED.size,
             calledNumbersPreview = listOf("B3", "I22", "N38"),
-            calledNumbersFull = listOf(3, 7, 14, 22, 29, 38, 42, 51, 55, 61, 68, 74),
+            calledNumbersFull = DEMO_COMPLETED_CALLED,
             sheetsPlayed = listOf(
-                SheetPlayed(TICKET_COMPLETED, "Completed Demo", "Marked: 5/25", 5, 25)
+                SheetPlayed(
+                    TICKET_COMPLETED,
+                    "Completed Demo",
+                    demoMarkedSubtitle(completedMarked),
+                    completedMarked,
+                    25,
+                ),
             ),
             sheetName = "Completed Demo",
-            playedAtMillis = baseTime - 86_400_000
+            playedAtMillis = baseTime - 86_400_000,
+            losNumber = DEMO_LOS_COMPLETED,
+            serialNumber = DEMO_SERIAL_COMPLETED,
+        ),
         )
-    )
+    }
 
     fun createDemoTicketCells(): Map<String, List<BingoCellUi>> {
         val cells1 = cellsForTicket(listOf(
@@ -133,6 +162,19 @@ object DemoDataFactory {
         return list
     }
 
-    fun createDemoCalledNumbers(): List<Int> =
-        listOf(3, 7, 14, 22, 38, 42)
+    fun createDemoCalledNumbers(): List<Int> = DEMO_ROOM_1_CALLED
+
+    private fun demoMarkedPlayableCount(cells: List<BingoCellUi>, called: List<Int>): Int {
+        val calledSet = called.toSet()
+        return cells.take(BingoPlayableNumbers.GRID_CELL_COUNT)
+            .mapIndexed { index, cell ->
+                BingoPlayableNumbers.isPlayableCellIndex(index) &&
+                    cell.number?.trim()?.takeIf { !it.equals("FREE", ignoreCase = true) }
+                        ?.toIntOrNull()?.let { it in calledSet } == true
+            }
+            .count { it }
+    }
+
+    private fun demoMarkedSubtitle(marked: Int): String =
+        "Marked: ${BingoPlayableNumbers.coercePlayableMarkedCount(marked)}/${BingoPlayableNumbers.PLAYABLE_COUNT}"
 }
