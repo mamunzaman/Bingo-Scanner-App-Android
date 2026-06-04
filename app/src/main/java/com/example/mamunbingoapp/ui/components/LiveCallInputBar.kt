@@ -119,10 +119,11 @@ fun LivePlayCallKeypad(
     )
     val haptic = LocalHapticFeedback.current
     val actionsEnabled = !actionInProgress
-    val inputVisuallyActive = canAddNumber
+    val inputActionsEnabled = canAddNumber && showNumberKeypad
+    val inputVisuallyActive = inputActionsEnabled
     // Allow Add when there is text so invalid/edge values can be submitted; empty stays off (no feedback on type-only).
     val hasNonBlankInput = draft.trim().isNotEmpty()
-    val callEnabled = canAddNumber && actionsEnabled && hasNonBlankInput
+    val callEnabled = inputActionsEnabled && actionsEnabled && hasNonBlankInput
     val topRowHeight = Dimens.inputBarHeight - Dimens.spacing8
     val compactActionSize = topRowHeight
     val hasDraft = draft.isNotEmpty()
@@ -177,7 +178,7 @@ fun LivePlayCallKeypad(
     )
 
     fun appendDigit(d: Int) {
-        if (!canAddNumber || !actionsEnabled) return
+        if (!inputActionsEnabled || !actionsEnabled) return
         if (draft.length >= 2) return
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         onDraftChange(draft + d)
@@ -285,7 +286,7 @@ fun LivePlayCallKeypad(
                                 }
                                 .clip(CircleShape)
                                 .clickable(
-                                    enabled = draft.isNotEmpty() && actionsEnabled,
+                                    enabled = draft.isNotEmpty() && actionsEnabled && inputActionsEnabled,
                                     interactionSource = clearInteraction,
                                     indication = null
                                 ) {
@@ -312,22 +313,22 @@ fun LivePlayCallKeypad(
                 }
                 LivePlayConsoleOutlinedAction(
                     onClick = {
-                        if (undoEnabled && actionsEnabled) {
+                        if (undoEnabled && inputActionsEnabled && actionsEnabled) {
                             onUndoClick()
                         }
                     },
-                    enabled = actionsEnabled && undoEnabled,
+                    enabled = actionsEnabled && undoEnabled && inputActionsEnabled,
                     interactionSource = undoInteraction,
                     scale = undoScale,
                     size = compactActionSize,
                     contentDescription = stringResource(R.string.live_play_undo_cd),
-                    inactive = !undoEnabled,
+                    inactive = !(undoEnabled && inputActionsEnabled),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Undo,
                         contentDescription = null,
                         modifier = Modifier.size(Dimens.iconDefault),
-                        tint = if (actionsEnabled && undoEnabled) {
+                        tint = if (actionsEnabled && undoEnabled && inputActionsEnabled) {
                             scheme.primary
                         } else {
                             scheme.onSurfaceVariant.copy(alpha = 0.34f)
@@ -374,7 +375,7 @@ fun LivePlayCallKeypad(
                     keypadOpen = showNumberKeypad,
                     onClick = onToggleNumberKeypad,
                     size = compactActionSize,
-                    inactive = !inputVisuallyActive,
+                    inactive = !canAddNumber,
                 )
             }
             AnimatedVisibility(
@@ -405,7 +406,7 @@ fun LivePlayCallKeypad(
                     Spacer(modifier = Modifier.height(Dimens.spacing10))
                     AppNumberKeypad(
                         onDigit = { appendDigit(it) },
-                        enabled = canAddNumber && actionsEnabled,
+                        enabled = inputActionsEnabled && actionsEnabled,
                         bottomSafeSpacing = LivePlayCallKeypadMetrics.fabSafeBottomInset,
                     )
                 }

@@ -4,16 +4,17 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.components.APP_SECTION_BORDER_ALPHA
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
+import com.example.mamunbingoapp.ui.components.AppIconTile
 import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,30 +48,41 @@ fun ScanTypeSelectionSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing8, bottom = Dimens.spacing16),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                .padding(top = Dimens.spacing4, bottom = Dimens.spacing24),
         ) {
-            Text(
-                text = stringResource(R.string.scan_type_choose_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = scheme.onSurface,
-                modifier = Modifier.padding(bottom = Dimens.spacing4),
-            )
-            Text(
-                text = stringResource(R.string.scan_type_choose_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Dimens.spacing4),
-            )
-            BingoScanType.entries.forEach { type ->
-                ScanTypeOptionRow(
-                    title = scanTypeTitle(type),
-                    subtitle = scanTypeSubtitle(type),
-                    icon = scanTypeIcon(type),
-                    onClick = { onScanTypeSelected(type) },
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Dimens.spacing8),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+            ) {
+                Text(
+                    text = stringResource(R.string.scan_type_choose_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurface,
                 )
+                Text(
+                    text = stringResource(R.string.scan_type_choose_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.78f),
+                )
+            }
+            Spacer(modifier = Modifier.height(Dimens.spacing16))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+            ) {
+                BingoScanType.entries.forEach { type ->
+                    ScanTypeOptionRow(
+                        title = scanTypeTitle(type),
+                        subtitle = scanTypeSubtitle(type),
+                        icon = scanTypeIcon(type),
+                        onClick = { onScanTypeSelected(type) },
+                    )
+                }
             }
         }
     }
@@ -82,41 +96,38 @@ private fun ScanTypeOptionRow(
     onClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val cardShape = RoundedCornerShape(Dimens.radiusCard)
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Dimens.radiusMedium),
-        color = scheme.surfaceContainerLow,
+        shape = cardShape,
+        color = scheme.surface,
         border = BorderStroke(
             Dimens.cardBorderDefault,
-            scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha),
+            scheme.primary.copy(alpha = APP_SECTION_BORDER_ALPHA),
         ),
-        shadowElevation = 0.dp,
+        shadowElevation = 0.5.dp,
         tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing12),
+                .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing16),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing16),
         ) {
-            Surface(
-                shape = RoundedCornerShape(Dimens.radiusSmall),
-                color = scheme.primary.copy(alpha = 0.12f),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
+            AppIconTile(
+                icon = icon,
+                size = 44.dp,
+                iconSize = Dimens.iconDefault,
+                containerColor = scheme.primaryContainer.copy(alpha = 0.45f),
+                iconTint = scheme.primary,
+                shape = RoundedCornerShape(Dimens.radiusMedium),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = scheme.primary,
-                    modifier = Modifier
-                        .padding(Dimens.spacing8)
-                        .size(Dimens.iconCompact),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
@@ -126,7 +137,7 @@ private fun ScanTypeOptionRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
+                    color = scheme.onSurfaceVariant.copy(alpha = 0.82f),
                 )
             }
         }

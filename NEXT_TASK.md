@@ -1,7 +1,7 @@
 ﻿# Next task
 
-**Goal:** QA equal-width BINGO header on device (Live + Home).
+**Goal:** QA scan type sheet card weight on device.
 
-**Verify:** B/I/N/G/O boxes visually identical width; open/closed Live fonts OK.
+**Verify:** Border-first, light shadow (0.5dp); tap flows unchanged.
 
-**Previous:** Explicit `letterWidth` in `ActiveTicketBingoHeaderRow`. Build OK.
+**Previous:** Scan option shadow reduced from 2dp → 0.5dp. Build OK.

@@ -1,6 +1,6 @@
 # Project status
 
-**Last update:** 2026-06-04 - **BINGO header:** equal box width via `(maxWidth - 4×gap) / 5`. Build OK.
+**Last update:** 2026-06-04 - **Scan type sheet UI:** premium option cards, header hierarchy, safe-area padding. Build OK.
 
 **Previous:** 2026-06-04 - **Live sheet grid polish.** Build OK.
 
