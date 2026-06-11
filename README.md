@@ -48,14 +48,13 @@ A modern Android Bingo app with advanced ticket scanning and **QR-based sharing*
 
 ## 📱 Screenshots
 
-> Add your screenshots here (e.g. drop images into `docs/` and link them).
+| Scanner | Live play |
+|--------|-----------|
+| ![Scanner — CameraX ticket capture](Screenshoots/Scanner.png) | ![Live play — room sheets and calls](Screenshoots/Live_play.png) |
 
-| | |
-|--|--|
-| Scanner / import camera | *placeholder* |
-| Ticket detail | *placeholder* |
-| Ticket QR dialog | *placeholder* |
-| Live play | *placeholder* |
+| Ticket detail | Ticket QR dialog |
+|---------------|------------------|
+| ![Ticket detail — full grid and metadata](Screenshoots/Ticket_detail.png) | ![Ticket QR dialog — share and import](Screenshoots/Ticket_QR_dialog.png) |
 
 ---
 
