@@ -5,6 +5,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -44,6 +46,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -63,6 +66,7 @@ import com.example.mamunbingoapp.theme.IconContainerBg
 import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppConfirmDialog
 import com.example.mamunbingoapp.ui.components.AppTopBar
+import com.example.mamunbingoapp.ui.core.interaction.appRipple
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -74,6 +78,8 @@ private val ScanManualBadgeMaxSize = 64.dp
 private val ScanManualBadgeMinSize = 52.dp
 private val ScanLayoutReferenceHeight = 720.dp
 private val ScanHeroCurveClearance = Dimens.spacing16
+private val ScanModuleRippleShape = RoundedCornerShape(Dimens.radiusLarge)
+private const val ScanModuleRippleAlpha = 0.28f
 
 private const val CameraTapBounceScale = 0.96f
 private const val CameraTapBounceLegMs = 60
@@ -281,9 +287,20 @@ private fun ScanAutoSection(
         }
     }
     val ctaShape = RoundedCornerShape(Dimens.radiusMedium)
+    val sectionInteraction = remember { MutableInteractionSource() }
+    val sectionRipple = appRipple(
+        bounded = true,
+        color = colors.primary.copy(alpha = ScanModuleRippleAlpha),
+    )
 
     Column(
         modifier = modifier
+            .clip(ScanModuleRippleShape)
+            .clickable(
+                interactionSource = sectionInteraction,
+                indication = sectionRipple,
+                onClick = launchCameraWithHaptic,
+            )
             .padding(horizontal = Dimens.screenHorizontalPadding)
             .padding(bottom = ScanHeroBottomCurveHeight + ScanHeroCurveClearance),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -361,11 +378,22 @@ private fun ScanManualSection(
     val openNumberPadLabel = stringResource(R.string.scan_open_number_pad)
     val secondaryShape = RoundedCornerShape(Dimens.radiusButtonPill)
     val badgeIconSize = metrics.badgeSize * 0.44f
+    val sectionInteraction = remember { MutableInteractionSource() }
+    val sectionRipple = appRipple(
+        bounded = true,
+        color = colors.primary.copy(alpha = ScanModuleRippleAlpha),
+    )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(ScanModuleRippleShape)
             .background(colors.surface)
+            .clickable(
+                interactionSource = sectionInteraction,
+                indication = sectionRipple,
+                onClick = onOpenNumberPad,
+            )
             .padding(horizontal = Dimens.screenHorizontalPadding)
             .padding(top = Dimens.spacing8)
             .padding(bottom = metrics.fabSafePadding),

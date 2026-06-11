@@ -453,16 +453,54 @@ private fun shouldHideMainBottomBar(route: String?): Boolean {
     return false
 }
 
-/** Live/manual only; archived/profile/history use [MainTabsViewModel] so bar taps update highlight. */
-private fun appTabHighlightForRoute(route: String?): AppTab? = when {
-    route == null || route == MAIN_TABS_ROUTE -> null
-    route.startsWith("livePlay") || route.startsWith("liveSheet") -> AppTab.Jackpot
-    route.startsWith("manualEntry") || route.startsWith("historyPhotoImport") -> AppTab.Scan
-    else -> null
+/** Route → footer highlight; [MAIN_TABS_ROUTE] is null so [MainTabsViewModel] owns tab roots. */
+private fun appTabHighlightForRoute(route: String?): AppTab? {
+    if (route == null || route == MAIN_TABS_ROUTE) return null
+    return when {
+        route.startsWith("historyPhotoImport") || route.startsWith("manualEntry") -> AppTab.Scan
+        route.startsWith("livePlay") || route.startsWith("liveSheet") -> AppTab.Jackpot
+        route.startsWith("history") ||
+            route.startsWith("ticket") ||
+            route.startsWith("archivedGame") -> AppTab.Jackpot
+        isProfileShellRoute(route) -> AppTab.Profile
+        else -> null
+    }
 }
+
+private fun isProfileShellRoute(route: String): Boolean =
+    route.startsWith("settings") ||
+        route.startsWith("myAccount") ||
+        route.startsWith("paymentMethods") ||
+        route.startsWith("support") ||
+        route.startsWith("changePassword") ||
+        route.startsWith("locationServices") ||
+        route.startsWith("environmentalImpact") ||
+        route.startsWith("termsOfService") ||
+        route.startsWith("privacyPolicy")
+
+private fun resolveShellHighlightedTab(
+    route: String?,
+    vmSelectedTab: AppTab,
+    tabHintRaw: String?,
+): AppTab =
+    appTabHighlightForRoute(route)
+        ?: vmSelectedTab
+        ?: parseMainShellTabHint(tabHintRaw)
+        ?: AppTab.Home
 
 private fun stageMainShellTab(tabsViewModel: MainTabsViewModel?, tab: AppTab) {
     tabsViewModel?.setSelectedTab(tab)
+}
+
+private fun stageMainShellTabHint(
+    navController: NavHostController,
+    tabsViewModel: MainTabsViewModel?,
+    tab: AppTab,
+) {
+    stageMainShellTab(tabsViewModel, tab)
+    runCatching {
+        navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle["selectedTab"] = tab.name
+    }
 }
 
 private fun parseMainShellTabHint(raw: String?): AppTab? =
@@ -565,9 +603,7 @@ private fun MainShellScaffold(
     }
     val isGlobalScanBusy by scanPipelineBusyFlow?.collectAsStateWithLifecycle()
         ?: remember { mutableStateOf(false) }
-    val highlightedTab = appTabHighlightForRoute(currentRoute)
-        ?: parseMainShellTabHint(tabHintRaw)
-        ?: vmSelectedTab
+    val highlightedTab = resolveShellHighlightedTab(currentRoute, vmSelectedTab, tabHintRaw)
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val contentBottomInset =
         if (showBottomBar) AppBottomBarShellHeight + navBarInset else 0.dp
@@ -886,7 +922,10 @@ fun NavGraph(
                         navController.navigate(buildManualEntryRoute(numbers))
                     }
                 },
-                onNavigateToHistory = { navController.navigate("history") },
+                onNavigateToHistory = {
+                    stageMainShellTab(tabsViewModel, AppTab.Jackpot)
+                    navController.navigate("history")
+                },
                 onNavigateToArchivedGames = {
                     stageMainShellTab(tabsViewModel, AppTab.Jackpot)
                     navController.navigate(ARCHIVED_LIST_ROUTE) {
@@ -913,10 +952,14 @@ fun NavGraph(
                     stageMainShellTab(tabsViewModel, AppTab.Profile)
                     navController.navigate("changePassword")
                 },
-                onNavigateToTicketDetail = { id -> navController.navigate("ticket/$id") },
+                onNavigateToTicketDetail = { id ->
+                    stageMainShellTab(tabsViewModel, AppTab.Jackpot)
+                    navController.navigate("ticket/$id")
+                },
                 onNavigateToHistoryDetail = { sessionId ->
                     val id = sessionId.trim()
                     if (id.isEmpty()) return@MainTabsScreen
+                    stageMainShellTab(tabsViewModel, AppTab.Jackpot)
                     if (com.example.mamunbingoapp.data.HistoryRepository.getAll().any { it.id == id }) {
                         navController.navigate("historyDetail/$id")
                     } else {
@@ -972,7 +1015,7 @@ fun NavGraph(
             }
             LaunchedEffect(pendingRoomId) {
                 pendingRoomId?.let { rid ->
-                    navController.getBackStackEntry("main")?.savedStateHandle?.set("selectedTab", AppTab.Jackpot.name)
+                    stageMainShellTabHint(navController, tabsViewModel, AppTab.Jackpot)
                     navController.navigate("livePlayRoom/$rid") {
                         launchSingleTop = true
                         restoreState = true
@@ -1023,7 +1066,7 @@ fun NavGraph(
                 onOpenExistingRoom = { vm.openExistingRoom() },
                 onMoveToTargetRoom = { vm.moveToTargetRoom() },
                 onLeaveRoom = {
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
+                    stageMainShellTabHint(navController, tabsViewModel, AppTab.Jackpot)
                     navController.popBackStack()
                 },
                 showResetConfirm = showResetConfirm,
@@ -1135,6 +1178,7 @@ fun NavGraph(
                 initialSheetName = me.ticketMeta.sheetName,
                 showBottomBar = false,
                 onOpenExistingSheet = { ticketId ->
+                    stageMainShellTab(shellTabsVm, AppTab.Jackpot)
                     navController.navigate("historyDetail/$ticketId")
                 },
                 onScanAnother = {
@@ -1148,6 +1192,7 @@ fun NavGraph(
                     navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 onNavigateToLivePlay = { roomId ->
+                    stageMainShellTab(shellTabsVm, AppTab.Jackpot)
                     navController.navigate("livePlayRoom/$roomId") {
                         popUpTo(me.entryRouteForPopUpTo) { inclusive = true }
                     }
@@ -1199,6 +1244,7 @@ fun NavGraph(
                 initialSheetName = mer.ticketMeta.sheetName,
                 showBottomBar = false,
                 onOpenExistingSheet = { ticketId ->
+                    stageMainShellTab(shellTabsVm, AppTab.Jackpot)
                     navController.navigate("historyDetail/$ticketId")
                 },
                 onScanAnother = {
@@ -1235,10 +1281,11 @@ fun NavGraph(
             HistoryListScreen(
                 onBack = { navController.popBackStack() },
                 onSessionClick = { sessionId, _ ->
+                    stageMainShellTab(shellTabsVm, AppTab.Jackpot)
                     navController.navigate("historyDetail/$sessionId")
                 },
                 onJoinLiveRoom = { roomId ->
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
+                    stageMainShellTabHint(navController, shellTabsVm, AppTab.Jackpot)
                     navController.navigate("livePlayRoom/$roomId") {
                         popUpTo("history") { inclusive = false }
                     }
@@ -1263,7 +1310,7 @@ fun NavGraph(
                     }
                 },
                 onPlayClick = {
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
+                    stageMainShellTabHint(navController, shellTabsVm, AppTab.Jackpot)
                     navController.popBackStack(MAIN_TABS_ROUTE, inclusive = false)
                 },
                 onBulkAddToRoom = { roomId, sessionIds ->
@@ -1583,7 +1630,7 @@ fun NavGraph(
                     return@LaunchedEffect
                 }
                 com.example.mamunbingoapp.data.HistoryRepository.addToLive(handoff.sessionId)
-                runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
+                stageMainShellTabHint(navController, shellTabsVm, AppTab.Jackpot)
                 navController.navigate("livePlayRoom/${handoff.roomId}") {
                     launchSingleTop = true
                     restoreState = true
@@ -1608,7 +1655,10 @@ fun NavGraph(
                 isLoading = detailState.isLoading,
                 errorMessage = detailState.errorMessage,
                 onBack = { navController.popBackStack() },
-                onOpenTicketDetail = { ticketId -> navController.navigate("ticket/$ticketId") },
+                onOpenTicketDetail = { ticketId ->
+                    stageMainShellTab(shellTabsVm, AppTab.Jackpot)
+                    navController.navigate("ticket/$ticketId")
+                },
                 onTabSelected = { tab ->
                     navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
@@ -1617,7 +1667,7 @@ fun NavGraph(
                     if (roomId.isNotBlank()) detailVm.addToLivePlay(roomId)
                 },
                 onOpenRoom = { roomId ->
-                    runCatching { navController.getBackStackEntry("main").savedStateHandle.set("selectedTab", AppTab.Jackpot.name) }
+                    stageMainShellTabHint(navController, shellTabsVm, AppTab.Jackpot)
                     navController.navigate("livePlayRoom/$roomId") {
                         popUpTo("history") { inclusive = false }
                     }
@@ -1633,6 +1683,7 @@ fun NavGraph(
                     scope.launch {
                         val newId = com.example.mamunbingoapp.data.HistoryRepository.duplicateSession(sid)
                         if (newId != null) {
+                            stageMainShellTab(shellTabsVm, AppTab.Jackpot)
                             navController.navigate("historyDetail/$newId")
                         }
                     }

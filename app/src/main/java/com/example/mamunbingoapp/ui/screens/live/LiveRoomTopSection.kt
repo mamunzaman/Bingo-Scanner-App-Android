@@ -1254,40 +1254,6 @@ private fun LiveLastCalledPremiumChip(
 }
 
 @Composable
-private fun LiveShareCalledNumbersButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val bg = colorScheme.primary.copy(alpha = 0.10f)
-    val borderC = colorScheme.primary.copy(alpha = 0.20f)
-    val shareContentDescription = stringResource(R.string.live_play_share_called_numbers_cd)
-    Surface(
-        onClick = onClick,
-        modifier = modifier
-            .size(36.dp)
-            .semantics { contentDescription = shareContentDescription },
-        shape = CircleShape,
-        color = bg,
-        border = BorderStroke(Dimens.cardBorderDefault, borderC),
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp,
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Share,
-                contentDescription = null,
-                modifier = Modifier.size(Dimens.iconCompact),
-                tint = colorScheme.primary.copy(alpha = 0.82f),
-            )
-        }
-    }
-}
-
-@Composable
 private fun LiveHistoryToggleButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1398,7 +1364,9 @@ fun LiveRoomWithHistoryCard(
                             colorScheme = colorScheme,
                         )
                         if (onShareCalledNumbers != null) {
-                            LiveShareCalledNumbersButton(onClick = onShareCalledNumbers)
+                            com.example.mamunbingoapp.ui.components.ShareCalledNumbersButton(
+                                onClick = onShareCalledNumbers,
+                            )
                         }
                         LiveHistoryToggleButton(onClick = onOpenCalledNumbers)
                     }

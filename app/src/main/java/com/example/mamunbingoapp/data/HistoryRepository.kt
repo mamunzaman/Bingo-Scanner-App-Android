@@ -1,6 +1,8 @@
 package com.example.mamunbingoapp.data
 
 import com.example.mamunbingoapp.core.BingoPlayableNumbers
+import com.example.mamunbingoapp.core.BingoWinChecker
+import com.example.mamunbingoapp.core.SundayBingoSchedule
 import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.ui.model.TicketPickerMiniGridCell
@@ -27,6 +29,34 @@ data class TicketDetailData(
     val losNumber: String? = null,
     val serialNumber: String? = null,
     val playLogs: List<TicketPlayLog> = emptyList(),
+)
+
+const val HOME_ACTIVE_TICKET_MAX_AGE_MS = 14L * 24 * 60 * 60 * 1000
+
+enum class HomeActiveTicketTier(val sortOrder: Int) {
+    LIVE_SUNDAY(0),
+    PRACTICE(1),
+    ARCHIVED(2),
+}
+
+data class HomeActiveTicketQuery(
+    val sessions: List<HistorySession>,
+    val cellsByTicket: Map<String, List<TicketCellEntity>>,
+    val ticketToRoom: Map<String, String>,
+    val roomNamesById: Map<String, String>,
+    val calledNumbersByRoom: Map<String, List<Int>>,
+    val archivedByRoom: Map<String, Boolean>,
+    val archivedCalledByTicket: Map<String, List<Int>>,
+    val latestPlayLogByTicket: Map<String, TicketPlayLog>,
+    val testDatesBySession: Map<String, Long>,
+    val nowMillis: Long = System.currentTimeMillis(),
+)
+
+data class HomeActiveTicketSelection(
+    val session: HistorySession,
+    val tier: HomeActiveTicketTier,
+    val hasWin: Boolean,
+    val updatedAtMillis: Long,
 )
 
 object HistoryRepository {
@@ -60,6 +90,115 @@ object HistoryRepository {
         getTicketData(ticketId)?.cells?.takeIf { it.size == 25 }
 
     fun getAll(): List<HistorySession> = _sessionsFlow.value
+
+    /**
+     * Best home carousel ticket from the last [HOME_ACTIVE_TICKET_MAX_AGE_MS]:
+     * live Sunday room → practice room → archived room; then win, then newest.
+     */
+    fun getHomeActiveTicket(query: HomeActiveTicketQuery): HomeActiveTicketSelection? {
+        val cutoff = query.nowMillis - HOME_ACTIVE_TICKET_MAX_AGE_MS
+        return query.sessions.mapNotNull { session ->
+            val ticketId = session.ticketId
+            val roomId = query.ticketToRoom[ticketId] ?: query.ticketToRoom[session.id]
+            val updatedAtMillis = homeActiveTicketUpdatedAtMillis(
+                session = session,
+                ticketId = ticketId,
+                latestPlayLog = query.latestPlayLogByTicket[ticketId],
+                testDateMillis = query.testDatesBySession[session.id],
+            )
+            if (updatedAtMillis < cutoff) return@mapNotNull null
+            val tier = resolveHomeActiveTicketTier(
+                roomId = roomId,
+                roomName = roomId?.let { query.roomNamesById[it] },
+                archivedByRoom = query.archivedByRoom,
+                archivedCalled = query.archivedCalledByTicket[ticketId].orEmpty(),
+            ) ?: return@mapNotNull null
+            val calledNumbers = resolveHomeActiveTicketCalledNumbers(
+                session = session,
+                ticketId = ticketId,
+                roomId = roomId,
+                query = query,
+            )
+            val hasWin = homeActiveTicketHasWin(
+                cells = query.cellsByTicket[ticketId].orEmpty(),
+                calledNumbers = calledNumbers,
+                latestPlayLog = query.latestPlayLogByTicket[ticketId],
+            )
+            HomeActiveTicketSelection(
+                session = session,
+                tier = tier,
+                hasWin = hasWin,
+                updatedAtMillis = updatedAtMillis,
+            )
+        }.sortedWith(
+            compareBy<HomeActiveTicketSelection> { it.tier.sortOrder }
+                .thenByDescending { it.hasWin }
+                .thenByDescending { it.updatedAtMillis },
+        ).firstOrNull()
+    }
+
+    fun homeActiveTicketUpdatedAtMillis(
+        session: HistorySession,
+        ticketId: String,
+        latestPlayLog: TicketPlayLog?,
+        testDateMillis: Long?,
+    ): Long = listOfNotNull(
+        session.effectivePlayedAtMillis(),
+        latestPlayLog?.archivedAt?.takeIf { it > 0L },
+        latestPlayLog?.addedAt?.takeIf { it > 0L },
+        testDateMillis,
+    ).maxOrNull() ?: session.effectivePlayedAtMillis()
+
+    private fun resolveHomeActiveTicketTier(
+        roomId: String?,
+        roomName: String?,
+        archivedByRoom: Map<String, Boolean>,
+        archivedCalled: List<Int>,
+    ): HomeActiveTicketTier? {
+        if (!roomId.isNullOrBlank()) {
+            if (archivedByRoom.getOrDefault(roomId, false)) {
+                return HomeActiveTicketTier.ARCHIVED
+            }
+            return if (SundayBingoSchedule.isSundayFeaturedRoom(roomName.orEmpty())) {
+                HomeActiveTicketTier.LIVE_SUNDAY
+            } else {
+                HomeActiveTicketTier.PRACTICE
+            }
+        }
+        if (archivedCalled.isNotEmpty()) {
+            return HomeActiveTicketTier.ARCHIVED
+        }
+        return null
+    }
+
+    private fun resolveHomeActiveTicketCalledNumbers(
+        session: HistorySession,
+        ticketId: String,
+        roomId: String?,
+        query: HomeActiveTicketQuery,
+    ): List<Int> {
+        if (!roomId.isNullOrBlank() && !query.archivedByRoom.getOrDefault(roomId, false)) {
+            return query.calledNumbersByRoom[roomId].orEmpty()
+        }
+        return query.archivedCalledByTicket[ticketId]
+            ?: query.latestPlayLogByTicket[ticketId]?.calledNumbers
+            ?: session.calledNumbersFull
+    }
+
+    private fun homeActiveTicketHasWin(
+        cells: List<TicketCellEntity>,
+        calledNumbers: List<Int>,
+        latestPlayLog: TicketPlayLog?,
+    ): Boolean {
+        if ((latestPlayLog?.bingoLineCount ?: 0) > 0) return true
+        if (cells.isEmpty()) return false
+        val markedSet = TicketCalledNumbersResolver
+            .buildActiveTicketCellStates(cells, calledNumbers)
+            .mapIndexed { index, cell -> index.takeIf { cell.isCalled } }
+            .filterNotNull()
+            .toSet()
+        return BingoWinChecker.check(markedSet).isWin
+    }
 
     suspend fun getAllTicketsForPicker(roomId: String? = null): List<com.example.mamunbingoapp.ui.model.TicketUiModel> =
         withContext(Dispatchers.Default) {

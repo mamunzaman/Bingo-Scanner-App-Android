@@ -1,6 +1,20 @@
 # Project status
 
-**Last update:** 2026-06-04 - **Demo history marks:** room calls from Demo Sheet 1 values; `demo-t-completed` Room seed; list room lookup by `ticketId`; detail demo cell fallback. Build OK.
+**Last update:** 2026-06-04 - **Scan tab ripple:** bounded `appRipple` on Auto-Scan + Manual Input full sections. Build OK.
+
+**Previous:** 2026-06-04 - **Scan tab modules:** Auto-Scan + Manual Input full card clickable. Build OK.
+
+**Previous:** 2026-06-04 - **Home active ticket grid:** marked cells use `colorScheme.primary` (Live Bingo green). Build OK.
+
+**Previous:** 2026-06-04 - **Live sheet cards:** scanned date hidden on carousel/list cards; kept in bottom sheet detail. Build OK.
+
+**Previous:** 2026-06-04 - **Home active ticket pick:** `getHomeActiveTicket` Sunday → practice → archived (14d, win, newest). Build OK.
+
+**Previous:** 2026-06-04 - **Live sheet card meta:** Marked badge removed; shared `ShareCalledNumbersButton`; LOS/SERIE + scanned date via `HistoryTicketCard`. Build OK.
+
+**Previous:** 2026-06-04 - **Footer tab highlight:** `NavGraph` route map + VM-before-hint resolution; `stageMainShellTab` on history/ticket navigations. Build OK.
+
+**Previous:** 2026-06-04 - **Demo history marks:** room calls from Demo Sheet 1 values; `demo-t-completed` Room seed; list room lookup by `ticketId`; detail demo cell fallback. Build OK.
 
 **Previous:** 2026-06-04 - **Live carousel win reuse:** `BingoWinningMarker` shared with `BingoCell`; carousel `winningCells` + red ellipse + overlay BINGO! badge. Home unchanged. Build OK.
 

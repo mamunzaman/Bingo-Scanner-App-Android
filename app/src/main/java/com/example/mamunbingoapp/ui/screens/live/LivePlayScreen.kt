@@ -805,7 +805,6 @@ fun LivePlayScreen(
                                 ),
                                 serialNumber = sheet.serialNumber,
                                 losNumber = sheet.losNumber,
-                                scannedDate = formatPlayDate(sheet.playedAtMillis),
                                 cells = sheet.cells,
                                 onClick = { detailSheet = sheet },
                                 selectionMode = listSelectionMode,
@@ -928,7 +927,9 @@ fun LivePlayScreen(
             onOpenFullDetail = {
                 detailSheet = null
                 onOpenSheetDetail(sheet.ticketId)
-            }
+            },
+            onShareCalledNumbers = onShareCalledNumbers,
+            shareCalledNumbersEnabled = calledNumbers.isNotEmpty(),
         )
     }
     if (showCalledNumbersSheet) {
@@ -1891,7 +1892,7 @@ private fun BingoSheetsCarousel(
     keypadExpanded: Boolean = true,
     sheets: List<LiveSheetUi>,
     initialSelectedTicketId: String = "",
-    onSheetClick: (LiveSheetUi) -> Unit = {}
+    onSheetClick: (LiveSheetUi) -> Unit = {},
 ) {
     val sizingProfile = liveCarouselSizingProfile(keypadExpanded)
     val cardHeightRatio by animateFloatAsState(
@@ -2021,11 +2022,6 @@ private fun SheetCard(
     val cs = MaterialTheme.colorScheme
     val cardBorder = if (isWin) WarningBorder else cs.primary.copy(alpha = 0.45f)
     val cardShape = RoundedCornerShape(Dimens.radiusCard)
-    val markedLabel = stringResource(
-        R.string.live_play_marked_count,
-        BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
-        BingoPlayableNumbers.PLAYABLE_COUNT,
-    )
     val liveLosLabelStyle = MaterialTheme.typography.labelSmall.copy(
         fontSize = 11.sp,
         lineHeight = 12.sp,
@@ -2067,22 +2063,6 @@ private fun SheetCard(
                 valueStyle = liveLosValueStyle,
             )
         },
-        trailingHeader = {
-            Text(
-                text = markedLabel,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (isWin) WarningText else cs.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .background(
-                        if (isWin) Warning.copy(alpha = 0.18f) else cs.primary.copy(alpha = 0.1f),
-                        RoundedCornerShape(100.dp),
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        },
         winningCells = winResult.winningCells,
         liveWinStyling = true,
         winLineCount = if (isWin) winResult.winningLines.size else 0,
@@ -2096,7 +2076,6 @@ private fun ListSheetRow(
     marked: String,
     serialNumber: String?,
     losNumber: String?,
-    scannedDate: String,
     cells: List<BingoCellUi>,
     onClick: () -> Unit = {},
     selectionMode: Boolean = false,
@@ -2215,19 +2194,6 @@ private fun ListSheetRow(
                             fontWeight = FontWeight.Bold,
                         ),
                     )
-                    Text(
-                        text = stringResource(R.string.live_play_scanned_date, scannedDate),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = Dimens.spacing8),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 12.sp,
-                            lineHeight = 14.sp,
-                        ),
-                        color = cs.onSurfaceVariant.copy(alpha = 0.55f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                 }
             }
         }
@@ -2303,7 +2269,9 @@ private fun ResumeAutoCallBanner(roomId: String, onResume: () -> Unit) {
 private fun SheetDetailBottomSheet(
     sheet: LiveSheetUi,
     onDismiss: () -> Unit,
-    onOpenFullDetail: () -> Unit
+    onOpenFullDetail: () -> Unit,
+    onShareCalledNumbers: (() -> Unit)? = null,
+    shareCalledNumbersEnabled: Boolean = true,
 ) {
     val gridCells = when {
         sheet.cells.size == 25 && sheet.cells.any { !it.number.isNullOrBlank() } -> sheet.cells
@@ -2313,13 +2281,10 @@ private fun SheetDetailBottomSheet(
     }
     val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
     val winResult = BingoWinChecker.check(markedSet)
-    val scannedDate = formatPlayDate(sheet.playedAtMillis)
-    val placeholderDash = stringResource(R.string.common_placeholder_dash)
-    val metaSerial = sheet.serialNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
-    val metaLos = sheet.losNumber?.takeIf { it.isNotBlank() } ?: placeholderDash
-    val serialLabel = stringResource(R.string.live_play_label_serial)
-    val losLabel = stringResource(R.string.live_play_label_los)
-    val scannedLabel = stringResource(R.string.live_play_label_scanned)
+    val scannedDateText = stringResource(
+        R.string.live_play_scanned_date,
+        formatPlayDate(sheet.playedAtMillis),
+    )
     val qrNotReadyMessage = stringResource(R.string.live_play_qr_not_ready)
     val qrEncodeFailedMessage = stringResource(R.string.live_play_qr_encode_failed)
     val qrImageFailedMessage = stringResource(R.string.live_play_qr_image_failed)
@@ -2470,44 +2435,16 @@ private fun SheetDetailBottomSheet(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
-                            Text(
-                                text = stringResource(
-                                    R.string.live_play_marked_count_compact,
-                                    BingoPlayableNumbers.countMarkedPlayableCells(sheet.cells),
-                                    BingoPlayableNumbers.PLAYABLE_COUNT,
-                                ),
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        RoundedCornerShape(100.dp)
-                                    )
-                                    .padding(horizontal = Dimens.spacing8, vertical = 3.dp)
+                            com.example.mamunbingoapp.ui.screens.history.components.HistoryTicketSheetTrailingShare(
+                                onShareCalledNumbers = onShareCalledNumbers,
+                                shareEnabled = shareCalledNumbersEnabled,
                             )
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            SheetPreviewInfoCell(
-                                label = serialLabel,
-                                value = metaSerial,
-                                modifier = Modifier.weight(1f)
-                            )
-                            ListSheetVerticalDivider()
-                            SheetPreviewInfoCell(
-                                label = losLabel,
-                                value = metaLos,
-                                modifier = Modifier.weight(1f)
-                            )
-                            ListSheetVerticalDivider()
-                            SheetPreviewInfoCell(
-                                label = scannedLabel,
-                                value = scannedDate,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        com.example.mamunbingoapp.ui.screens.history.components.HistoryTicketSheetMetaBlock(
+                            losNumber = sheet.losNumber,
+                            serieNumber = sheet.serialNumber,
+                            scannedDateText = scannedDateText,
+                        )
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()

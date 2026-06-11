@@ -13,13 +13,17 @@ object TicketPlayLogRepository {
         dao().observeForTicket(ticketId).map { list -> list.map { it.toTicketPlayLog() } }
 
     fun observeLatestCalledNumbersByTicket(): Flow<Map<String, List<Int>>> =
+        observeLatestPlayLogByTicket().map { byTicket ->
+            byTicket.mapValues { (_, log) -> log.calledNumbers }
+        }
+
+    fun observeLatestPlayLogByTicket(): Flow<Map<String, TicketPlayLog>> =
         dao().observeAll().map { logs ->
             logs
                 .filter { !it.ticketId.isArchivedCallsOnlyPlaceholderTicketId() }
+                .map { it.toTicketPlayLog() }
                 .groupBy { it.ticketId }
-                .mapValues { (_, entries) ->
-                    entries.maxByOrNull { it.archivedAt }?.toTicketPlayLog()?.calledNumbers.orEmpty()
-                }
+                .mapValues { (_, entries) -> entries.maxBy { it.archivedAt } }
         }
 
     fun observeArchivedSessions(): Flow<List<ArchivedGameSession>> =

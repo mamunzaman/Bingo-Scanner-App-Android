@@ -56,7 +56,6 @@ import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.EmptyHistoryCardBg
 import com.example.mamunbingoapp.theme.OnPrimary
 import com.example.mamunbingoapp.theme.Primary
-import com.example.mamunbingoapp.theme.PrimaryDark
 import com.example.mamunbingoapp.theme.TicketPaperBorder
 import com.example.mamunbingoapp.theme.TicketPaperCell
 import com.example.mamunbingoapp.theme.TicketPaperTop
@@ -779,7 +778,7 @@ private fun ActiveTicketSheetCell(
     val detailMarked = highlight && liveWinStyling
     val bg = when {
         detailMarked -> cs.primary
-        highlight -> PrimaryDark
+        highlight -> cs.primary
         else -> MINI_CELL_PAPER
     }
     val borderColor = MINI_CELL_BORDER_COLOR

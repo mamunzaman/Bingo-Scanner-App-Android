@@ -39,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
 import com.example.mamunbingoapp.data.remote.BingoDrawDto
 import com.example.mamunbingoapp.data.TicketCalledNumbersResolver
@@ -124,7 +123,6 @@ fun HomeScreen(
     val isRemoteLoading by homeViewModel.isRemoteLoading.collectAsStateWithLifecycle()
     val remoteError by homeViewModel.remoteError.collectAsStateWithLifecycle()
     val activeTicketsUi by homeViewModel.activeTicketsUi.collectAsStateWithLifecycle()
-    val tickets by HistoryRepository.sessionsFlow.collectAsStateWithLifecycle()
     val defaultPlayerName = stringResource(R.string.home_default_player_name)
     val welcomeName = profileDisplayName?.takeIf { it.isNotBlank() } ?: defaultPlayerName
     val showProfileSummary = profileDisplayName != null
@@ -175,7 +173,6 @@ fun HomeScreen(
                         latestDraw = latestDraw,
                         isRemoteLoading = isRemoteLoading,
                         remoteError = remoteError,
-                        tickets = tickets,
                         activeTicketsUi = activeTicketsUi,
                     )
                 }
@@ -277,7 +274,6 @@ private fun HomeScrollBody(
     latestDraw: BingoDrawDto?,
     isRemoteLoading: Boolean,
     remoteError: String?,
-    tickets: List<HistorySession>,
     activeTicketsUi: HomeActiveTicketsUiState,
 ) {
         val latestNumbers = latestDraw?.winningNumbers.orEmpty()
@@ -333,7 +329,8 @@ private fun HomeScrollBody(
                 calledCount = activeTicketsUi.calledCount,
                 hasActiveLiveRoom = activeTicketsUi.hasActiveLiveRoom,
             )
-            if (tickets.isNotEmpty()) {
+            val ticketCards = activeTicketsUi.displaySessions
+            if (ticketCards.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Dimens.spacing12))
                 Row(
                     modifier = Modifier
@@ -342,16 +339,7 @@ private fun HomeScrollBody(
                         .padding(vertical = Dimens.spacing4),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spacing14),
                 ) {
-                    tickets
-                        .sortedWith(
-                            compareByDescending<HistorySession> { session ->
-                                activeTicketsUi.previews
-                                    .find { it.sessionId == session.id }
-                                    ?.isInLiveRoom == true
-                            }.thenByDescending { it.homeTicketSortMillis() },
-                        )
-                        .take(5)
-                        .forEach { session ->
+                    ticketCards.forEach { session ->
                             val preview = activeTicketsUi.previews.find { it.sessionId == session.id }
                             if (preview != null) {
                                 val calledLabel = preview.calledCount.takeIf { it > 0 }?.let { count ->
@@ -535,9 +523,6 @@ private fun HomeActiveTicketsStatItem(
         }
     }
 }
-
-private fun HistorySession.homeTicketSortMillis(): Long =
-    playedAtMillis ?: effectivePlayedAtMillis()
 
 private fun formatHomeTicketDate(millis: Long): String {
     val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())

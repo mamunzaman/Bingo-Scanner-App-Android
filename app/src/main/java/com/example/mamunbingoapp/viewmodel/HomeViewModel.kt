@@ -6,8 +6,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.R
+import com.example.mamunbingoapp.data.HOME_ACTIVE_TICKET_MAX_AGE_MS
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.HistorySession
+import com.example.mamunbingoapp.data.HomeActiveTicketQuery
+import com.example.mamunbingoapp.data.TicketPlayLog
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketCalledNumbersResolver
 import com.example.mamunbingoapp.data.TicketPlayLogRepository
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -47,15 +51,20 @@ data class HomeActiveTicketsUiState(
     val calledCount: Int = 0,
     val hasActiveLiveRoom: Boolean = false,
     val previews: List<HomeActiveTicketCardState> = emptyList(),
+    /** Carousel sessions (≤14 days), primary [getHomeActiveTicket] pick first. */
+    val displaySessions: List<HistorySession> = emptyList(),
+    val primarySessionId: String? = null,
 )
 
 private data class HomeActiveTicketsInput(
     val sessions: List<HistorySession>,
     val cellsByTicket: Map<String, List<TicketCellEntity>>,
     val ticketToRoom: Map<String, String>,
+    val roomNamesById: Map<String, String>,
     val calledNumbersByRoom: Map<String, List<Int>>,
     val archivedByRoom: Map<String, Boolean>,
     val archivedCalledByTicket: Map<String, List<Int>>,
+    val latestPlayLogByTicket: Map<String, TicketPlayLog>,
     val testDatesBySession: Map<String, Long>,
 )
 
@@ -90,8 +99,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             RoomRepository.allRoomsCalledNumbersFlow(),
             RoomRepository.roomsArchivedMapFlow(),
             TicketPlayLogRepository.observeLatestCalledNumbersByTicket(),
-        ) { calledByRoom, archivedByRoom, archivedByTicket ->
-            Triple(calledByRoom, archivedByRoom, archivedByTicket)
+            TicketPlayLogRepository.observeLatestPlayLogByTicket(),
+            RoomRepository.roomsFlow().map { rooms -> rooms.associate { it.roomId to it.name } },
+        ) { calledByRoom, archivedByRoom, archivedByTicket, latestLogs, roomNames ->
+            HomeActiveTicketsRoomSnapshot(
+                calledByRoom,
+                archivedByRoom,
+                archivedByTicket,
+                latestLogs,
+                roomNames,
+            )
         },
         HistoryRepository.observeAllHistoryTestDates(),
     ) { core, room, testDates ->
@@ -99,9 +116,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             sessions = core.first,
             cellsByTicket = core.second,
             ticketToRoom = core.third,
-            calledNumbersByRoom = room.first,
-            archivedByRoom = room.second,
-            archivedCalledByTicket = room.third,
+            roomNamesById = room.roomNamesById,
+            calledNumbersByRoom = room.calledNumbersByRoom,
+            archivedByRoom = room.archivedByRoom,
+            archivedCalledByTicket = room.archivedCalledByTicket,
+            latestPlayLogByTicket = room.latestPlayLogByTicket,
             testDatesBySession = testDates,
         )
     }
@@ -131,6 +150,35 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun buildActiveTicketsUi(input: HomeActiveTicketsInput): HomeActiveTicketsUiState {
+        val nowMillis = System.currentTimeMillis()
+        val cutoff = nowMillis - HOME_ACTIVE_TICKET_MAX_AGE_MS
+        val query = HomeActiveTicketQuery(
+            sessions = input.sessions,
+            cellsByTicket = input.cellsByTicket,
+            ticketToRoom = input.ticketToRoom,
+            roomNamesById = input.roomNamesById,
+            calledNumbersByRoom = input.calledNumbersByRoom,
+            archivedByRoom = input.archivedByRoom,
+            archivedCalledByTicket = input.archivedCalledByTicket,
+            latestPlayLogByTicket = input.latestPlayLogByTicket,
+            testDatesBySession = input.testDatesBySession,
+            nowMillis = nowMillis,
+        )
+        val primarySelection = HistoryRepository.getHomeActiveTicket(query)
+        val recentSessions = input.sessions.filter { session ->
+            HistoryRepository.homeActiveTicketUpdatedAtMillis(
+                session = session,
+                ticketId = session.ticketId,
+                latestPlayLog = input.latestPlayLogByTicket[session.ticketId],
+                testDateMillis = input.testDatesBySession[session.id],
+            ) >= cutoff
+        }
+        val displaySessions = buildHomeDisplaySessions(
+            recentSessions = recentSessions,
+            primarySessionId = primarySelection?.session?.id,
+            input = input,
+            nowMillis = nowMillis,
+        )
         val activeLiveRoomId = resolveActiveLiveRoomId(
             calledNumbersByRoom = input.calledNumbersByRoom,
             archivedByRoom = input.archivedByRoom,
@@ -140,7 +188,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             ?.let { input.calledNumbersByRoom[it]?.size }
             ?: 0
         val drawCache = mutableMapOf<Long, List<Int>?>()
-        val previews = input.sessions.map { session ->
+        val previewSessions = displaySessions.ifEmpty { recentSessions }
+        val previews = previewSessions.map { session ->
             val ticketId = session.ticketId
             val roomId = input.ticketToRoom[ticketId]
             val archivedNumbers = input.archivedCalledByTicket[ticketId].orEmpty()
@@ -173,11 +222,37 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         return HomeActiveTicketsUiState(
-            activeCount = input.sessions.size,
+            activeCount = recentSessions.size,
             calledCount = activeCalledCount,
             hasActiveLiveRoom = activeLiveRoomId != null,
             previews = previews,
+            displaySessions = displaySessions,
+            primarySessionId = primarySelection?.session?.id,
         )
+    }
+
+    private fun buildHomeDisplaySessions(
+        recentSessions: List<HistorySession>,
+        primarySessionId: String?,
+        input: HomeActiveTicketsInput,
+        nowMillis: Long,
+    ): List<HistorySession> {
+        if (recentSessions.isEmpty()) return emptyList()
+        val sortedOthers = recentSessions
+            .filter { it.id != primarySessionId }
+            .sortedByDescending { session ->
+                HistoryRepository.homeActiveTicketUpdatedAtMillis(
+                    session = session,
+                    ticketId = session.ticketId,
+                    latestPlayLog = input.latestPlayLogByTicket[session.ticketId],
+                    testDateMillis = input.testDatesBySession[session.id],
+                )
+            }
+        val primary = primarySessionId?.let { id -> recentSessions.find { it.id == id } }
+        return buildList {
+            primary?.let { add(it) }
+            addAll(sortedOthers)
+        }.take(5)
     }
 
     private fun resolveActiveLiveRoomId(
@@ -250,4 +325,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun isLatestDrawRequest(requestId: Int): Boolean =
         requestId == latestDrawRequestId.get()
 }
+
+private data class HomeActiveTicketsRoomSnapshot(
+    val calledNumbersByRoom: Map<String, List<Int>>,
+    val archivedByRoom: Map<String, Boolean>,
+    val archivedCalledByTicket: Map<String, List<Int>>,
+    val latestPlayLogByTicket: Map<String, TicketPlayLog>,
+    val roomNamesById: Map<String, String>,
+)
 
