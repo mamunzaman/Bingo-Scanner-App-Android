@@ -135,6 +135,7 @@ fun ScanScreen(
     onBackClick: () -> Unit,
     onLaunchCamera: (BingoScanType) -> Unit,
     onOpenNumberPad: () -> Unit,
+    onAddFromGallery: () -> Unit = {},
     requestShowScanTypeSheet: Boolean = false,
     onScanTypeSheetRequestConsumed: () -> Unit = {},
 ) {
@@ -252,6 +253,10 @@ fun ScanScreen(
             onScanTypeSelected = { type ->
                 showScanTypeSheet = false
                 onLaunchCamera(type)
+            },
+            onAddFromGallery = {
+                showScanTypeSheet = false
+                onAddFromGallery()
             },
         )
     }

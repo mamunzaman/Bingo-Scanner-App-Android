@@ -1,6 +1,26 @@
 # Project status
 
-**Last update:** 2026-07-06 - **Called numbers QR scanner UI:** fullscreen overlay, scrims, glass hint card, viewfinder corners. Build OK.
+**Last update:** 2026-07-06 - **Live ticket sheet pager:** `HorizontalPager` + `rememberPagerState` replaces arrows/manual swipe; synced with `selectedSheetTicketIndex`; QR resets on `settledPage`. Build OK.
+
+**Previous:** 2026-07-06 - **Live ticket sheet nav polish:** 52dp circular elevated arrows overlap card edges; horizontal swipe on ticket card (left=next, right=prev). Build OK.
+
+**Previous:** 2026-07-06 - **Live ticket sheet navigation:** `SheetDetailBottomSheet` prev/next chevrons over `displaySheets` order; `selectedSheetTicketIndex` keeps sheet open; View full detail uses current ticket. Build OK.
+
+**Previous:** 2026-07-06 - **Sheet scrim edge fix:** `AppBottomSheetSurface` defaults `WindowInsets(0)`; Called Numbers + detail/QR/history/live/manual sheets use `navigationBarsPadding` in content only. Build OK.
+
+**Previous:** 2026-07-06 - **Import Ticket idle compact fit.** Build OK.
+
+**Previous:** 2026-07-06 - **Import Ticket idle UI scale-up.** Build OK.
+
+**Previous:** 2026-07-06 - **Import Ticket premium idle UI:** watermark background, dashed hero card, premium action row. Build OK.
+
+**Previous:** 2026-07-06 - **Unified Import Ticket flow:** Live Create New Ticket + Scan Add from Gallery → shared `historyPhotoImport`. Build OK.
+
+**Previous:** 2026-07-06 - **Scan-type sheet restore:** compact bottom sheet + edge-to-edge scrim; gallery flow title **Import from Gallery**. Build OK.
+
+**Previous:** 2026-07-06 - **Scan-type sheet:** full-screen scrim; Add from Gallery option. Build OK.
+
+**Previous:** 2026-07-06 - **Called numbers QR scanner UI:** fullscreen overlay, scrims, glass hint card. Build OK.
 
 **Previous:** 2026-07-06 - **Called numbers QR scan route:** PhotoCamera icon; dedicated route; popBackStack to live room. Build OK.
 
@@ -596,6 +616,11 @@
 
 ## Completed features
 
+- **Live ticket sheet pager:** `SheetDetailBottomSheet` uses `HorizontalPager`; arrows removed; `settledPage` syncs `selectedSheetTicketIndex`; animated page transitions.
+- **Live ticket sheet nav polish:** (superseded by pager) elevated arrows + manual swipe.
+- **Sheet scrim edge-to-edge:** `AppBottomSheetSurface` `WindowInsets(0)` default; scrim covers status bar; `navigationBarsPadding` on sheet content where needed.
+- **Unified Import Ticket flow:** Live **Create New Ticket** + Scan **Add from Gallery** → `historyPhotoImport` (`Import Ticket` title, Take Photo + Gallery); `navigateToTicketImport`; gallery auto-pick from Scan only.
+- **Scan-type sheet:** compact bottom sheet (`WindowInsets(0)` scrim only); Add from Gallery row.
 - **Called numbers QR scanner UI:** fullscreen camera overlay, gradient scrims, circular back header, glass hint card, centered corner frame.
 - **Called numbers QR scan route:** PhotoCamera scan icon; dedicated `calledNumbersQrScan/{roomId}` screen; returns to same live room via `popBackStack`.
 - **Navigation workflow fixes:** Home `BackHandler` at tab root; import→manualEntry `popUpTo(tabs)`; save/live-play nav without 300ms gate.

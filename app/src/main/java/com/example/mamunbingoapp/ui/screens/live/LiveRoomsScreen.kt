@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -412,6 +413,7 @@ private fun SundayAddOptionsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(top = Dimens.spacing8, bottom = Dimens.spacing16),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
@@ -463,6 +465,7 @@ private fun SundayAddedSheetsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .heightIn(min = 180.dp, max = sheetHeight)
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(top = Dimens.spacing8, bottom = Dimens.spacing16),

@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.GridOn
 import androidx.compose.material.icons.outlined.Smartphone
@@ -38,51 +40,61 @@ import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 fun ScanTypeSelectionSheet(
     onDismiss: () -> Unit,
     onScanTypeSelected: (BingoScanType) -> Unit,
+    onAddFromGallery: (() -> Unit)? = null,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
     AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        windowInsets = WindowInsets(0, 0, 0, 0),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing4, bottom = Dimens.spacing24),
-        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = Dimens.spacing8),
-                verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                    .navigationBarsPadding()
+                    .padding(horizontal = Dimens.screenHorizontalPadding)
+                    .padding(top = Dimens.spacing4, bottom = Dimens.spacing24),
             ) {
-                Text(
-                    text = stringResource(R.string.scan_type_choose_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = scheme.onSurface,
-                )
-                Text(
-                    text = stringResource(R.string.scan_type_choose_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = scheme.onSurfaceVariant.copy(alpha = 0.78f),
-                )
-            }
-            Spacer(modifier = Modifier.height(Dimens.spacing16))
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Dimens.spacing12),
-            ) {
-                BingoScanType.entries.forEach { type ->
-                    ScanTypeOptionRow(
-                        title = scanTypeTitle(type),
-                        subtitle = scanTypeSubtitle(type),
-                        icon = scanTypeIcon(type),
-                        onClick = { onScanTypeSelected(type) },
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Dimens.spacing8),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing8),
+                ) {
+                    Text(
+                        text = stringResource(R.string.scan_type_choose_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = scheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.scan_type_choose_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.onSurfaceVariant.copy(alpha = 0.78f),
                     )
                 }
+                Spacer(modifier = Modifier.height(Dimens.spacing16))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                ) {
+                    BingoScanType.entries.forEach { type ->
+                        ScanTypeOptionRow(
+                            title = scanTypeTitle(type),
+                            subtitle = scanTypeSubtitle(type),
+                            icon = scanTypeIcon(type),
+                            onClick = { onScanTypeSelected(type) },
+                        )
+                    }
+                    if (onAddFromGallery != null) {
+                        ScanTypeOptionRow(
+                            title = stringResource(R.string.scan_type_gallery_title),
+                            subtitle = stringResource(R.string.scan_type_gallery_subtitle),
+                            icon = Icons.Filled.PhotoLibrary,
+                            onClick = onAddFromGallery,
+                        )
+                    }
             }
         }
     }

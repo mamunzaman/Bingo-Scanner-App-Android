@@ -1,12 +1,10 @@
 ﻿# Next task
 
-**Goal:** Manually verify premium called-numbers QR scanner UI.
+**Goal:** Verify sheet scrims cover status bar on device.
 
 **Verify:**
-- Fullscreen camera with dark top/bottom scrims.
-- Circular back + short title/subtitle readable on preview.
-- Center QR frame corners visible.
-- Bottom glass hint card readable (instruction + replace note).
-- Scan/back behavior unchanged (returns to same live room).
+- Live play → Called Numbers sheet: no uncovered top strip; sheet height unchanged.
+- Scan type sheet, QR display sheet, My Tickets, room info/settings, history room pickers: same full scrim.
+- Bottom content still clears home indicator (navigationBarsPadding inside content).
 
-**Previous:** QR scanner UI polish. Build OK.
+**Previous:** Live ticket sheet `HorizontalPager` swipe (arrows removed). Build OK.

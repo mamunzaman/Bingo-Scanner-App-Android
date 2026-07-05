@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -90,10 +92,12 @@ fun CalledNumbersSheet(
     AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        windowInsets = WindowInsets(0, 0, 0, 0),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(top = Dimens.spacing20, bottom = Dimens.spacing16)
                 .verticalScroll(rememberScrollState()),
@@ -259,10 +263,12 @@ fun CalledNumbersQrDisplaySheet(
     AppBottomSheetSurface(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        windowInsets = WindowInsets(0, 0, 0, 0),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(top = Dimens.spacing16, bottom = Dimens.spacing24),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -308,6 +308,8 @@
     <string name="live_play_resume_auto_call_title">Auto-Aufruf fortsetzen?</string>
     <string name="live_play_resume">Fortsetzen</string>
     <string name="live_play_view_full_detail">Vollständige Details</string>
+    <string name="live_play_prev_ticket_cd">Vorheriges Ticket</string>
+    <string name="live_play_next_ticket_cd">Nächstes Ticket</string>
     <string name="live_play_qr_not_ready">Dieses Blatt ist noch nicht bereit, als QR geteilt zu werden.</string>
     <string name="live_play_qr_encode_failed">Blatt konnte nicht für QR kodiert werden.</string>
     <string name="live_play_qr_image_failed">QR-Bild konnte nicht erstellt werden.</string>

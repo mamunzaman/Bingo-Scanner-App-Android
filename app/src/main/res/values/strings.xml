@@ -455,6 +455,8 @@
     <string name="live_play_resume_auto_call_title">Resume Auto-Call?</string>
     <string name="live_play_resume">Resume</string>
     <string name="live_play_view_full_detail">View full detail</string>
+    <string name="live_play_prev_ticket_cd">Previous ticket</string>
+    <string name="live_play_next_ticket_cd">Next ticket</string>
     <string name="live_play_qr_not_ready">This sheet is not ready to share as a QR code yet.</string>
     <string name="live_play_qr_encode_failed">Could not encode this sheet for QR.</string>
     <string name="live_play_qr_image_failed">Could not build the QR image.</string>

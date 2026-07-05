@@ -44,8 +44,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.outlined.CropFree
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +63,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -77,6 +84,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -95,7 +103,7 @@ import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.UCropActivity
 import com.yalantis.ucrop.model.AspectRatio
 import com.example.mamunbingoapp.R
-import com.example.mamunbingoapp.theme.Background
+import com.example.mamunbingoapp.theme.EmptyHistoryCardBg
 import com.example.mamunbingoapp.theme.HeaderGradientEnd
 import com.example.mamunbingoapp.theme.CardBorderGreen
 import com.example.mamunbingoapp.theme.Dimens
@@ -115,8 +123,10 @@ import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTopBar
 import com.example.mamunbingoapp.ui.components.ImportTicketFailedScanContent
+import com.example.mamunbingoapp.ui.components.AppInsetDivider
+import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.ImportTicketPhotoActionRow
-import com.example.mamunbingoapp.ui.components.AppSectionSurface
+import com.example.mamunbingoapp.theme.Background
 import com.example.mamunbingoapp.ui.components.ProcessingDataCard
 import com.example.mamunbingoapp.ui.components.ScanningAnalysisAnimation
 import com.example.mamunbingoapp.viewmodel.GalleryManualTrim
@@ -128,7 +138,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** Set on `main` before navigating to `historyPhotoImport`; destination removes it and starts OCR once. */
+/** Idle import layout — compact single-screen fit (UI only). */
+private val ImportIdleHeroHeight = 162.dp
+private val ImportIdleHeroDropMinHeight = 118.dp
+private val ImportIdleActionHeight = 50.dp
+private val ImportIdleTipRowHeight = 44.dp
+private val ImportIdleInfoHeight = 60.dp
+
 const val PENDING_HISTORY_PHOTO_IMPORT_URI_KEY = "pendingHistoryPhotoImportUri"
 
 /** Optional [com.example.mamunbingoapp.domain.model.BingoScanType] name from camera handoff. */
@@ -136,6 +152,9 @@ const val PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY = "pendingHistoryPhotoImpor
 
 /** After duplicate-sheet “Scan Another”, Scan tab opens [ScanTypeSelectionSheet] once. */
 const val REQUEST_SHOW_SCAN_TYPE_SHEET_KEY = "requestShowScanTypeSheet"
+
+/** Scan tab → history import: launch gallery picker after navigation. */
+const val PENDING_HISTORY_PHOTO_GALLERY_PICK_KEY = "pendingHistoryPhotoGalleryPick"
 
 /** True while import OCR / gallery apply blocks main-shell tab navigation. */
 const val SCAN_PIPELINE_BUSY_KEY = "scanPipelineBusy"
@@ -385,6 +404,7 @@ fun ImportTicketScreen(
         viewModel.setGalleryPendingEdit(uri)
     }
     var showDiscardDialog by remember { mutableStateOf(false) }
+    var showScanTipsDialog by remember { mutableStateOf(false) }
     var pendingReplaceAction by remember { mutableStateOf<PendingReplace?>(null) }
     val isDirty = viewModel.hasActiveImportSession()
     val isAnalyzing = scanResult is ScanResultUiState.Loading
@@ -454,7 +474,19 @@ fun ImportTicketScreen(
                         isDirty -> showDiscardDialog = true
                         else -> onBack()
                     }
-                }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { showScanTipsDialog = true },
+                        enabled = !isAnalyzing,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = stringResource(R.string.import_ticket_scan_tips_title),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
+                        )
+                    }
+                },
             )
         },
         content = {
@@ -519,6 +551,37 @@ fun ImportTicketScreen(
         },
         onCancel = { pendingReplaceAction = null },
         onDismiss = { pendingReplaceAction = null },
+    )
+    AppConfirmDialog(
+        visible = showScanTipsDialog,
+        title = stringResource(R.string.import_ticket_scan_tips_title),
+        message = "",
+        showCancelButton = false,
+        confirmText = stringResource(R.string.import_ticket_scan_tips_dialog_ok),
+        onConfirm = { showScanTipsDialog = false },
+        onCancel = { showScanTipsDialog = false },
+        onDismiss = { showScanTipsDialog = false },
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing8)) {
+                listOf(
+                    R.string.import_ticket_scan_tip_1,
+                    R.string.import_ticket_scan_tip_2,
+                    R.string.import_ticket_scan_tip_3,
+                ).forEach { resId ->
+                    Text(
+                        text = "• ${stringResource(resId)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.height(Dimens.spacing4))
+                Text(
+                    text = stringResource(R.string.import_ticket_scan_tips_footer),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
     )
 }
 
@@ -664,12 +727,10 @@ fun ImportTicketMainContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (preScanIdle) Modifier.importTicketPremiumIdleBackground() else Modifier)
             .then(
-                if (preScanIdle) {
-                    Modifier.verticalScroll(rememberScrollState())
-                } else {
-                    Modifier.fillMaxHeight()
-                },
+                if (preScanIdle) Modifier.fillMaxWidth()
+                else Modifier.fillMaxHeight(),
             )
             .then(if (showSaveRow) Modifier else Modifier.animateContentSize()),
     ) {
@@ -705,7 +766,7 @@ fun ImportTicketMainContent(
                     .fillMaxWidth()
                     .then(
                         when {
-                            preScanIdle -> Modifier.heightIn(min = 120.dp, max = 152.dp)
+                            preScanIdle -> Modifier.height(ImportIdleHeroHeight)
                             compactHero -> Modifier.heightIn(max = 156.dp)
                             else -> Modifier
                         },
@@ -759,16 +820,30 @@ fun ImportTicketMainContent(
                     }
                 }
             } else {
-                ImportTicketPhotoActionRow(
-                    onTakePhoto = onTakePhoto,
-                    onPickFromGallery = onPickFromGallery,
-                    enabled = !isAnalyzing,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (preScanIdle) {
+                    ImportTicketPremiumPhotoActionRow(
+                        onTakePhoto = onTakePhoto,
+                        onPickFromGallery = onPickFromGallery,
+                        enabled = !isAnalyzing,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    ImportTicketPhotoActionRow(
+                        onTakePhoto = onTakePhoto,
+                        onPickFromGallery = onPickFromGallery,
+                        enabled = !isAnalyzing,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             if (preScanIdle) {
                 Spacer(modifier = Modifier.height(Dimens.spacing8))
                 ImportTicketPrescanTipsCard(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(Dimens.spacing8))
+                ImportTicketIdleBottomInfoCard(
+                    message = idleHint,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             } else {
                 Spacer(modifier = Modifier.height(Dimens.spacing8))
             }
@@ -783,29 +858,22 @@ fun ImportTicketMainContent(
             )
             Spacer(modifier = Modifier.height(Dimens.spacing16))
         }
-        ctaHelperLine(scanResult, idleHint)?.let { (text, useWarningColor) ->
-            val gap = when {
-                preScanIdle -> Dimens.spacing8
-                fullGridSuccess -> Dimens.spacing8
-                else -> Dimens.spacing16
+        if (!preScanIdle) {
+            ctaHelperLine(scanResult, idleHint)?.let { (text, useWarningColor) ->
+                val gap = when {
+                    fullGridSuccess -> Dimens.spacing8
+                    else -> Dimens.spacing16
+                }
+                Spacer(modifier = Modifier.height(gap))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (useWarningColor) WarningText else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(gap))
             }
-            Spacer(modifier = Modifier.height(gap))
-            Text(
-                text = text,
-                style = if (preScanIdle) {
-                    MaterialTheme.typography.labelSmall
-                } else {
-                    MaterialTheme.typography.bodySmall
-                },
-                color = when {
-                    useWarningColor -> WarningText
-                    preScanIdle -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f)
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(if (preScanIdle) Dimens.spacing12 else gap))
         }
     }
     }
@@ -894,28 +962,234 @@ private fun GalleryTrimRow(
 private fun ImportTicketPrescanTipsCard(modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(Dimens.radiusCard)
-    AppSectionSurface(modifier = modifier, shape = shape) {
+    val tipRows = listOf(
+        Triple(Icons.Filled.GridView, R.string.import_ticket_prescan_tip_1, false),
+        Triple(Icons.Outlined.CropFree, R.string.import_ticket_prescan_tip_2, true),
+        Triple(Icons.Outlined.WbSunny, R.string.import_ticket_prescan_tip_3, true),
+    )
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = cs.surface,
+        border = BorderStroke(Dimens.cardBorderDefault, cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA)),
+        shadowElevation = Dimens.cardElevationSubtle,
+        tonalElevation = 0.dp,
+    ) {
         Column(
             modifier = Modifier.padding(
                 horizontal = Dimens.spacing12,
                 vertical = Dimens.spacing10,
             ),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             Text(
                 text = stringResource(R.string.import_ticket_prescan_tips_title),
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = cs.onSurface.copy(alpha = 0.92f),
             )
-            listOf(
-                R.string.import_ticket_prescan_tip_1,
-                R.string.import_ticket_prescan_tip_2,
-                R.string.import_ticket_prescan_tip_3,
-            ).forEach { tipId ->
-                Text(
-                    text = "• ${stringResource(tipId)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = cs.onSurfaceVariant.copy(alpha = 0.68f),
+            Spacer(modifier = Modifier.height(Dimens.spacing8))
+            tipRows.forEachIndexed { index, (icon, tipId, outlined) ->
+                ImportTicketPrescanTipRow(
+                    icon = icon,
+                    text = stringResource(tipId),
+                    outlinedIcon = outlined,
+                )
+                if (index < tipRows.lastIndex) {
+                    AppInsetDivider(modifier = Modifier.padding(vertical = Dimens.spacing4))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImportTicketPrescanTipRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    outlinedIcon: Boolean,
+) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(ImportIdleTipRowHeight),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(IconContainerBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(Dimens.iconCompact),
+                tint = if (outlinedIcon) Primary else PrimaryDark,
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = cs.onSurfaceVariant.copy(alpha = 0.88f),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ImportTicketPremiumPhotoActionRow(
+    onTakePhoto: () -> Unit,
+    onPickFromGallery: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Dimens.radiusCard)
+    Row(
+        modifier = modifier.height(ImportIdleActionHeight),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppPrimaryButton(
+            text = stringResource(R.string.import_ticket_take_photo),
+            onClick = onTakePhoto,
+            enabled = enabled,
+            modifier = Modifier
+                .weight(1f)
+                .height(ImportIdleActionHeight),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.PhotoCamera,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.iconCompact),
+                    tint = OnPrimary,
+                )
+            },
+        )
+        Surface(
+            onClick = onPickFromGallery,
+            enabled = enabled,
+            shape = shape,
+            color = cs.surface,
+            border = BorderStroke(Dimens.cardBorderDefault, cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA)),
+            shadowElevation = Dimens.cardElevationSubtle,
+            modifier = Modifier
+                .size(ImportIdleActionHeight)
+                .alpha(if (enabled) 1f else 0.38f),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.PhotoLibrary,
+                    contentDescription = stringResource(R.string.import_ticket_gallery_cd),
+                    modifier = Modifier.size(Dimens.iconDefault),
+                    tint = Primary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImportTicketIdleBottomInfoCard(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Dimens.radiusCard)
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = cs.surface,
+        border = BorderStroke(Dimens.cardBorderDefault, cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA)),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ImportIdleInfoHeight)
+                .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing10),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(IconContainerBg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.VerifiedUser,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.iconCompact),
+                    tint = Primary,
+                )
+            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurfaceVariant.copy(alpha = 0.88f),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+private fun Modifier.importTicketPremiumIdleBackground(): Modifier = composed {
+    val dark = isSystemInDarkTheme()
+    val cream = if (dark) MaterialTheme.colorScheme.surface else EmptyHistoryCardBg
+    val greenTint = if (dark) MaterialTheme.colorScheme.surfaceVariant else HeaderGradientEnd
+    val ballFill = if (dark) Primary.copy(alpha = 0.04f) else Primary.copy(alpha = 0.045f)
+    val ballRing = if (dark) Primary.copy(alpha = 0.06f) else Primary.copy(alpha = 0.07f)
+    val gridColor = if (dark) Primary.copy(alpha = 0.03f) else Primary.copy(alpha = 0.035f)
+    val ticketWatermark = if (dark) Primary.copy(alpha = 0.04f) else Primary.copy(alpha = 0.05f)
+    drawBehind {
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    cream,
+                    greenTint.copy(alpha = if (dark) 0.25f else 0.35f),
+                    Background,
+                ),
+            ),
+        )
+        if (!dark) {
+            val ticketW = 88.dp.toPx()
+            val ticketH = 64.dp.toPx()
+            val ticketLeft = size.width * 0.62f
+            val ticketTop = size.height * 0.04f
+            drawRoundRect(
+                color = ticketWatermark,
+                topLeft = Offset(ticketLeft, ticketTop),
+                size = androidx.compose.ui.geometry.Size(ticketW, ticketH),
+                cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
+                style = Stroke(width = 1.dp.toPx()),
+            )
+            val cell = ticketW / 5f
+            val cellH = (ticketH - 12.dp.toPx()) / 5f
+            val gridTop = ticketTop + 12.dp.toPx()
+            for (i in 1..4) {
+                val x = ticketLeft + cell * i
+                drawLine(gridColor, Offset(x, gridTop), Offset(x, gridTop + cellH * 5f), strokeWidth = 1f)
+                val y = gridTop + cellH * i
+                drawLine(gridColor, Offset(ticketLeft, y), Offset(ticketLeft + ticketW, y), strokeWidth = 1f)
+            }
+            val balls = listOf(
+                Offset(size.width * 0.82f, size.height * 0.72f) to 28.dp.toPx(),
+                Offset(size.width * 0.18f, size.height * 0.78f) to 22.dp.toPx(),
+                Offset(size.width * 0.55f, size.height * 0.82f) to 18.dp.toPx(),
+            )
+            balls.forEach { (center, radius) ->
+                drawCircle(color = ballFill, radius = radius, center = center)
+                drawCircle(
+                    color = ballRing,
+                    radius = radius,
+                    center = center,
+                    style = Stroke(width = 1.dp.toPx()),
                 )
             }
         }
@@ -925,16 +1199,19 @@ private fun ImportTicketPrescanTipsCard(modifier: Modifier = Modifier) {
 private fun Modifier.importHeroDashedBorder(
     color: androidx.compose.ui.graphics.Color,
     cornerRadius: Dp,
+    strokeWidth: Dp = 2.dp,
+    dashOn: Float = 10f,
+    dashOff: Float = 8f,
 ): Modifier = drawBehind {
-    val strokeWidth = 2.dp.toPx()
+    val strokePx = strokeWidth.toPx()
     drawRoundRect(
         color = color,
         topLeft = androidx.compose.ui.geometry.Offset.Zero,
         size = size,
         cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx()),
         style = Stroke(
-            width = strokeWidth,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f),
+            width = strokePx,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashOn, dashOff), 0f),
         ),
     )
 }
@@ -1041,21 +1318,22 @@ private fun HeroBannerCard(
         else -> cs.outline.copy(alpha = if (dark) 0.1f else 0.065f)
     }
     val pad = when {
-        appPreviewStyle -> Dimens.spacing12
+        appPreviewStyle -> Dimens.spacing10
         compactPadding -> Dimens.spacing8
         else -> Dimens.spacing16
     }
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .border(BorderStroke(Dimens.cardBorderDefault, outerBorderColor), shape)
-            .background(heroContainerBg)
-            .then(
-                if (appPreviewStyle) Modifier
-                else Modifier.importHeroDashedBorder(CardBorderGreen.copy(alpha = 0.14f), Dimens.radiusCard),
-            )
-            .padding(pad)
-    ) {
+    val outerModifier = modifier
+        .clip(shape)
+        .then(
+            if (appPreviewStyle) Modifier
+            else Modifier
+                .border(BorderStroke(Dimens.cardBorderDefault, outerBorderColor), shape)
+                .background(heroContainerBg)
+                .then(
+                    Modifier.importHeroDashedBorder(CardBorderGreen.copy(alpha = 0.14f), Dimens.radiusCard),
+                ),
+        )
+    val content: @Composable () -> Unit = {
         val imageModel = asyncImageModel ?: selectedImageUri
         if (selectedImageUri != null || asyncImageModel != null) {
             Box(
@@ -1105,24 +1383,70 @@ private fun HeroBannerCard(
                     heroOverlay()
                 }
             }
+        } else if (appPreviewStyle) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .defaultMinSize(minHeight = ImportIdleHeroDropMinHeight)
+                    .clip(RoundedCornerShape(Dimens.radiusMedium))
+                    .importHeroDashedBorder(
+                        color = CardBorderGreen.copy(alpha = 0.55f),
+                        cornerRadius = Dimens.radiusMedium,
+                    )
+                    .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing14),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(IconContainerBg),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhotoCamera,
+                            contentDescription = null,
+                            modifier = Modifier.size(26.dp),
+                            tint = Primary,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.import_ticket_no_photo_selected),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = cs.onSurface.copy(alpha = 0.94f),
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = stringResource(R.string.import_ticket_hero_empty_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurfaceVariant.copy(alpha = 0.72f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = Dimens.spacing4),
+                    )
+                }
+            }
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(
                         if (expandVertically && !appPreviewStyle) Modifier.fillMaxSize()
-                        else Modifier.padding(vertical = if (appPreviewStyle) Dimens.spacing8 else 0.dp),
+                        else Modifier.padding(vertical = 0.dp),
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = when {
                     expandVertically && !appPreviewStyle -> Arrangement.Center
-                    appPreviewStyle -> Arrangement.spacedBy(Dimens.spacing8)
                     else -> Arrangement.spacedBy(Dimens.spacing12)
                 },
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (appPreviewStyle) Dimens.iconAlertBox else 44.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(Dimens.radiusSmall))
                         .background(IconContainerBg)
                         .border(
@@ -1135,27 +1459,47 @@ private fun HeroBannerCard(
                     Icon(
                         imageVector = Icons.Filled.PhotoCamera,
                         contentDescription = null,
-                        modifier = Modifier.size(if (appPreviewStyle) Dimens.iconCompact else Dimens.iconDefault),
+                        modifier = Modifier.size(Dimens.iconDefault),
                         tint = Primary,
                     )
                 }
                 Text(
                     text = stringResource(R.string.import_ticket_no_photo_selected),
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = if (appPreviewStyle) FontWeight.SemiBold else FontWeight.SemiBold,
-                    ),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.94f),
                     textAlign = TextAlign.Center,
                 )
                 Text(
                     text = stringResource(R.string.import_ticket_hero_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                        alpha = if (appPreviewStyle) 0.68f else 0.72f,
-                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     textAlign = TextAlign.Center,
                 )
             }
+        }
+    }
+    if (appPreviewStyle) {
+        Surface(
+            modifier = outerModifier,
+            shape = shape,
+            color = cs.surface,
+            border = BorderStroke(Dimens.cardBorderDefault, cs.primary.copy(alpha = APP_SECTION_BORDER_ALPHA)),
+            shadowElevation = Dimens.cardElevationSubtle,
+            tonalElevation = 0.dp,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(pad),
+            ) {
+                content()
+            }
+        }
+    } else {
+        Box(
+            modifier = outerModifier.padding(pad),
+        ) {
+            content()
         }
     }
 }

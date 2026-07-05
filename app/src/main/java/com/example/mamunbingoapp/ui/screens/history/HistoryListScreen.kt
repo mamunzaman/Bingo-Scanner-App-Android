@@ -614,6 +614,7 @@ private fun AddToRoomPickerSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = Dimens.spacing24, vertical = Dimens.spacing8)
         ) {
             Text(

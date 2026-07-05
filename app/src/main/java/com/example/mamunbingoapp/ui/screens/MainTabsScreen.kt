@@ -25,6 +25,8 @@ fun MainTabsScreen(
     onNavigateToLiveRooms: () -> Unit,
     /** Scan tab / camera: opens in-app CameraX with [BingoScanType] for OCR routing. */
     onNavigateToBingoLiveCamera: (BingoScanType) -> Unit,
+    /** Scan tab: gallery import via [historyPhotoImport] flow. */
+    onNavigateToGalleryImport: () -> Unit = {},
     /** Jackpot “Scan Sheet”: after type selection, opens camera with chosen [BingoScanType]. */
     onJackpotScanSheet: (BingoScanType) -> Unit,
     onNavigateToManualEntry: () -> Unit,
@@ -96,6 +98,7 @@ fun MainTabsScreen(
                 modifier = Modifier.fillMaxSize(),
                 onBackClick = { guardedTabSelected(AppTab.Home) },
                 onLaunchCamera = onNavigateToBingoLiveCamera,
+                onAddFromGallery = onNavigateToGalleryImport,
                 onOpenNumberPad = onNavigateToManualEntry,
                 requestShowScanTypeSheet = requestShowScanTypeSheet,
                 onScanTypeSheetRequestConsumed = onScanTypeSheetRequestConsumed,

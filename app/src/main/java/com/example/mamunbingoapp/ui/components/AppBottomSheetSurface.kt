@@ -16,7 +16,8 @@ import androidx.compose.ui.unit.Dp
 
 /**
  * Default [ModalBottomSheet] chrome for app sheets: [rememberModalBottomSheetState], drag handle,
- * [surfaceContainer] tone. Pass [windowInsets] / [shape] to match legacy sheets during migration.
+ * [surfaceContainer] tone. [windowInsets] defaults to [WindowInsets(0)] so the scrim covers the
+ * full screen (status bar included); apply [navigationBarsPadding] inside [content] when needed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +33,7 @@ fun AppBottomSheetSurface(
     shape: Shape = BottomSheetDefaults.ExpandedShape,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
-    windowInsets: WindowInsets = BottomSheetDefaults.windowInsets,
+    windowInsets: WindowInsets = WindowInsets(0, 0, 0, 0),
     sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
     content: @Composable ColumnScope.() -> Unit,
 ) {

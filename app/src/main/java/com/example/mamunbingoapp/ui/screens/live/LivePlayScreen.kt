@@ -22,6 +22,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -62,7 +64,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.Info
@@ -95,6 +96,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
@@ -155,6 +157,7 @@ import com.example.mamunbingoapp.R
 import kotlin.random.Random
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -314,6 +317,7 @@ fun LivePlayScreen(
     onCallCompleteDismiss: () -> Unit = {},
     onOpenSheetDetail: (String) -> Unit = {},
     onNavigateToManualEntry: () -> Unit = {},
+    onNavigateToImportTicket: () -> Unit = {},
     onCallNumber: (Int, (Boolean) -> Unit) -> Unit = { _, _ -> },
     onCallRandomNumber: () -> Unit = {},
     onGoLive: (String) -> Unit = {},
@@ -345,7 +349,7 @@ fun LivePlayScreen(
     var showInfoSheet by rememberSaveable { mutableStateOf(false) }
     var showDeleteRoomConfirm by remember { mutableStateOf(false) }
     var showConfetti by remember { mutableStateOf(false) }
-    var detailSheet by remember { mutableStateOf<LiveSheetUi?>(null) }
+    var selectedSheetTicketIndex by remember { mutableStateOf<Int?>(null) }
     var showCalledNumbersSheet by rememberSaveable { mutableStateOf(false) }
     var showCalledNumbersQrDisplay by remember { mutableStateOf(false) }
     var showNumberKeypad by rememberSaveable { mutableStateOf(true) }
@@ -398,6 +402,14 @@ fun LivePlayScreen(
         }
     }
     val displaySheets = sheets
+    LaunchedEffect(displaySheets.size, selectedSheetTicketIndex) {
+        val idx = selectedSheetTicketIndex ?: return@LaunchedEffect
+        when {
+            displaySheets.isEmpty() -> selectedSheetTicketIndex = null
+            idx >= displaySheets.size -> selectedSheetTicketIndex = displaySheets.lastIndex
+            idx < 0 -> selectedSheetTicketIndex = 0
+        }
+    }
     val canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached
     val liveEmptyStateBottomPad = Dimens.spacing16
 
@@ -738,7 +750,7 @@ fun LivePlayScreen(
             },
             onCreateTicket = {
                 isMyTicketsSheetOpen = false
-                onNavigateToManualEntry()
+                onNavigateToImportTicket()
             },
             onBulkDeleteTickets = { ids ->
                 com.example.mamunbingoapp.data.HistoryRepository.deleteSessions(ids)
@@ -847,7 +859,10 @@ fun LivePlayScreen(
                                 serialNumber = sheet.serialNumber,
                                 losNumber = sheet.losNumber,
                                 cells = sheet.cells,
-                                onClick = { detailSheet = sheet },
+                                onClick = {
+                                    val idx = displaySheets.indexOfFirst { it.ticketId == sheet.ticketId }
+                                    if (idx >= 0) selectedSheetTicketIndex = idx
+                                },
                                 selectionMode = listSelectionMode,
                                 selected = sheet.ticketId in selectedTicketIds,
                                 onSelectionToggle = {
@@ -945,7 +960,10 @@ fun LivePlayScreen(
                                 keypadExpanded = keypadExpandedForLayout,
                                 sheets = displaySheets,
                                 initialSelectedTicketId = initialSelectedTicketId,
-                                onSheetClick = { detailSheet = it },
+                                onSheetClick = { sheet ->
+                                    val idx = displaySheets.indexOfFirst { it.ticketId == sheet.ticketId }
+                                    if (idx >= 0) selectedSheetTicketIndex = idx
+                                },
                             )
                             Spacer(modifier = Modifier.height(Dimens.spacing12))
                         }
@@ -961,17 +979,21 @@ fun LivePlayScreen(
             onDone = { showConfetti = false }
         )
     }
-    detailSheet?.let { sheet ->
+    selectedSheetTicketIndex?.let { sheetIndex ->
+        displaySheets.getOrNull(sheetIndex)?.let { _ ->
         SheetDetailBottomSheet(
-            sheet = sheet,
-            onDismiss = { detailSheet = null },
-            onOpenFullDetail = {
-                detailSheet = null
-                onOpenSheetDetail(sheet.ticketId)
+            sheets = displaySheets,
+            selectedIndex = sheetIndex,
+            onSelectedIndexChange = { selectedSheetTicketIndex = it },
+            onDismiss = { selectedSheetTicketIndex = null },
+            onOpenFullDetail = { ticketId ->
+                selectedSheetTicketIndex = null
+                onOpenSheetDetail(ticketId)
             },
             onShareCalledNumbers = onShareCalledNumbers,
             shareCalledNumbersEnabled = calledNumbers.isNotEmpty(),
         )
+        }
     }
     if (showCalledNumbersSheet) {
         if (canEditCalledNumbers) {
@@ -2400,26 +2422,20 @@ private fun ResumeAutoCallBanner(roomId: String, onResume: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun SheetDetailBottomSheet(
-    sheet: LiveSheetUi,
+    sheets: List<LiveSheetUi>,
+    selectedIndex: Int,
+    onSelectedIndexChange: (Int) -> Unit,
     onDismiss: () -> Unit,
-    onOpenFullDetail: () -> Unit,
+    onOpenFullDetail: (String) -> Unit,
     onShareCalledNumbers: (() -> Unit)? = null,
     shareCalledNumbersEnabled: Boolean = true,
 ) {
-    val gridCells = when {
-        sheet.cells.size == 25 && sheet.cells.any { !it.number.isNullOrBlank() } -> sheet.cells
-        sheet.cells.size == 25 -> BingoCellUi.placeholderCells25()
-        sheet.cells.isNotEmpty() -> sheet.cells + List(25 - sheet.cells.size) { BingoCellUi(null, false, false, false, false) }
-        else -> BingoCellUi.placeholderCells25()
-    }
-    val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
-    val winResult = BingoWinChecker.check(markedSet)
-    val scannedDateText = stringResource(
-        R.string.live_play_scanned_date,
-        formatPlayDate(sheet.playedAtMillis),
+    val pagerState = rememberPagerState(
+        initialPage = selectedIndex.coerceIn(0, sheets.lastIndex.coerceAtLeast(0)),
+        pageCount = { sheets.size },
     )
     val qrNotReadyMessage = stringResource(R.string.live_play_qr_not_ready)
     val qrEncodeFailedMessage = stringResource(R.string.live_play_qr_encode_failed)
@@ -2433,6 +2449,26 @@ private fun SheetDetailBottomSheet(
 
     LaunchedEffect(sheetState) {
         runCatching { sheetState.expand() }
+    }
+    LaunchedEffect(selectedIndex) {
+        if (pagerState.currentPage != selectedIndex) {
+            pagerState.animateScrollToPage(selectedIndex)
+        }
+    }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { page ->
+                if (page != selectedIndex) {
+                    onSelectedIndexChange(page)
+                }
+            }
+    }
+    LaunchedEffect(pagerState.settledPage) {
+        showTicketQr = false
+        ticketQrLoading = false
+        ticketQrBitmap = null
+        ticketQrError = null
     }
 
     AppBottomSheetSurface(
@@ -2448,14 +2484,12 @@ private fun SheetDetailBottomSheet(
                 .padding(horizontal = Dimens.screenHorizontalPadding)
                 .padding(bottom = Dimens.spacing16)
         ) {
-            // Expanded presentation is state-driven; content remains constraint-driven.
             val sectionSpacing = (maxHeight * 0.012f).coerceIn(4.dp, 8.dp)
             val handleBlockHeight = (maxHeight * 0.01f).coerceIn(4.dp, 8.dp)
             val infoBlockHeightEstimate = (maxHeight * 0.28f).coerceIn(88.dp, 132.dp)
             val actionButtonHeight = Dimens.buttonHeight
             val reservedHeight = handleBlockHeight + infoBlockHeightEstimate + actionButtonHeight + (sectionSpacing * 3)
             val remainingGridHeight = (maxHeight - reservedHeight).coerceAtLeast(150.dp)
-            // Grid fit is responsive: use whichever constraint (width or height) is tighter.
             val gridTargetFromWidth = maxWidth * 0.86f
             val gridTargetFromHeight = remainingGridHeight * 0.82f
             val compactGridWidth = minOf(gridTargetFromWidth, gridTargetFromHeight).coerceAtLeast(150.dp)
@@ -2477,135 +2511,160 @@ private fun SheetDetailBottomSheet(
                         .clip(RoundedCornerShape(100.dp))
                         .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                 )
-                Surface(
-                    modifier = Modifier
-                        .width(compactGridWidth)
-                        .align(Alignment.CenterHorizontally),
-                    shape = unifiedShape,
-                    color = Color.Transparent,
-                    border = androidx.compose.foundation.BorderStroke(
-                        Dimens.cardBorderDefault,
-                        unifiedBorder
-                    ),
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { page ->
+                    val sheet = sheets[page]
+                    val gridCells = when {
+                        sheet.cells.size == 25 && sheet.cells.any { !it.number.isNullOrBlank() } -> sheet.cells
+                        sheet.cells.size == 25 -> BingoCellUi.placeholderCells25()
+                        sheet.cells.isNotEmpty() -> sheet.cells + List(25 - sheet.cells.size) {
+                            BingoCellUi(null, false, false, false, false)
+                        }
+                        else -> BingoCellUi.placeholderCells25()
+                    }
+                    val markedSet = gridCells.take(25).mapIndexed { i, c ->
+                        i.takeIf { c.isMarked }
+                    }.filterNotNull().toSet()
+                    val winResult = BingoWinChecker.check(markedSet)
+                    val scannedDateText = stringResource(
+                        R.string.live_play_scanned_date,
+                        formatPlayDate(sheet.playedAtMillis),
+                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            modifier = Modifier.width(compactGridWidth),
+                            shape = unifiedShape,
+                            color = Color.Transparent,
+                            border = BorderStroke(
+                                Dimens.cardBorderDefault,
+                                unifiedBorder
+                            ),
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp
                         ) {
-                            Text(
-                                text = sheet.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                            Column(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = Dimens.spacing4),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        showTicketQr = true
-                                        ticketQrLoading = true
-                                        ticketQrBitmap = null
-                                        ticketQrError = null
-                                        if (gridCells.isEmpty() || gridCells.size < 25) {
-                                            ticketQrError = qrNotReadyMessage
-                                            ticketQrLoading = false
-                                            return@launch
-                                        }
-                                        val grid = withContext(Dispatchers.Default) {
-                                            cellsToQrGrid5x5(gridCells)
-                                        }
-                                        val serial = sheet.serialNumber?.trim()?.takeIf { it.isNotBlank() }
-                                        val los = sheet.losNumber?.trim()?.takeIf { it.isNotBlank() }
-                                        val encoded = runCatching {
-                                            QrTicketCodec.encodeDeepLink(
-                                                QrTicketPayload(
-                                                    grid = grid,
-                                                    sheetName = sheet.title.trim(),
-                                                    serial = serial,
-                                                    los = los,
-                                                )
-                                            )
-                                        }
-                                        if (encoded.isFailure) {
-                                            ticketQrBitmap = null
-                                            ticketQrError = qrEncodeFailedMessage
-                                            ticketQrLoading = false
-                                            return@launch
-                                        }
-                                        val bmp = withContext(Dispatchers.Default) {
-                                            QrTicketImageGenerator.generateBitmap(encoded.getOrThrow())
-                                        }
-                                        ticketQrLoading = false
-                                        bmp.fold(
-                                            onSuccess = {
-                                                ticketQrError = null
-                                                ticketQrBitmap = it
-                                            },
-                                            onFailure = { e ->
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Dimens.spacing12, vertical = Dimens.spacing8),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = sheet.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = Dimens.spacing4),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            scope.launch {
+                                                showTicketQr = true
+                                                ticketQrLoading = true
                                                 ticketQrBitmap = null
-                                                ticketQrError = qrImageFailedMessage
+                                                ticketQrError = null
+                                                if (gridCells.isEmpty() || gridCells.size < 25) {
+                                                    ticketQrError = qrNotReadyMessage
+                                                    ticketQrLoading = false
+                                                    return@launch
+                                                }
+                                                val grid = withContext(Dispatchers.Default) {
+                                                    cellsToQrGrid5x5(gridCells)
+                                                }
+                                                val serial = sheet.serialNumber?.trim()?.takeIf { it.isNotBlank() }
+                                                val los = sheet.losNumber?.trim()?.takeIf { it.isNotBlank() }
+                                                val encoded = runCatching {
+                                                    QrTicketCodec.encodeDeepLink(
+                                                        QrTicketPayload(
+                                                            grid = grid,
+                                                            sheetName = sheet.title.trim(),
+                                                            serial = serial,
+                                                            los = los,
+                                                        )
+                                                    )
+                                                }
+                                                if (encoded.isFailure) {
+                                                    ticketQrBitmap = null
+                                                    ticketQrError = qrEncodeFailedMessage
+                                                    ticketQrLoading = false
+                                                    return@launch
+                                                }
+                                                val bmp = withContext(Dispatchers.Default) {
+                                                    QrTicketImageGenerator.generateBitmap(encoded.getOrThrow())
+                                                }
+                                                ticketQrLoading = false
+                                                bmp.fold(
+                                                    onSuccess = {
+                                                        ticketQrError = null
+                                                        ticketQrBitmap = it
+                                                    },
+                                                    onFailure = {
+                                                        ticketQrBitmap = null
+                                                        ticketQrError = qrImageFailedMessage
+                                                    }
+                                                )
                                             }
+                                        },
+                                        modifier = Modifier.size(48.dp),
+                                        enabled = !ticketQrLoading
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.QrCode2,
+                                            contentDescription = stringResource(R.string.live_play_show_qr_cd),
+                                            tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                },
-                                modifier = Modifier.size(48.dp),
-                                enabled = !ticketQrLoading
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.QrCode2,
-                                    contentDescription = stringResource(R.string.live_play_show_qr_cd),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    com.example.mamunbingoapp.ui.screens.history.components.HistoryTicketSheetTrailingShare(
+                                        onShareCalledNumbers = onShareCalledNumbers,
+                                        shareEnabled = shareCalledNumbersEnabled,
+                                    )
+                                }
+                                com.example.mamunbingoapp.ui.screens.history.components.HistoryTicketSheetMetaBlock(
+                                    losNumber = sheet.losNumber,
+                                    serieNumber = sheet.serialNumber,
+                                    scannedDateText = scannedDateText,
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(Dimens.cardBorderDefault)
+                                        .background(unifiedBorder.copy(alpha = 0.9f))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = Dimens.spacing8, vertical = 2.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    BingoCardGrid(
+                                        cells = gridCells,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        mode = BingoGridMode.PLAY,
+                                        winningCells = winResult.winningCells,
+                                        onCellClick = {}
+                                    )
+                                }
                             }
-                            com.example.mamunbingoapp.ui.screens.history.components.HistoryTicketSheetTrailingShare(
-                                onShareCalledNumbers = onShareCalledNumbers,
-                                shareEnabled = shareCalledNumbersEnabled,
-                            )
-                        }
-                        com.example.mamunbingoapp.ui.screens.history.components.HistoryTicketSheetMetaBlock(
-                            losNumber = sheet.losNumber,
-                            serieNumber = sheet.serialNumber,
-                            scannedDateText = scannedDateText,
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(Dimens.cardBorderDefault)
-                                .background(unifiedBorder.copy(alpha = 0.9f))
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimens.spacing8, vertical = 2.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            BingoCardGrid(
-                                cells = gridCells,
-                                modifier = Modifier.fillMaxWidth(),
-                                mode = BingoGridMode.PLAY,
-                                winningCells = winResult.winningCells,
-                                onCellClick = {}
-                            )
                         }
                     }
                 }
 
                 Button(
-                    onClick = onOpenFullDetail,
+                    onClick = { onOpenFullDetail(sheets[pagerState.currentPage].ticketId) },
                     modifier = Modifier
                         .width(compactGridWidth)
                         .align(Alignment.CenterHorizontally),

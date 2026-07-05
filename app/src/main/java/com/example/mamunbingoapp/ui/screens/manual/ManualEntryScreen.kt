@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -1643,7 +1644,11 @@ private fun RoomPickerBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
+        Column(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(24.dp),
+        ) {
             Text(
                 stringResource(R.string.manual_entry_select_live_room),
                 style = MaterialTheme.typography.titleLarge

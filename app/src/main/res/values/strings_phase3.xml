@@ -67,6 +67,7 @@
 
     <!-- Import / Scan (Phase 3) -->
     <string name="import_ticket_title">Import Ticket</string>
+    <string name="import_ticket_gallery_import_title">Import from Gallery</string>
     <string name="import_ticket_gallery_crop_toast">Include full ticket (grid + left number + bottom number)</string>
     <string name="import_ticket_discard_scan_title">Discard scan?</string>
     <string name="import_ticket_discard_scan_message">Your uploaded image and scan result will be lost.</string>
@@ -114,6 +115,8 @@
     <string name="scan_type_online_subtitle">Online/digital bingo format</string>
     <string name="scan_type_main_sheet_title">Master Sheet</string>
     <string name="scan_type_main_sheet_subtitle">Official/master bingo proof</string>
+    <string name="scan_type_gallery_title">Add from Gallery</string>
+    <string name="scan_type_gallery_subtitle">Import an existing ticket image</string>
     <string name="ocr_processing_title">Processing Data…</string>
     <string name="ocr_processing_body">Our advanced OCR system is identifying your numbers and serial markers. Please keep the camera steady.</string>
     <string name="ocr_stat_nodes">NODES</string>

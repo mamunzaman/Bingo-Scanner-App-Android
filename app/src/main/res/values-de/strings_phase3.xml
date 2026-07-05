@@ -66,6 +66,7 @@
 
     <!-- Import / Scan (Phase 3) -->
     <string name="import_ticket_title">Ticket importieren</string>
+    <string name="import_ticket_gallery_import_title">Aus Galerie importieren</string>
     <string name="import_ticket_gallery_crop_toast">Gesamtes Ticket einbeziehen (Gitter + linke Nummer + untere Nummer)</string>
     <string name="import_ticket_discard_scan_title">Scan verwerfen?</string>
     <string name="import_ticket_discard_scan_message">Dein hochgeladenes Bild und das Scan-Ergebnis gehen verloren.</string>
@@ -113,6 +114,8 @@
     <string name="scan_type_online_subtitle">Online-/digitales Bingo-Format</string>
     <string name="scan_type_main_sheet_title">Hauptblatt</string>
     <string name="scan_type_main_sheet_subtitle">Offizielles Bingo-Hauptblatt</string>
+    <string name="scan_type_gallery_title">Aus Galerie hinzufügen</string>
+    <string name="scan_type_gallery_subtitle">Vorhandenes Ticketbild importieren</string>
     <string name="ocr_processing_title">Daten werden verarbeitet…</string>
     <string name="ocr_processing_body">Unser OCR-System erkennt deine Zahlen und Serienmarkierungen. Bitte halte die Kamera ruhig.</string>
     <string name="ocr_stat_nodes">FELDER</string>

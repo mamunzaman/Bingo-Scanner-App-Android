@@ -43,6 +43,7 @@ import com.example.mamunbingoapp.ui.screens.camera.CalledNumbersQrScanScreen
 import com.example.mamunbingoapp.ui.screens.LoginScreen
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryScreen
 import com.example.mamunbingoapp.ui.screens.MainTabsScreen
+import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_GALLERY_PICK_KEY
 import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY
 import com.example.mamunbingoapp.ui.screens.PENDING_HISTORY_PHOTO_IMPORT_URI_KEY
 import com.example.mamunbingoapp.ui.screens.REQUEST_SHOW_SCAN_TYPE_SHEET_KEY
@@ -665,7 +666,30 @@ private fun clearPendingHistoryPhotoImportHandoff(navController: NavHostControll
         val mainHandle = navController.getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle
         mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_URI_KEY)
         mainHandle.remove<String>(PENDING_HISTORY_PHOTO_IMPORT_SCAN_TYPE_KEY)
+        mainHandle.set(PENDING_HISTORY_PHOTO_GALLERY_PICK_KEY, false)
         mainHandle.setScanPipelineBusy(false)
+    }
+}
+
+private fun NavHostController.navigateToTicketImport(
+    tabsViewModel: MainTabsViewModel? = null,
+    stageScanTab: Boolean = false,
+    pendingGalleryPick: Boolean = false,
+) {
+    runCatching {
+        getBackStackEntry(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE).savedStateHandle["clearImportSession"] = true
+    }
+    clearPendingHistoryPhotoImportHandoff(this)
+    if (stageScanTab) {
+        stageMainShellTab(tabsViewModel, AppTab.Scan)
+    }
+    if (pendingGalleryPick) {
+        runCatching {
+            getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle[PENDING_HISTORY_PHOTO_GALLERY_PICK_KEY] = true
+        }
+    }
+    navigate("historyPhotoImport") {
+        launchSingleTop = true
     }
 }
 
@@ -914,6 +938,13 @@ fun NavGraph(
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
                     navController.navigate(buildBingoLiveCameraImportRoute(scanType))
                 },
+                onNavigateToGalleryImport = {
+                    navController.navigateToTicketImport(
+                        tabsViewModel = tabsViewModel,
+                        stageScanTab = true,
+                        pendingGalleryPick = true,
+                    )
+                },
                 onJackpotScanSheet = { scanType ->
                     stageMainShellTab(tabsViewModel, AppTab.Jackpot)
                     stagePendingHistoryPhotoImportScanType(navController, scanType)
@@ -1068,6 +1099,9 @@ fun NavGraph(
                 onCallCompleteDismiss = { showCallCompleteDialog = false },
                 onOpenSheetDetail = { ticketId -> navController.navigate("liveSheetDetail/$roomId/$ticketId") },
                 onNavigateToManualEntry = { navController.navigate("manualEntryForRoom/$roomId") },
+                onNavigateToImportTicket = {
+                    navController.navigateToTicketImport()
+                },
                 onCallNumber = { n, onResult -> vm.callNumber(n, onResult) },
                 onCallRandomNumber = { vm.callRandomNumber() },
                 onGoLive = { vm.addTicketToRoom(it) },
@@ -1365,14 +1399,7 @@ fun NavGraph(
                     com.example.mamunbingoapp.data.RoomRepository.unassignTicket(sessionId)
                 },
                 onAddFromPhotoClick = {
-                    runCatching {
-                        navController.getBackStackEntry("historyPhotoImport")
-                            .savedStateHandle["clearImportSession"] = true
-                    }
-                    clearPendingHistoryPhotoImportHandoff(navController)
-                    navController.navigate("historyPhotoImport") {
-                        launchSingleTop = true
-                    }
+                    navController.navigateToTicketImport()
                 },
                 onPlayClick = {
                     stageMainShellTabHint(navController, shellTabsVm, AppTab.Jackpot)
@@ -1456,6 +1483,12 @@ fun NavGraph(
             val mainEntryForHandoff = remember(navController) {
                 runCatching { navController.getBackStackEntry("main") }.getOrNull()
             }
+            val pendingGalleryPickFlow = remember(mainEntryForHandoff?.id) {
+                mainEntryForHandoff?.savedStateHandle
+                    ?.getStateFlow(PENDING_HISTORY_PHOTO_GALLERY_PICK_KEY, false)
+            }
+            val pendingGalleryPick by pendingGalleryPickFlow?.collectAsStateWithLifecycle()
+                ?: remember { mutableStateOf(false) }
             LaunchedEffect(mainEntryForHandoff, importVm) {
                 val mainEntry = mainEntryForHandoff ?: return@LaunchedEffect
                 fun consumePendingImport() {
@@ -1674,6 +1707,11 @@ fun NavGraph(
                         showIncompleteWarning = false,
                         showLowConfidenceWarning = false,
                         suppressHeroImage = suppressHeroForAutoManualNav,
+                        requestGalleryPick = pendingGalleryPick,
+                        onGalleryPickRequestConsumed = {
+                            mainEntryForHandoff?.savedStateHandle
+                                ?.set(PENDING_HISTORY_PHOTO_GALLERY_PICK_KEY, false)
+                        },
                         onRegisterLeaveHandler = { register ->
                             photoImportLeaveHandler = register
                         },

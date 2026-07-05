@@ -83,6 +83,8 @@ fun HistoryPhotoImportScreen(
     onSaveClick: () -> Unit = {},
     onSaveAndRoomClick: () -> Unit = {},
     suppressHeroImage: Boolean = false,
+    requestGalleryPick: Boolean = false,
+    onGalleryPickRequestConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val importVm = importViewModel
@@ -124,6 +126,19 @@ fun HistoryPhotoImportScreen(
 
     val pickImageFromGallery = rememberImportTicketGalleryImagePickLauncher { uri ->
         importVm.setGalleryPendingEdit(uri)
+    }
+
+    LaunchedEffect(requestGalleryPick, isScanBusy) {
+        if (!requestGalleryPick || isScanBusy) return@LaunchedEffect
+        onGalleryPickRequestConsumed()
+        importVm.setPendingScanType(BingoScanType.PLAY_PAPER)
+        pickImageFromGallery()
+    }
+
+    fun launchGalleryImport() {
+        if (isScanBusy) return
+        importVm.setPendingScanType(BingoScanType.PLAY_PAPER)
+        pickImageFromGallery()
     }
 
     fun handleExitRequest(onExit: () -> Unit) {
@@ -201,6 +216,7 @@ fun HistoryPhotoImportScreen(
     )
 
     val idleHint = stringResource(R.string.import_ticket_idle_hint)
+    val screenTitle = stringResource(R.string.import_ticket_title)
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -214,7 +230,7 @@ fun HistoryPhotoImportScreen(
         )
         Column(Modifier.fillMaxSize()) {
             AppTopBar(
-                title = stringResource(R.string.import_ticket_title),
+                title = screenTitle,
                 showBack = true,
                 onBackClick = { handleExitRequest(onBackClick) },
                 actions = {
@@ -286,6 +302,10 @@ fun HistoryPhotoImportScreen(
                     HistoryImportScanTypeTarget.Gallery -> pickImageFromGallery()
                 }
                 }
+            },
+            onAddFromGallery = {
+                scanTypeSheetTarget = null
+                launchGalleryImport()
             },
         )
     }
