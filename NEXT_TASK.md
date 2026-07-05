@@ -1,7 +1,12 @@
 ﻿# Next task
 
-**Goal:** Device QA Scan tab module ripple on full-card tap.
+**Goal:** Manually verify premium called-numbers QR scanner UI.
 
-**Verify:** Tap outside CTA on Auto-Scan / Manual Input shows bounded green ripple; CTA buttons still have own press feedback; no double navigation.
+**Verify:**
+- Fullscreen camera with dark top/bottom scrims.
+- Circular back + short title/subtitle readable on preview.
+- Center QR frame corners visible.
+- Bottom glass hint card readable (instruction + replace note).
+- Scan/back behavior unchanged (returns to same live room).
 
-**Previous:** `ScanScreen` sections use `appRipple` + `clip` + dedicated `MutableInteractionSource`. Build OK.
+**Previous:** QR scanner UI polish. Build OK.

@@ -1,6 +1,28 @@
 # Project status
 
-**Last update:** 2026-06-04 - **Scan tab ripple:** bounded `appRipple` on Auto-Scan + Manual Input full sections. Build OK.
+**Last update:** 2026-07-06 - **Called numbers QR scanner UI:** fullscreen overlay, scrims, glass hint card, viewfinder corners. Build OK.
+
+**Previous:** 2026-07-06 - **Called numbers QR scan route:** PhotoCamera icon; dedicated route; popBackStack to live room. Build OK.
+
+**Previous:** 2026-07-05 - **Navigation workflow fixes:** Home back intercepted at tab root; scan→manualEntry `popUpTo(tabs)`; save nav immediate. Build OK.
+
+**Previous:** 2026-07-05 - **Called numbers QR header + scan:** actions row above title; scan replaces all directly (no confirm). Build OK.
+
+**Previous:** 2026-07-05 - **Called numbers QR display:** show/share JSON QR + separate scan/read icon. Build OK.
+
+**Previous:** 2026-07-05 - **Called numbers QR import:** scan QR → replace all or add missing. Build OK.
+
+**Previous:** 2026-07-05 - **Called numbers board actions:** edit/delete pill on B/I/N/G/O circles only (no extra row). Build OK.
+
+**Previous:** 2026-07-05 - **Called numbers edit/delete:** tap circle in sheet → edit/replace or delete; keypad replace mode. Build OK.
+
+**Previous:** 2026-07-05 - **Supabase DEBUG probes:** auth-health + rest-bingo-draws before auth. Build OK.
+
+**Previous:** 2026-07-05 - **Supabase auth timeouts:** 30s request / 15s connect / 30s socket. Build OK.
+
+**Previous:** 2026-07-05 - **Auth network diagnostics:** DEBUG Logcat for transport failures + Supabase host. Build OK.
+
+**Previous:** 2026-06-04 - **Scan tab ripple:** bounded `appRipple` on Auto-Scan + Manual Input full sections. Build OK.
 
 **Previous:** 2026-06-04 - **Scan tab modules:** Auto-Scan + Manual Input full card clickable. Build OK.
 
@@ -574,6 +596,11 @@
 
 ## Completed features
 
+- **Called numbers QR scanner UI:** fullscreen camera overlay, gradient scrims, circular back header, glass hint card, centered corner frame.
+- **Called numbers QR scan route:** PhotoCamera scan icon; dedicated `calledNumbersQrScan/{roomId}` screen; returns to same live room via `popBackStack`.
+- **Navigation workflow fixes:** Home `BackHandler` at tab root; import→manualEntry `popUpTo(tabs)`; save/live-play nav without 300ms gate.
+- **Called numbers QR display/share:** JSON QR sheet + image share; separate scan/read icon.
+- **Called numbers edit/delete:** `CalledNumbersSheet` + `CalledNumbersViewModel`; tap circle → edit/replace or delete; keypad replace mode in live play.
 - **Live Rooms Sunday window + auto-archive:** Sun 17:00–18:05 Berlin; after 18:05, opening Jackpot archives once (play logs `Sonntag Bingo • dd.MM.yyyy • 17:00 Uhr`, clears tickets/calls); same canonical room next week.
 - **Live Rooms Sunday add-sheet (prior):** No embedded bottom bar; FAB reserved for custom rooms; blocks duplicate Sunday name.
 - **v0.10 pre-tag i18n/runtime cleanup:** Active ticket chips; ticket filters All/Today/Week; called-numbers sheet title; home jackpot load errors; QR paths never show raw `Throwable.message`.

@@ -189,6 +189,8 @@ import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.LiveRoomTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
+import com.example.mamunbingoapp.ui.components.CalledNumbersQrDisplaySheet
+import com.example.mamunbingoapp.ui.components.CalledNumbersSheet
 import com.example.mamunbingoapp.ui.core.interaction.appClickable
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.core.BingoWinChecker
@@ -224,6 +226,7 @@ import com.example.mamunbingoapp.core.SundayBingoSchedule
 import com.example.mamunbingoapp.core.SundayTestTimeSettings
 import java.time.ZonedDateTime
 import com.example.mamunbingoapp.ui.model.RoomStatus
+import com.example.mamunbingoapp.viewmodel.CalledNumbersViewModel
 import com.example.mamunbingoapp.viewmodel.LivePlayUiState
 import com.example.mamunbingoapp.viewmodel.LiveSheetUi
 import java.text.SimpleDateFormat
@@ -329,7 +332,10 @@ fun LivePlayScreen(
     onResetDismiss: () -> Unit = {},
     onStartNewRoomFromReset: () -> Unit = {},
     onFinishClick: () -> Unit = {},
-    onUndoLastCall: () -> Unit = {}
+    onUndoLastCall: () -> Unit = {},
+    onNavigateToCalledNumbersQrScan: () -> Unit = {},
+    qrScanResultMessage: String? = null,
+    onQrScanResultConsumed: () -> Unit = {},
 ) {
     var selectedView by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
@@ -341,6 +347,7 @@ fun LivePlayScreen(
     var showConfetti by remember { mutableStateOf(false) }
     var detailSheet by remember { mutableStateOf<LiveSheetUi?>(null) }
     var showCalledNumbersSheet by rememberSaveable { mutableStateOf(false) }
+    var showCalledNumbersQrDisplay by remember { mutableStateOf(false) }
     var showNumberKeypad by rememberSaveable { mutableStateOf(true) }
     var listSelectionMode by rememberSaveable { mutableStateOf(false) }
     var selectedTicketIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -363,6 +370,11 @@ fun LivePlayScreen(
     val removedFromRoomSnackbarMessage = stringResource(R.string.history_snackbar_removed_from_room)
     val deletedFromHistorySnackbarMessage = stringResource(R.string.history_snackbar_deleted)
     val shareCalledNumbersEmptyMessage = stringResource(R.string.live_play_share_called_numbers_empty)
+    LaunchedEffect(qrScanResultMessage) {
+        val message = qrScanResultMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+        onQrScanResultConsumed()
+    }
     val onShareCalledNumbers: () -> Unit = {
         if (calledNumbers.isEmpty()) {
             scope.launch {
@@ -436,6 +448,16 @@ fun LivePlayScreen(
     }
     val callingLocked = isSundayRoom && !sundayCallingUnlocked
     val sundayLockedMessage = stringResource(R.string.live_play_sunday_locked_message)
+    val calledNumbersVm = remember(roomId) { CalledNumbersViewModel(roomId) }
+    val canEditCalledNumbers = effectiveStatus == RoomStatus.RUNNING && !callingLocked
+    var replaceTargetNumber by remember { mutableStateOf<Int?>(null) }
+    val isReplacingCalledNumber = replaceTargetNumber != null
+    val keypadExpandedForLayout = showNumberKeypad || isReplacingCalledNumber
+    fun clearReplaceState() {
+        replaceTargetNumber = null
+        calledNumbersVm.clearSelection()
+        inputText = ""
+    }
     LaunchedEffect(roomId, isSundayRoom) {
         if (roomId.isBlank() || !isSundayRoom) return@LaunchedEffect
         scope.launch { RoomRepository.ensureSundayFeaturedSessionAutoArchived() }
@@ -666,7 +688,26 @@ fun LivePlayScreen(
                     showCompactBar = showCompactBar,
                     haptic = haptic,
                     showNumberKeypad = showNumberKeypad,
-                    onToggleNumberKeypad = { showNumberKeypad = !showNumberKeypad },
+                    keypadExpandedForUi = keypadExpandedForLayout,
+                    onToggleNumberKeypad = {
+                        if (isReplacingCalledNumber) {
+                            clearReplaceState()
+                            showNumberKeypad = false
+                        } else {
+                            showNumberKeypad = !showNumberKeypad
+                        }
+                    },
+                    isReplacingCalledNumber = isReplacingCalledNumber,
+                    replaceTarget = replaceTargetNumber,
+                    onReplaceNumber = { newNumber, onResult ->
+                        calledNumbersVm.replaceWith(scope, newNumber) { replaced ->
+                            if (replaced) {
+                                clearReplaceState()
+                            }
+                            onResult(replaced)
+                        }
+                    },
+                    onClearReplace = { clearReplaceState() },
                 )
             }
         }
@@ -823,15 +864,15 @@ fun LivePlayScreen(
                 var stableCarouselOpenAreaHeight by remember { mutableStateOf<Dp?>(null) }
                 var stableCarouselClosedAreaHeight by remember { mutableStateOf<Dp?>(null) }
                 var carouselAreaHeightSettled by remember { mutableStateOf(true) }
-                LaunchedEffect(showNumberKeypad) {
+                LaunchedEffect(keypadExpandedForLayout) {
                     carouselAreaHeightSettled = false
-                    if (showNumberKeypad) {
+                    if (keypadExpandedForLayout) {
                         stableCarouselOpenAreaHeight = null
                     } else {
                         stableCarouselClosedAreaHeight = null
                     }
                     delay(LiveCarouselKeypadSettleDelayMs.toLong())
-                    if (showNumberKeypad) {
+                    if (keypadExpandedForLayout) {
                         stableCarouselOpenAreaHeight = null
                     } else {
                         stableCarouselClosedAreaHeight = null
@@ -880,7 +921,7 @@ fun LivePlayScreen(
                             .fillMaxWidth(),
                     ) {
                         if (carouselAreaHeightSettled) {
-                            if (showNumberKeypad) {
+                            if (keypadExpandedForLayout) {
                                 if (stableCarouselOpenAreaHeight == null) {
                                     stableCarouselOpenAreaHeight = maxHeight
                                 }
@@ -890,7 +931,7 @@ fun LivePlayScreen(
                                 }
                             }
                         }
-                        val stableCarouselAreaHeight = if (showNumberKeypad) {
+                        val stableCarouselAreaHeight = if (keypadExpandedForLayout) {
                             stableCarouselOpenAreaHeight ?: maxHeight
                         } else {
                             stableCarouselClosedAreaHeight ?: maxHeight
@@ -901,7 +942,7 @@ fun LivePlayScreen(
                                     .weight(1f)
                                     .fillMaxWidth(),
                                 stableCarouselAreaHeight = stableCarouselAreaHeight,
-                                keypadExpanded = showNumberKeypad,
+                                keypadExpanded = keypadExpandedForLayout,
                                 sheets = displaySheets,
                                 initialSelectedTicketId = initialSelectedTicketId,
                                 onSheetClick = { detailSheet = it },
@@ -933,10 +974,55 @@ fun LivePlayScreen(
         )
     }
     if (showCalledNumbersSheet) {
-        CalledNumbersDetailSheet(
-            onDismiss = { showCalledNumbersSheet = false },
+        if (canEditCalledNumbers) {
+            CalledNumbersSheet(
+                onDismiss = {
+                    showCalledNumbersSheet = false
+                    calledNumbersVm.clearSelection()
+                },
+                calledNumbers = calledNumbers,
+                viewModel = calledNumbersVm,
+                onStartReplace = {
+                    val selected = calledNumbersVm.selectedCalledNumber ?: return@CalledNumbersSheet
+                    replaceTargetNumber = selected
+                    inputText = selected.toString()
+                    showCalledNumbersSheet = false
+                    showNumberKeypad = true
+                },
+                onShareCalledNumbers = onShareCalledNumbers,
+                onShowQrCode = {
+                    if (calledNumbers.isEmpty()) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                shareCalledNumbersEmptyMessage,
+                                duration = SnackbarDuration.Short,
+                            )
+                        }
+                    } else {
+                        showCalledNumbersQrDisplay = true
+                    }
+                },
+                onScanQr = {
+                    showCalledNumbersSheet = false
+                    calledNumbersVm.clearSelection()
+                    onNavigateToCalledNumbersQrScan()
+                },
+            )
+        } else {
+            CalledNumbersDetailSheet(
+                onDismiss = { showCalledNumbersSheet = false },
+                calledNumbers = calledNumbers,
+                onShareCalledNumbers = onShareCalledNumbers,
+            )
+        }
+    }
+    if (showCalledNumbersQrDisplay && calledNumbers.isNotEmpty()) {
+        CalledNumbersQrDisplaySheet(
             calledNumbers = calledNumbers,
-            onShareCalledNumbers = onShareCalledNumbers,
+            onDismiss = { showCalledNumbersQrDisplay = false },
+            onShareQrImage = { bitmap ->
+                shareCalledNumbersQrImage(context, bitmap)
+            },
         )
     }
     }
@@ -963,7 +1049,12 @@ private fun LivePlayBottomArea(
     showCompactBar: Boolean,
     haptic: HapticFeedback,
     showNumberKeypad: Boolean,
+    keypadExpandedForUi: Boolean,
     onToggleNumberKeypad: () -> Unit,
+    isReplacingCalledNumber: Boolean = false,
+    replaceTarget: Int? = null,
+    onReplaceNumber: (Int, (Boolean) -> Unit) -> Unit = { _, _ -> },
+    onClearReplace: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val snackbarFinishOrResetMessage = stringResource(R.string.live_play_snackbar_finish_or_reset)
@@ -988,7 +1079,7 @@ private fun LivePlayBottomArea(
     }
 
     fun handleCallClick() {
-        if (callingLocked) {
+        if (callingLocked && !isReplacingCalledNumber) {
             callingLockedMessage?.let { message ->
                 scope.launch { snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short) }
             }
@@ -997,6 +1088,48 @@ private fun LivePlayBottomArea(
         }
         val raw = inputText.trim()
         val n = raw.toIntOrNull()
+        if (isReplacingCalledNumber && replaceTarget != null) {
+            if (raw.isEmpty()) {
+                releaseGuard()
+                return
+            }
+            if (n == null) {
+                scope.launch { snackbarHostState.showSnackbar(snackbarInvalidNumberMessage, duration = SnackbarDuration.Short) }
+                releaseGuard()
+                return
+            }
+            if (n !in 1..75) {
+                scope.launch { snackbarHostState.showSnackbar(snackbarNumberRangeMessage, duration = SnackbarDuration.Short) }
+                releaseGuard()
+                return
+            }
+            if (n == replaceTarget) {
+                onInputChange("")
+                onClearReplace()
+                releaseGuard()
+                return
+            }
+            onReplaceNumber(n) { replaced ->
+                onInputChange("")
+                if (replaced) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                } else {
+                    val alreadyCalledMessage = context.getString(
+                        R.string.live_play_snackbar_already_called,
+                        bingoLetter(n),
+                        n,
+                    )
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            alreadyCalledMessage,
+                            duration = SnackbarDuration.Short,
+                        )
+                    }
+                }
+                releaseGuard()
+            }
+            return
+        }
         if (calledNumbers.size >= MAX_LIVE_CALLS) {
             scope.launch { snackbarHostState.showSnackbar(snackbarFinishOrResetMessage, duration = SnackbarDuration.Short) }
             releaseGuard()
@@ -1067,14 +1200,17 @@ private fun LivePlayBottomArea(
             latestCalled = calledNumbers.lastOrNull(),
             draft = inputText,
             onDraftChange = onInputChange,
-            canAddNumber = effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached && !callingLocked,
-            undoEnabled = calledNumbers.isNotEmpty() && !callingLocked,
+            canAddNumber = when {
+                isReplacingCalledNumber -> effectiveStatus == RoomStatus.RUNNING
+                else -> effectiveStatus == RoomStatus.RUNNING && !isCallLimitReached && !callingLocked
+            },
+            undoEnabled = calledNumbers.isNotEmpty() && !callingLocked && !isReplacingCalledNumber,
             actionInProgress = actionGuard.value,
-            showNumberKeypad = showNumberKeypad,
+            showNumberKeypad = keypadExpandedForUi,
             onToggleNumberKeypad = onToggleNumberKeypad,
-            contentAlpha = if (callingLocked) 0.42f else 1f,
+            contentAlpha = if (callingLocked && !isReplacingCalledNumber) 0.42f else 1f,
             lockedOverlay = {
-                if (callingLocked) {
+                if (callingLocked && !isReplacingCalledNumber) {
                     SundayLivePlayLockedBanner(
                         helperText = callingLockedMessage,
                         modifier = Modifier
@@ -2895,6 +3031,30 @@ private fun LiveResetCalledNumbersDialog(
             }
         }
     }
+}
+
+private fun shareCalledNumbersQrImage(
+    context: android.content.Context,
+    bitmap: Bitmap,
+) {
+    val shareDir = File(context.cacheDir, "share").apply { mkdirs() }
+    val file = File(shareDir, "called_numbers_qr.png")
+    FileOutputStream(file).use { out ->
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+    }
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(
+        Intent.createChooser(intent, context.getString(R.string.called_numbers_qr_share_chooser)),
+    )
 }
 
 private fun shareCalledNumbersImage(

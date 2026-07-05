@@ -321,18 +321,16 @@ fun ManualEntryScreen(
     val snackbarScope = rememberCoroutineScope()
     val isPartialScan = scannedNumbers.isNotEmpty() && (scannedNumbers.size < 25 || scannedNumbers.any { it == 0 })
     var hasShownPartialInfoDialog by rememberSaveable { mutableStateOf(false) }
-    var allowNavigationByEvent by remember { mutableStateOf(false) }
+    var allowBackNavigation by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(300)
-        allowNavigationByEvent = true
-        Log.d(MANUAL_ENTRY_TAG, "allowNavigationByEvent set true")
+        allowBackNavigation = true
     }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 ManualEntryUiEvent.NavigateBack -> {
-                    if (!allowNavigationByEvent) return@collect
+                    if (!allowBackNavigation) return@collect
                     val dirtyNow = viewModel.hasUnsavedChanges(
                         losNummerDraft,
                         serialNummerDraft,
@@ -347,11 +345,11 @@ fun ManualEntryScreen(
                 }
                 is ManualEntryUiEvent.NavigateToLivePlay -> {
                     Log.d(MANUAL_ENTRY_TAG, "navigate to history/livePlay triggered, roomId=${event.roomId}")
-                    if (allowNavigationByEvent) onNavigateToLivePlay(event.roomId)
+                    onNavigateToLivePlay(event.roomId)
                 }
                 is ManualEntryUiEvent.SaveOnlyCompleted -> {
                     Log.d(MANUAL_ENTRY_TAG, "saveOnlyCompleted triggered, ticketId=${event.ticketId}")
-                    if (allowNavigationByEvent) onSaveOnlySuccess(event.ticketId, event.roomId)
+                    onSaveOnlySuccess(event.ticketId, event.roomId)
                 }
                 is ManualEntryUiEvent.ShowSnackbar -> {
                     snackbarScope.launch { snackbarHostState.showSnackbar(event.message) }
@@ -365,7 +363,7 @@ fun ManualEntryScreen(
                 }
                 is ManualEntryUiEvent.ShowInfoDialog -> infoDialog = event.title to event.message
                 is ManualEntryUiEvent.NavigateToHistoryDetail -> {
-                    if (allowNavigationByEvent) onOpenExistingSheet(event.ticketId)
+                    onOpenExistingSheet(event.ticketId)
                 }
             }
         }

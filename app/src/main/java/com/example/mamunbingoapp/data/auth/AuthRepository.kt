@@ -4,13 +4,16 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.annotation.StringRes
+import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.R
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import java.io.IOException
 import java.net.UnknownHostException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -504,6 +507,9 @@ object AuthRepository {
             SupabaseClientProvider.requireConfigured()
             val client = SupabaseClientProvider.getClientOrNull()
                 ?: error(SupabaseClientProvider.configurationErrorMessage() ?: "Auth unavailable")
+            if (BuildConfig.DEBUG) {
+                SupabaseClientProvider.runDebugNetworkProbes()
+            }
             block()
         }.onFailure { error ->
             _authActionError.value = mapAuthError(error)
@@ -536,10 +542,35 @@ object AuthRepository {
         if (error is IllegalStateException && isSafeUserFacingAuthMessage(message)) {
             return message.lineSequence().first().trim()
         }
-        if (error is UnknownHostException || error is IOException) {
+        if (error is HttpRequestTimeoutException || error is TimeoutCancellationException) {
+            logDebugTransportFailure(error, branch = "timeout")
             return str(R.string.auth_error_network)
         }
-        return mapAuthErrorMessage(message)
+        if (error is UnknownHostException || error is IOException) {
+            logDebugTransportFailure(error, branch = "IOException")
+            return str(R.string.auth_error_network)
+        }
+        return mapAuthErrorMessage(message, error)
+    }
+
+    private fun logDebugTransportFailure(error: Throwable, branch: String) {
+        if (!BuildConfig.DEBUG) return
+        val chain = buildString {
+            var current: Throwable? = error
+            var depth = 0
+            while (current != null) {
+                append("  cause[$depth]=").append(current::class.java.name)
+                current.message?.takeIf { it.isNotBlank() }?.let { append(" msg=\"").append(it).append('"') }
+                appendLine()
+                current = current.cause
+                depth++
+            }
+        }
+        Log.e(
+            TAG,
+            "Network failure diagnostic ($branch): root=${error::class.java.name} " +
+                "msg=\"${error.message}\"\n$chain",
+        )
     }
 
     private fun collectAuthErrorText(error: Throwable): String = buildString {
@@ -550,15 +581,17 @@ object AuthRepository {
         }
     }.trim()
 
-    private fun mapAuthErrorMessage(message: String): String = when {
+    private fun mapAuthErrorMessage(message: String, error: Throwable): String = when {
             message.contains("over_email_send_rate_limit", ignoreCase = true) ->
                 str(R.string.auth_error_rate_limit)
             message.contains("Unable to resolve host", ignoreCase = true) ||
                 message.contains("Failed to connect", ignoreCase = true) ||
                 message.contains("timeout", ignoreCase = true) ||
                 (message.contains("Network", ignoreCase = true) &&
-                    !message.contains("error_code", ignoreCase = true)) ->
+                    !message.contains("error_code", ignoreCase = true)) -> {
+                logDebugTransportFailure(error, branch = "message-heuristic")
                 str(R.string.auth_error_network)
+            }
             message.contains("Invalid login credentials", ignoreCase = true) ->
                 str(R.string.auth_error_invalid_credentials)
             message.contains("User already registered", ignoreCase = true) ->

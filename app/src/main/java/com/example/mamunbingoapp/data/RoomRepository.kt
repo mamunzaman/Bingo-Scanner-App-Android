@@ -328,6 +328,64 @@ object RoomRepository {
         last.number
     }
 
+    suspend fun removeCalledNumber(roomId: String, number: Int): Boolean = withContext(Dispatchers.IO) {
+        if (number !in 1..75) return@withContext false
+        val list = calledDao().observeCalled(roomId).first()
+        if (list.none { it.number == number }) return@withContext false
+        calledDao().deleteCalledNumber(roomId, number)
+        if (list.size - 1 < MAX_LIVE_CALLS) setRoomArchived(roomId, false)
+        true
+    }
+
+    suspend fun replaceCalledNumber(roomId: String, oldNumber: Int, newNumber: Int): Boolean =
+        withContext(Dispatchers.IO) {
+            if (oldNumber !in 1..75 || newNumber !in 1..75) return@withContext false
+            val list = calledDao().observeCalled(roomId).first()
+            val entity = list.find { it.number == oldNumber } ?: return@withContext false
+            val existing = list.map { it.number }
+            if (newNumber in existing && newNumber != oldNumber) return@withContext false
+            calledDao().deleteCalledNumber(roomId, oldNumber)
+            calledDao().insertCalled(RoomCalledNumberEntity(roomId, newNumber, entity.calledAt))
+            true
+        }
+
+    suspend fun replaceAllCalledNumbers(roomId: String, numbers: List<Int>): Boolean =
+        withContext(Dispatchers.IO) {
+            val ordered = numbers.filter { it in 1..75 }.distinct()
+            if (ordered.isEmpty()) return@withContext false
+            calledDao().clearCalled(roomId)
+            val baseTime = System.currentTimeMillis()
+            ordered.forEachIndexed { index, number ->
+                calledDao().insertCalled(
+                    RoomCalledNumberEntity(roomId, number, baseTime + index),
+                )
+            }
+            setRoomArchived(roomId, ordered.size >= MAX_LIVE_CALLS)
+            true
+        }
+
+    suspend fun appendCalledNumbers(roomId: String, numbers: List<Int>): Int =
+        withContext(Dispatchers.IO) {
+            val existing = calledDao().observeCalled(roomId).first()
+            val existingSet = existing.map { it.number }.toSet()
+            val toAdd = numbers.filter { it in 1..75 && it !in existingSet }
+            if (toAdd.isEmpty()) return@withContext 0
+            if (existing.size >= MAX_LIVE_CALLS) return@withContext 0
+            val baseTime = System.currentTimeMillis()
+            var added = 0
+            for (number in toAdd) {
+                if (existing.size + added >= MAX_LIVE_CALLS) break
+                calledDao().insertCalled(
+                    RoomCalledNumberEntity(roomId, number, baseTime + added),
+                )
+                added++
+            }
+            if (existing.size + added >= MAX_LIVE_CALLS) {
+                setRoomArchived(roomId, true)
+            }
+            added
+        }
+
     suspend fun getTicketsForRoom(roomId: String): List<String> = withContext(Dispatchers.IO) {
         ticketDao().observeTickets(roomId).first().map { it.ticketId }
     }

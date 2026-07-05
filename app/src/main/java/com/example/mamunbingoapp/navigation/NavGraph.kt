@@ -39,6 +39,7 @@ import com.example.mamunbingoapp.ui.screens.history.HistoryDetailScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryListScreen
 import com.example.mamunbingoapp.ui.screens.history.HistoryPhotoImportScreen
 import com.example.mamunbingoapp.ui.screens.camera.BingoLiveCameraImportScreen
+import com.example.mamunbingoapp.ui.screens.camera.CalledNumbersQrScanScreen
 import com.example.mamunbingoapp.ui.screens.LoginScreen
 import com.example.mamunbingoapp.ui.screens.manual.ManualEntryScreen
 import com.example.mamunbingoapp.ui.screens.MainTabsScreen
@@ -73,7 +74,10 @@ import com.example.mamunbingoapp.ui.screens.profile.SupportScreen
 import androidx.compose.runtime.collectAsState
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.scanner.CalledNumbersQrParser
+import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.viewmodel.ImportTicketDeepLinkViewModel
 import com.example.mamunbingoapp.viewmodel.MIN_VALID_CELLS_FOR_MANUAL_ENTRY_NAV
@@ -123,6 +127,7 @@ private const val SCAN_ENTRY_HANDOFF_TAG = "scan-entry-handoff"
 private const val SCAN_PIPELINE_LOG = "ScanPipelineBusy"
 private const val MAIN_GRAPH_ROUTE = "main"
 private const val MAIN_TABS_ROUTE = "tabs"
+private const val CALLED_NUMBERS_QR_SNACKBAR_KEY = "calledNumbersQrSnackbar"
 
 private fun stagePendingHistoryPhotoImportScanType(
     navController: NavHostController,
@@ -450,6 +455,7 @@ private fun shouldHideMainBottomBar(route: String?): Boolean {
     if (route == "auth/login" || route == "auth/register" || route == "auth/forgot") return true
     if (route.startsWith("auth/")) return true
     if (route.startsWith("bingoLiveCameraImport")) return true
+    if (route.startsWith("calledNumbersQrScan")) return true
     return false
 }
 
@@ -458,7 +464,7 @@ private fun appTabHighlightForRoute(route: String?): AppTab? {
     if (route == null || route == MAIN_TABS_ROUTE) return null
     return when {
         route.startsWith("historyPhotoImport") || route.startsWith("manualEntry") -> AppTab.Scan
-        route.startsWith("livePlay") || route.startsWith("liveSheet") -> AppTab.Jackpot
+        route.startsWith("livePlay") || route.startsWith("liveSheet") || route.startsWith("calledNumbersQrScan") -> AppTab.Jackpot
         route.startsWith("history") ||
             route.startsWith("ticket") ||
             route.startsWith("archivedGame") -> AppTab.Jackpot
@@ -515,6 +521,7 @@ private fun NavHostController.navigateToMainTabRoot(
     runCatching {
         getBackStackEntry(MAIN_GRAPH_ROUTE).savedStateHandle["selectedTab"] = tab.name
     }
+    clearPendingHistoryPhotoImportHandoff(this)
     if (currentDestination?.route == MAIN_TABS_ROUTE) return
     var pops = 0
     while (
@@ -607,6 +614,9 @@ private fun MainShellScaffold(
     val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val contentBottomInset =
         if (showBottomBar) AppBottomBarShellHeight + navBarInset else 0.dp
+    BackHandler(enabled = currentRoute == MAIN_TABS_ROUTE) {
+        tabsViewModel?.setSelectedTab(AppTab.Home)
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         content(
             Modifier
@@ -1005,6 +1015,9 @@ fun NavGraph(
             val selectedTicketIdRequest by backStackEntry.savedStateHandle
                 .getStateFlow("selectedTicketId", "")
                 .collectAsState()
+            val qrScanSnackbar by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(CALLED_NUMBERS_QR_SNACKBAR_KEY, null)
+                .collectAsState()
             var showCallCompleteDialog by remember { mutableStateOf(false) }
             LaunchedEffect(roomId) { vm.bind(roomId) }
             LaunchedEffect(selectedTicketIdRequest) {
@@ -1076,7 +1089,46 @@ fun NavGraph(
                 onResetDismiss = { vm.onResetDismiss() },
                 onStartNewRoomFromReset = { vm.onStartNewRoomFromReset() },
                 onFinishClick = { vm.markRoomArchived() },
-                onUndoLastCall = { vm.undoLastCalledNumber() }
+                onUndoLastCall = { vm.undoLastCalledNumber() },
+                onNavigateToCalledNumbersQrScan = {
+                    navController.navigate("calledNumbersQrScan/$roomId")
+                },
+                qrScanResultMessage = qrScanSnackbar,
+                onQrScanResultConsumed = {
+                    backStackEntry.savedStateHandle[CALLED_NUMBERS_QR_SNACKBAR_KEY] = null
+                },
+            )
+        }
+        composable("calledNumbersQrScan/{roomId}") { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+            if (roomId.isBlank()) {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+            CalledNumbersQrScanScreen(
+                onBack = { navController.popBackStack() },
+                onQrScanned = { raw ->
+                    scope.launch {
+                        val parsed = CalledNumbersQrParser.parse(raw)
+                        val message = when {
+                            parsed.isNullOrEmpty() -> context.getString(R.string.called_numbers_qr_invalid)
+                            else -> {
+                                val ok = RoomRepository.replaceAllCalledNumbers(roomId, parsed)
+                                context.getString(
+                                    if (ok) R.string.called_numbers_qr_applied
+                                    else R.string.called_numbers_qr_invalid,
+                                )
+                            }
+                        }
+                        runCatching {
+                            navController.getBackStackEntry("livePlayRoom/$roomId")
+                                .savedStateHandle[CALLED_NUMBERS_QR_SNACKBAR_KEY] = message
+                        }
+                        navController.popBackStack()
+                    }
+                },
             )
         }
         composable("liveSheetDetail/{roomId}/{ticketId}") { backStackEntry ->
@@ -1186,6 +1238,8 @@ fun NavGraph(
                     navController.restartFreshScanAfterDuplicate(shellTabsVm)
                 },
                 onSaveOnlySuccess = { _, _ ->
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.setMainScanPipelineBusy(false)
                     navController.popBackStack()
                 },
                 onTabSelected = { tab ->
@@ -1193,8 +1247,12 @@ fun NavGraph(
                 },
                 onNavigateToLivePlay = { roomId ->
                     stageMainShellTab(shellTabsVm, AppTab.Jackpot)
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.setMainScanPipelineBusy(false)
                     navController.navigate("livePlayRoom/$roomId") {
-                        popUpTo(me.entryRouteForPopUpTo) { inclusive = true }
+                        popUpTo(MAIN_TABS_ROUTE) { inclusive = false }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 viewModel = manualEntryVm,
@@ -1253,6 +1311,8 @@ fun NavGraph(
                 },
                 onSaveOnlySuccess = { ticketId, savedRoomId ->
                     val targetRoomId = savedRoomId ?: mer.roomId
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.setMainScanPipelineBusy(false)
                     runCatching {
                         navController.getBackStackEntry("livePlayRoom/$targetRoomId")
                             .savedStateHandle["selectedTicketId"] = ticketId
@@ -1261,6 +1321,7 @@ fun NavGraph(
                         navController.navigate("livePlayRoom/$targetRoomId") {
                             launchSingleTop = true
                             restoreState = true
+                            popUpTo(MAIN_TABS_ROUTE) { inclusive = false }
                         }
                     }
                 },
@@ -1268,8 +1329,12 @@ fun NavGraph(
                     navController.onMainBottomBarTabSelected(tab, shellTabsVm)
                 },
                 onNavigateToLivePlay = { roomId ->
+                    clearPendingHistoryPhotoImportHandoff(navController)
+                    navController.setMainScanPipelineBusy(false)
                     navController.navigate("livePlayRoom/$roomId") {
-                        popUpTo(mer.entryRouteForPopUpTo) { inclusive = true }
+                        popUpTo(MAIN_TABS_ROUTE) { inclusive = false }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
                 viewModel = manualEntryRoomVm,
@@ -1383,7 +1448,7 @@ fun NavGraph(
             var lastOcrSource by remember { mutableStateOf<HistoryOcrSource?>(null) }
             var lastOcrConfidence by remember { mutableStateOf<Float?>(null) }
                     var continueNavigated by remember { mutableStateOf(false) }
-                    var importManualNavDone by rememberSaveable { mutableStateOf(false) }
+                    var importManualNavDone by remember { mutableStateOf(false) }
                     val importPrefill = parseHistoryPhotoImportPrefill(backStackEntry.arguments)
             val prefilledScannedNumbers = importPrefill.scannedNumbers
             val prefilledOcrSource = importPrefill.ocrSource
@@ -1505,8 +1570,10 @@ fun NavGraph(
                                             sheetName = s.sheetName,
                                         )
                                     }
+                                navController.setMainScanPipelineBusy(false)
                                 navController.navigate(route) {
-                                    popUpTo(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE) { inclusive = true }
+                                    popUpTo(MAIN_TABS_ROUTE) { inclusive = false }
+                                    launchSingleTop = false
                                 }
                             }
                             is com.example.mamunbingoapp.viewmodel.ScanResultUiState.Error -> {
@@ -1520,8 +1587,10 @@ fun NavGraph(
                                     losNumber = scan.losNumber,
                                     serialNumber = scan.serialNumber,
                                 )
+                                navController.setMainScanPipelineBusy(false)
                                 navController.navigate(route) {
-                                    popUpTo(HISTORY_PHOTO_IMPORT_GRAPH_ROUTE) { inclusive = true }
+                                    popUpTo(MAIN_TABS_ROUTE) { inclusive = false }
+                                    launchSingleTop = false
                                 }
                             }
                             else -> Unit
@@ -1943,7 +2012,10 @@ fun NavGraph(
                             sheetName = sheetName,
                         )
                     }
-                    navController.navigate(route) { popUpTo("bingoLiveCameraImport") { inclusive = true } }
+                    navController.setMainScanPipelineBusy(false)
+                    navController.navigate(route) {
+                        popUpTo("bingoLiveCameraImport") { inclusive = true }
+                    }
                 },
                 onFullTicketPhotoCaptured = { uri ->
                     navController.setMainScanPipelineBusy(true)

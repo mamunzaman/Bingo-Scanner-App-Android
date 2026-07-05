@@ -7,6 +7,7 @@ import coil.annotation.ExperimentalCoilApi
 import coil.imageLoader
 import coil.memory.MemoryCache
 import coil.request.ImageRequest
+import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.data.auth.AuthRepository
 import com.example.mamunbingoapp.data.auth.AuthState
 import com.example.mamunbingoapp.data.auth.SupabaseClientProvider
@@ -350,7 +351,10 @@ object ProfileRepository {
 
     private fun mapProfileError(error: Throwable): String = when (error) {
         is IllegalStateException -> error.message.orEmpty().ifBlank { DEFAULT_ERROR }
-        is UnknownHostException, is IOException -> "Network error. Check your connection and try again."
+        is UnknownHostException, is IOException -> {
+            logDebugTransportFailure(error)
+            "Network error. Check your connection and try again."
+        }
         else -> {
             val message = error.message.orEmpty()
             when {
@@ -367,4 +371,24 @@ object ProfileRepository {
     }
 
     private const val DEFAULT_ERROR = "Could not save profile. Please try again."
+
+    private fun logDebugTransportFailure(error: Throwable) {
+        if (!BuildConfig.DEBUG) return
+        val chain = buildString {
+            var current: Throwable? = error
+            var depth = 0
+            while (current != null) {
+                append("  cause[$depth]=").append(current::class.java.name)
+                current.message?.takeIf { it.isNotBlank() }?.let { append(" msg=\"").append(it).append('"') }
+                appendLine()
+                current = current.cause
+                depth++
+            }
+        }
+        Log.e(
+            TAG,
+            "Network failure diagnostic: root=${error::class.java.name} " +
+                "msg=\"${error.message}\"\n$chain",
+        )
+    }
 }

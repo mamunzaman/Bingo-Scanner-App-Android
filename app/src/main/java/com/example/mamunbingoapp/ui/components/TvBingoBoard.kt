@@ -6,7 +6,10 @@ import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.PrimaryContainer
+import com.example.mamunbingoapp.ui.core.interaction.appRipple
 import androidx.compose.ui.graphics.toArgb
 
 private val BingoColumnLetters = listOf("B", "I", "N", "G", "O")
@@ -88,6 +92,9 @@ fun TvBingoBoard(
     lineColor: Color,
     modifier: Modifier = Modifier,
     callSequence: List<Int> = emptyList(),
+    selectedNumber: Int? = null,
+    onNumberClick: ((Int) -> Unit)? = null,
+    selectedNumberOverlay: @Composable BoxScope.(chipSize: Dp) -> Unit = {},
 ) {
     val rowCount = remember(numbersByColumn) {
         numbersByColumn.values.maxOfOrNull { it.size } ?: 0
@@ -118,11 +125,24 @@ fun TvBingoBoard(
                 BingoMatrixRow(chipSize = chipSize) { columnIndex ->
                     val number = rowNumbers[columnIndex]
                     if (number != null) {
-                        BingoNumberChip(
-                            number = number,
-                            tier = numberTier(number, callSequence, latest),
-                            size = chipSize,
-                        )
+                        val isSelected = number == selectedNumber
+                        val isInteractive = onNumberClick != null
+                        val overlayInset = if (isSelected && isInteractive) 14.dp else 0.dp
+                        Box(
+                            modifier = Modifier.size(chipSize + overlayInset),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BingoNumberChip(
+                                number = number,
+                                tier = numberTier(number, callSequence, latest),
+                                size = chipSize,
+                                isSelected = isSelected && isInteractive,
+                                onClick = onNumberClick?.let { handler -> { handler(number) } },
+                            )
+                            if (isSelected && isInteractive) {
+                                selectedNumberOverlay(chipSize)
+                            }
+                        }
                     } else {
                         MatrixBlankCell(size = chipSize)
                     }
@@ -196,12 +216,25 @@ private fun BingoNumberChip(
     number: Int,
     tier: TvCallVisualTier,
     size: Dp,
+    isSelected: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val style = numberChipStyle(tier, scheme)
+    val style = numberChipStyle(tier, scheme, isSelected)
+    val clickModifier = if (onClick != null) {
+        Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = appRipple(bounded = true),
+            onClick = onClick,
+        )
+    } else {
+        Modifier
+    }
 
     Surface(
-        modifier = Modifier.size(size),
+        modifier = Modifier
+            .size(size)
+            .then(clickModifier),
         shape = CircleShape,
         color = style.background,
         border = style.border,
@@ -235,6 +268,7 @@ private data class NumberChipStyle(
 private fun numberChipStyle(
     tier: TvCallVisualTier,
     scheme: ColorScheme,
+    isSelected: Boolean = false,
 ): NumberChipStyle {
     val fill = scheme.primaryContainer.copy(alpha = 0.84f)
     val text = scheme.onSurface
@@ -242,6 +276,14 @@ private fun numberChipStyle(
         Dimens.cardBorderDefault,
         scheme.outlineVariant.copy(alpha = 0.22f),
     )
+    if (isSelected) {
+        return NumberChipStyle(
+            background = scheme.primaryContainer.copy(alpha = 0.96f),
+            foreground = text,
+            border = BorderStroke(Dimens.borderBingoUnmarked, scheme.primary),
+            fontWeight = FontWeight.Bold,
+        )
+    }
     return when (tier) {
         TvCallVisualTier.Latest -> NumberChipStyle(
             background = fill,
