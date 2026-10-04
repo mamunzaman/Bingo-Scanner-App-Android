@@ -15,7 +15,7 @@ import kotlinx.serialization.json.Json
 object ProjectsRepository {
 
     private const val TAG = "ProjectsRepository"
-    private const val PROJECTS_URL = "https://bingo-hub.de/project-news/api/projects.php"
+    private const val PROJECTS_URL = "https://blogs.bingo-hub.de/api/projects"
 
     data class FetchResult(
         val projects: List<ProjectUiModel>,
@@ -51,7 +51,6 @@ object ProjectsRepository {
         val response: ProjectsApiResponse = http.get(PROJECTS_URL).body()
         val projects = response.data
             .asSequence()
-            .filter { it.isActive }
             .mapNotNull { it.toUiModelOrNull() }
             .toList()
         val updatedAtMillis = System.currentTimeMillis()
