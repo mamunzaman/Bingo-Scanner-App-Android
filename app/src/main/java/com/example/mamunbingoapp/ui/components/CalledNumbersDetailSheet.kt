@@ -13,8 +13,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +50,7 @@ fun CalledNumbersDetailSheet(
     footerText: String? = null,
     onOverflowMenuClick: (() -> Unit)? = null,
     onShareCalledNumbers: (() -> Unit)? = null,
+    onQrToolsClick: (() -> Unit)? = null,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val resolvedTitle = title ?: stringResource(R.string.live_play_called_numbers_label)
@@ -71,12 +75,26 @@ fun CalledNumbersDetailSheet(
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                if (onShareCalledNumbers != null || onOverflowMenuClick != null) {
+                if (onShareCalledNumbers != null || onOverflowMenuClick != null || onQrToolsClick != null) {
                     Row(
                         modifier = Modifier.align(Alignment.TopEnd),
                         horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        if (onQrToolsClick != null) {
+                            IconButton(
+                                onClick = onQrToolsClick,
+                                modifier = Modifier.size(40.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.QrCode2,
+                                    contentDescription = stringResource(
+                                        R.string.called_numbers_qr_action_cd,
+                                    ),
+                                    tint = scheme.primary.copy(alpha = 0.82f),
+                                )
+                            }
+                        }
                         if (onShareCalledNumbers != null) {
                             val canShare = calledNumbers.isNotEmpty()
                             IconButton(

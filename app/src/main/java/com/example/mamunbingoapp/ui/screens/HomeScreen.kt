@@ -106,6 +106,7 @@ private val homeFabBottomPadding = Dimens.spacing24
 @Composable
 fun HomeScreen(
     onLaunchCamera: (BingoScanType) -> Unit = {},
+    onAddFromGallery: () -> Unit = {},
     onQuickActionClick: (String) -> Unit = {},
     /** History session id → [HistoryDetailScreen] route (`historyDetail/{sessionId}`). */
     onTicketClick: (String) -> Unit = {},
@@ -198,6 +199,10 @@ fun HomeScreen(
             onScanTypeSelected = { type ->
                 showScanTypeSheet = false
                 onLaunchCamera(type)
+            },
+            onAddFromGallery = {
+                showScanTypeSheet = false
+                onAddFromGallery()
             },
         )
     }

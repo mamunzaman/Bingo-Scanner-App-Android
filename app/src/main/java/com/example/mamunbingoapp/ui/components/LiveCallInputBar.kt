@@ -64,15 +64,21 @@ import androidx.compose.ui.res.stringResource
 import com.example.mamunbingoapp.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mamunbingoapp.theme.AppAlpha
 import com.example.mamunbingoapp.theme.Dimens
-import com.example.mamunbingoapp.ui.components.APP_SECTION_BORDER_ALPHA
+import com.example.mamunbingoapp.theme.PrimaryDark
+import com.example.mamunbingoapp.theme.TicketGold
 
 private const val LiveKeypadVisibilityAnimMs = 200
 private val liveKeypadVisibilitySpec = tween<Float>(
     durationMillis = LiveKeypadVisibilityAnimMs,
     easing = FastOutSlowInEasing,
 )
+private val LivePremiumKeypadShellBg = Color(0xFFF2F5EC)
+private val LivePremiumKeypadShellBorder = TicketGold.copy(alpha = 0.42f)
+private val LivePremiumInputGoldIdle = TicketGold.copy(alpha = 0.32f)
+private val LivePremiumInputGoldActive = TicketGold.copy(alpha = 0.52f)
+private val LivePremiumActionBorderActive = TicketGold.copy(alpha = 0.48f)
+private val LivePremiumActionBorderIdle = PrimaryDark.copy(alpha = 0.22f)
 
 /** Live play bottom dock heights (input row + optional digit block) for list/scroll padding. */
 object LivePlayCallKeypadMetrics {
@@ -138,9 +144,9 @@ fun LivePlayCallKeypad(
     )
     val inputBorder by animateColorAsState(
         targetValue = when {
-            !inputVisuallyActive -> scheme.outlineVariant.copy(alpha = 0.24f)
-            hasDraft -> scheme.primary.copy(alpha = 0.5f)
-            else -> scheme.outlineVariant.copy(alpha = AppAlpha.AlphaBorder)
+            !inputVisuallyActive -> LivePremiumActionBorderIdle
+            hasDraft -> LivePremiumInputGoldActive
+            else -> LivePremiumInputGoldIdle
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveInputBorder"
@@ -187,12 +193,12 @@ fun LivePlayCallKeypad(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = consoleShape,
-        color = scheme.surfaceContainer,
+        color = LivePremiumKeypadShellBg,
         tonalElevation = Dimens.cardElevationSubtle,
         shadowElevation = Dimens.cardElevationDefault,
         border = BorderStroke(
-            Dimens.cardBorderDefault,
-            scheme.primary.copy(alpha = APP_SECTION_BORDER_ALPHA),
+            1.25.dp,
+            LivePremiumKeypadShellBorder,
         ),
     ) {
         Column(
@@ -302,7 +308,7 @@ fun LivePlayCallKeypad(
                                     fontSize = 18.sp
                                 ),
                                 color = if (inputVisuallyActive) {
-                                    scheme.primary
+                                    TicketGold.copy(alpha = 0.88f)
                                 } else {
                                     scheme.onSurfaceVariant.copy(alpha = 0.34f)
                                 },
@@ -329,7 +335,7 @@ fun LivePlayCallKeypad(
                         contentDescription = null,
                         modifier = Modifier.size(Dimens.iconDefault),
                         tint = if (actionsEnabled && undoEnabled && inputActionsEnabled) {
-                            scheme.primary
+                            PrimaryDark
                         } else {
                             scheme.onSurfaceVariant.copy(alpha = 0.34f)
                         },
@@ -356,6 +362,17 @@ fun LivePlayCallKeypad(
                         }
                         .clip(CircleShape)
                         .background(callContainerColor)
+                        .then(
+                            if (callEnabled) {
+                                Modifier.border(
+                                    width = 1.5.dp,
+                                    color = TicketGold.copy(alpha = 0.62f),
+                                    shape = CircleShape,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
                         .clickable(
                             enabled = callEnabled,
                             interactionSource = callInteraction,
@@ -401,7 +418,7 @@ fun LivePlayCallKeypad(
                     HorizontalDivider(
                         modifier = Modifier.padding(top = Dimens.spacing8),
                         thickness = Dimens.cardBorderDefault,
-                        color = scheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
+                        color = TicketGold.copy(alpha = 0.28f),
                     )
                     Spacer(modifier = Modifier.height(Dimens.spacing10))
                     AppNumberKeypad(
@@ -452,9 +469,9 @@ private fun LivePlayConsoleOutlinedAction(
         border = BorderStroke(
             Dimens.cardBorderDefault,
             if (isActive) {
-                scheme.primary.copy(alpha = 0.45f)
+                LivePremiumActionBorderActive
             } else {
-                scheme.outlineVariant.copy(alpha = 0.24f)
+                LivePremiumActionBorderIdle
             },
         ),
         shadowElevation = 0.dp,
@@ -496,16 +513,16 @@ private fun LiveKeypadToggleButton(
     )
     val borderColor by animateColorAsState(
         targetValue = when {
-            keypadOpen -> scheme.primary.copy(alpha = 0.55f)
-            inactive -> scheme.outlineVariant.copy(alpha = 0.24f)
-            else -> scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha)
+            keypadOpen -> LivePremiumInputGoldActive
+            inactive -> LivePremiumActionBorderIdle
+            else -> LivePremiumInputGoldIdle
         },
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "liveKeypadToggleBorder",
     )
     val iconTint by animateColorAsState(
         targetValue = when {
-            keypadOpen -> scheme.primary
+            keypadOpen -> PrimaryDark
             inactive -> scheme.onSurfaceVariant.copy(alpha = 0.34f)
             else -> scheme.onSurfaceVariant.copy(alpha = 0.78f)
         },

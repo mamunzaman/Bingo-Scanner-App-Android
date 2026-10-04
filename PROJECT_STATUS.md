@@ -1,6 +1,38 @@
 # Project status
 
-**Last update:** 2026-07-06 - **Live ticket sheet pager:** `HorizontalPager` + `rememberPagerState` replaces arrows/manual swipe; synced with `selectedSheetTicketIndex`; QR resets on `settledPage`. Build OK.
+**Last update:** 2026-10-05 - **Projects 403 DEBUG logs removed.** Accept + User-Agent + 2xx check kept. assembleDebug OK.
+
+**Previous:** 2026-09-23 - **Sunday room schedule:** Berlin 17:00–18:00 state, lifecycle-aware ticker, plural countdown labels, Clock/DST tests. Tests + assembleDebug OK.
+
+**Previous:** 2026-09-23 - **Scanner frame alignment:** one shared viewfinder rect for corners, scan line, and crop. Scan line pauses when the preview is not live. assembleDebug OK.
+
+**Previous:** 2026-09-22 - **Bingo ticket camera layout:** quieter scrim top bar, centered frame, one bottom capture card, “Capture ticket”. assembleDebug OK.
+
+**Previous:** 2026-09-22 - **Weekly sheet-name duplicates:** Monday–Monday local week, normalized name match, repository blocks save, inline error on Manual Entry. `WeeklySheetNameTest` + assembleDebug OK.
+
+**Previous:** 2026-07-06 - **History Detail info table:** Replaced chip/stat layout with `HistoryDetailInfoTableCard`. Build OK.
+
+**Previous:** 2026-07-06 - **Unified scan-type sheet:** Gallery required on `ScanTypeSelectionSheet`; wired Home, Live Rooms, Live Play create ticket, MainTabs gallery import. Build OK.
+
+**Previous:** 2026-07-06 - **Premium live card keypad-closed scale:** `KEYPAD_CLOSED_SCALE = 0.90f`. Build OK.
+
+**Previous:** 2026-07-06 - **Premium live card responsive:** `PremiumLiveAdaptiveStyle` + resolver from card W/H + keypad state. Build OK.
+
+**Previous:** 2026-07-06 - **Live premium polish:** LOS/SERIE +25% (14/23sp, ExtraBold); live-only keypad gold/green shell, input pill, action borders. Build OK.
+
+**Previous:** 2026-07-06 - **PremiumLiveTicketCard center + polish:** center cell shows ticket number (no FREE); +15% number size, darker ExtraBold/Black text; cream gradient cells + gold border/shadow; smoother frame, brighter bulbs, stronger gold border. Build OK.
+
+**Previous:** 2026-07-06 - **PremiumLiveTicketCard marquee polish:** center FREE cell skipped (clean open space); thicker dark-green frame + brighter gold border; larger corner bulbs; bigger grid/cells/header; stronger marked glow. Build OK.
+
+**Previous:** 2026-07-06 - **PremiumLiveTicketCard strengthen:** thicker dark frame, brighter bulbs, layered shadow, title-only row, larger grid/cells/marked glow. Build OK.
+
+**Previous:** 2026-07-06 - **PremiumLiveTicketCard:** marquee frame (green + gold + bulbs), premium header/grid on live carousel only; sheet detail unchanged. Build OK.
+
+**Previous:** 2026-07-06 - **Live carousel card premium:** `TicketGold` card border, BINGO header gold ring, marked cells gold border; sheet detail reverted to plain. Build OK.
+
+**Previous:** 2026-07-06 - **Live ticket sheet premium card (reverted to sheet):** cream bg, gold border, star separator — moved to carousel card instead.
+
+**Previous:** 2026-07-06 - **Live ticket sheet pager:** `HorizontalPager` + `rememberPagerState` replaces arrows/manual swipe; synced with `selectedSheetTicketIndex`; QR resets on `settledPage`. Build OK.
 
 **Previous:** 2026-07-06 - **Live ticket sheet nav polish:** 52dp circular elevated arrows overlap card edges; horizontal swipe on ticket card (left=next, right=prev). Build OK.
 
@@ -616,6 +648,7 @@
 
 ## Completed features
 
+- **Unified scan-type sheet:** `ScanTypeSelectionSheet` always includes Gallery; all scan entry points (Home, Live Rooms, Scan, Live Play, History import) use shared sheet + existing camera/gallery routes.
 - **Live ticket sheet pager:** `SheetDetailBottomSheet` uses `HorizontalPager`; arrows removed; `settledPage` syncs `selectedSheetTicketIndex`; animated page transitions.
 - **Live ticket sheet nav polish:** (superseded by pager) elevated arrows + manual swipe.
 - **Sheet scrim edge-to-edge:** `AppBottomSheetSurface` `WindowInsets(0)` default; scrim covers status bar; `navigationBarsPadding` on sheet content where needed.

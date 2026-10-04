@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.sp
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.LocalPrimaryBorder
 import com.example.mamunbingoapp.theme.MamunBingoTheme
+import com.example.mamunbingoapp.theme.TicketGold
+import com.example.mamunbingoapp.theme.TicketPaperBorder
+import com.example.mamunbingoapp.theme.TicketPaperCell
 
 object BingoBoxTokens {
     val SizeDefault: Dp = 56.dp
@@ -47,8 +50,9 @@ fun BingoNumberBox(
     numberFontWeight: FontWeight = FontWeight.SemiBold,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val manualEntrySheet =
-        LocalBingoGridVisualVariant.current == BingoGridVisualVariant.ManualEntrySheet
+    val variant = LocalBingoGridVisualVariant.current
+    val manualEntrySheet = variant == BingoGridVisualVariant.ManualEntrySheet
+    val premiumTicket = variant == BingoGridVisualVariant.PremiumTicket
     val manualEntryActive = manualEntrySheet && isSelected
     val manualEntryEmptyTint = manualEntrySheet && numberText.isBlank() && !isSelected
     val bg = when {
@@ -56,14 +60,20 @@ fun BingoNumberBox(
         manualEntryActive -> colorScheme.primary.copy(alpha = 0.12f)
         manualEntryEmptyTint -> colorScheme.surfaceContainerLow
         isSelected -> colorScheme.primary.copy(alpha = 0.05f)
+        premiumTicket -> TicketPaperCell
         else -> colorScheme.surface
     }
     val primaryBorder = LocalPrimaryBorder.current
     val borderColor = when {
-        isMarked -> if (showBorderWhenMarked) primaryBorder else Color.Transparent
+        isMarked -> when {
+            premiumTicket && showBorderWhenMarked -> TicketGold.copy(alpha = 0.70f)
+            showBorderWhenMarked -> primaryBorder
+            else -> Color.Transparent
+        }
         manualEntryActive -> colorScheme.primary
         manualEntryEmptyTint -> colorScheme.primary.copy(alpha = 0.18f)
         isSelected -> colorScheme.primary
+        premiumTicket -> TicketPaperBorder
         else -> colorScheme.outlineVariant
     }
     val borderWidth = if (manualEntryActive) {

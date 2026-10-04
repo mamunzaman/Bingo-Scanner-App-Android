@@ -19,8 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.foundation.Image
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
@@ -71,8 +71,7 @@ fun CalledNumbersSheet(
     footerText: String? = null,
     onOverflowMenuClick: (() -> Unit)? = null,
     onShareCalledNumbers: (() -> Unit)? = null,
-    onShowQrCode: (() -> Unit)? = null,
-    onScanQr: (() -> Unit)? = null,
+    onQrToolsClick: (() -> Unit)? = null,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val resolvedTitle = title ?: stringResource(R.string.live_play_called_numbers_label)
@@ -105,7 +104,7 @@ fun CalledNumbersSheet(
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16),
         ) {
             val hasHeaderActions = onShareCalledNumbers != null || onOverflowMenuClick != null ||
-                onShowQrCode != null || onScanQr != null
+                onQrToolsClick != null
             if (hasHeaderActions) {
                 Row(
                     modifier = Modifier
@@ -114,37 +113,17 @@ fun CalledNumbersSheet(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (onShowQrCode != null) {
-                        val canShowQr = calledNumbers.isNotEmpty()
+                    if (onQrToolsClick != null) {
                         IconButton(
-                            onClick = onShowQrCode,
-                            enabled = canShowQr,
+                            onClick = onQrToolsClick,
                             modifier = Modifier.size(40.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.QrCode2,
                                 contentDescription = stringResource(
-                                    R.string.live_play_show_called_numbers_qr_cd,
+                                    R.string.called_numbers_qr_action_cd,
                                 ),
-                                tint = if (canShowQr) {
-                                    scheme.primary.copy(alpha = 0.82f)
-                                } else {
-                                    scheme.onSurfaceVariant.copy(alpha = 0.38f)
-                                },
-                            )
-                        }
-                    }
-                    if (onScanQr != null) {
-                        IconButton(
-                            onClick = onScanQr,
-                            modifier = Modifier.size(40.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PhotoCamera,
-                                contentDescription = stringResource(
-                                    R.string.live_play_scan_called_numbers_qr_cd,
-                                ),
-                                tint = scheme.onSurfaceVariant.copy(alpha = 0.88f),
+                                tint = scheme.primary.copy(alpha = 0.82f),
                             )
                         }
                     }
@@ -247,6 +226,7 @@ fun CalledNumbersQrDisplaySheet(
     calledNumbers: List<Int>,
     onDismiss: () -> Unit,
     onShareQrImage: (android.graphics.Bitmap) -> Unit,
+    onSaveQrImage: (android.graphics.Bitmap) -> Unit,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
@@ -328,6 +308,12 @@ fun CalledNumbersQrDisplaySheet(
                         Text(stringResource(R.string.called_numbers_qr_share))
                     }
                 }
+                OutlinedButton(
+                    onClick = { qrBitmap?.let(onSaveQrImage) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.called_numbers_qr_save_photos))
+                }
             }
             TextButton(
                 onClick = onDismiss,
@@ -362,6 +348,172 @@ private fun CalledNumberEditPill(
                 modifier = Modifier.size(Dimens.iconCompact),
                 tint = scheme.primary,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalledNumbersQrActionSheet(
+    canShare: Boolean,
+    onDismiss: () -> Unit,
+    onShareCalledNumbers: () -> Unit,
+    onReadQrCode: () -> Unit,
+) {
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    val scheme = MaterialTheme.colorScheme
+    AppBottomSheetSurface(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        windowInsets = WindowInsets(0, 0, 0, 0),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Dimens.screenHorizontalPadding)
+                .padding(top = Dimens.spacing16, bottom = Dimens.spacing24),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+        ) {
+            Text(
+                text = stringResource(R.string.called_numbers_qr_actions_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+            )
+            Surface(
+                onClick = onShareCalledNumbers,
+                enabled = canShare,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(Dimens.radiusCard),
+                color = scheme.surface,
+                border = BorderStroke(Dimens.cardBorderDefault, scheme.primary.copy(alpha = 0.18f)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing14),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Share,
+                        contentDescription = null,
+                        tint = if (canShare) scheme.primary else scheme.onSurfaceVariant.copy(alpha = 0.38f),
+                    )
+                    Text(
+                        text = stringResource(R.string.called_numbers_qr_share_action),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (canShare) scheme.onSurface else scheme.onSurfaceVariant.copy(alpha = 0.45f),
+                    )
+                }
+            }
+            Surface(
+                onClick = onReadQrCode,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(Dimens.radiusCard),
+                color = scheme.surface,
+                border = BorderStroke(Dimens.cardBorderDefault, scheme.primary.copy(alpha = 0.18f)),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing14),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PhotoCamera,
+                        contentDescription = null,
+                        tint = scheme.primary,
+                    )
+                    Text(
+                        text = stringResource(R.string.called_numbers_qr_read_action),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = scheme.onSurface,
+                    )
+                }
+            }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.common_cancel))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalledNumbersQrImportPreviewSheet(
+    numbers: List<Int>,
+    rejectedCount: Int,
+    duplicateCount: Int,
+    onReplace: () -> Unit,
+    onAddMissing: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
+    val scheme = MaterialTheme.colorScheme
+    val sorted = remember(numbers) { numbers.sorted() }
+    AppBottomSheetSurface(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        windowInsets = WindowInsets(0, 0, 0, 0),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Dimens.screenHorizontalPadding)
+                .padding(top = Dimens.spacing16, bottom = Dimens.spacing24)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+        ) {
+            Text(
+                text = stringResource(R.string.called_numbers_qr_confirm_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.called_numbers_qr_import_count, sorted.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurface,
+            )
+            Text(
+                text = sorted.joinToString(", "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
+            if (rejectedCount > 0 || duplicateCount > 0) {
+                Text(
+                    text = stringResource(
+                        R.string.called_numbers_qr_import_skipped,
+                        rejectedCount,
+                        duplicateCount,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+            Button(
+                onClick = onReplace,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.called_numbers_qr_replace_all))
+            }
+            OutlinedButton(
+                onClick = onAddMissing,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.called_numbers_qr_add_missing))
+            }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.common_cancel))
+            }
         }
     }
 }

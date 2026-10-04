@@ -855,6 +855,7 @@ fun ManualEntryScreen(
                                         } else {
                                             null
                                         },
+                                        sheetNameError = state.sheetNameError,
                                         sheetName = if (isEditingSheetName) {
                                             localSheetNameEdit
                                         } else {

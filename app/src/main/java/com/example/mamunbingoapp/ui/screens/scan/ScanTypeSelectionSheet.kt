@@ -40,7 +40,7 @@ import com.example.mamunbingoapp.ui.components.rememberAppBottomSheetState
 fun ScanTypeSelectionSheet(
     onDismiss: () -> Unit,
     onScanTypeSelected: (BingoScanType) -> Unit,
-    onAddFromGallery: (() -> Unit)? = null,
+    onAddFromGallery: () -> Unit,
 ) {
     val sheetState = rememberAppBottomSheetState(skipPartiallyExpanded = true)
     val scheme = MaterialTheme.colorScheme
@@ -87,14 +87,12 @@ fun ScanTypeSelectionSheet(
                             onClick = { onScanTypeSelected(type) },
                         )
                     }
-                    if (onAddFromGallery != null) {
-                        ScanTypeOptionRow(
-                            title = stringResource(R.string.scan_type_gallery_title),
-                            subtitle = stringResource(R.string.scan_type_gallery_subtitle),
-                            icon = Icons.Filled.PhotoLibrary,
-                            onClick = onAddFromGallery,
-                        )
-                    }
+                    ScanTypeOptionRow(
+                        title = stringResource(R.string.scan_type_gallery_title),
+                        subtitle = stringResource(R.string.scan_type_gallery_subtitle),
+                        icon = Icons.Filled.PhotoLibrary,
+                        onClick = onAddFromGallery,
+                    )
             }
         }
     }

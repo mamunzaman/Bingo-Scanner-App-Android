@@ -1,6 +1,7 @@
 package com.example.mamunbingoapp.core
 
 import java.time.DayOfWeek
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -12,6 +13,21 @@ import java.util.Locale
 
 object SundayBingoSchedule {
     val berlinZone: ZoneId = ZoneId.of("Europe/Berlin")
+
+    sealed interface RoomState {
+        val now: ZonedDateTime
+        val target: ZonedDateTime
+
+        data class StartsIn(
+            override val now: ZonedDateTime,
+            override val target: ZonedDateTime,
+        ) : RoomState
+
+        data class LiveNow(
+            override val now: ZonedDateTime,
+            override val target: ZonedDateTime,
+        ) : RoomState
+    }
 
     private val knownFeaturedRoomNames = setOf(
         "Sunday 17:00 Bingo",
@@ -38,6 +54,41 @@ object SundayBingoSchedule {
         now: ZonedDateTime = ZonedDateTime.now(berlinZone),
         test: SundayTestTimeSettings = SundayTestTimeSettings(),
     ): Boolean = activeSessionStart(now, test) != null
+
+    /** Featured Sunday room can always be opened; keypad stays gated by [isSundayKeypadEnabled]. */
+    fun canOpenSundayRoom(): Boolean = true
+
+    /** Called-numbers QR share/read stays available outside the Sunday live hour. */
+    fun canUseCalledNumbersQrTools(): Boolean = true
+
+    fun isSundayKeypadEnabled(
+        now: ZonedDateTime = ZonedDateTime.now(berlinZone),
+        test: SundayTestTimeSettings = SundayTestTimeSettings(),
+    ): Boolean = roomStateAt(now, test) is RoomState.LiveNow
+
+    fun isSundayGameplayEnabled(
+        isSundayRoom: Boolean,
+        now: ZonedDateTime = ZonedDateTime.now(berlinZone),
+        test: SundayTestTimeSettings = SundayTestTimeSettings(),
+    ): Boolean = !isSundayRoom || isSundayKeypadEnabled(now, test)
+
+    fun roomState(
+        clock: Clock = Clock.system(berlinZone),
+        test: SundayTestTimeSettings = SundayTestTimeSettings(),
+    ): RoomState = roomStateAt(ZonedDateTime.now(clock), test)
+
+    fun roomStateAt(
+        now: ZonedDateTime,
+        test: SundayTestTimeSettings = SundayTestTimeSettings(),
+    ): RoomState {
+        val berlinNow = now.withZoneSameInstant(berlinZone)
+        val end = activeSessionEndExclusive(berlinNow, test)
+        return if (end != null) {
+            RoomState.LiveNow(berlinNow, end)
+        } else {
+            RoomState.StartsIn(berlinNow, nextSessionStartBerlin(berlinNow, test))
+        }
+    }
 
     /** Exclusive end of the active session window (Berlin); null when not in a live window. */
     fun activeSessionEndExclusive(

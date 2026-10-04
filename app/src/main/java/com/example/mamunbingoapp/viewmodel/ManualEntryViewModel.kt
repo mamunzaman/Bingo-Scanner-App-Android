@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.AssignTicketResult
+import com.example.mamunbingoapp.data.DuplicateWeeklySheetNameException
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.ui.components.PendingSheetSave
@@ -117,6 +118,7 @@ data class ManualEntryUiState(
     val pendingTicketId: String? = null,
     val roomConflict: RoomConflictUi = RoomConflictUi(),
     val sheetDuplicate: SheetDuplicateUi = SheetDuplicateUi(),
+    val sheetNameError: String? = null,
 )
 
 class ManualEntryViewModel(
@@ -137,6 +139,8 @@ class ManualEntryViewModel(
     val pendingBottomTab: kotlinx.coroutines.flow.StateFlow<String?> =
         savedStateHandle.getStateFlow(MANUAL_ENTRY_PENDING_TAB_KEY, null)
     private val roomId: String? = savedStateHandle.get<String>("roomId")?.takeIf { it.isNotBlank() }
+    /** Present when this screen edits an existing ticket; excluded from the weekly name check. */
+    private val editingTicketId: String? = savedStateHandle.get<String>("ticketId")?.takeIf { it.isNotBlank() }
     private val ocrSource: String? = savedStateHandle.get<String>("ocrSource")?.takeIf { it in listOf("GEMINI", "ML_KIT") }
     private val ocrConfidence: Float? = savedStateHandle.get<String>("ocrConfidence")?.toFloatOrNull()?.coerceIn(0f, 1f)
     private val originalOcrNumbers: String? = if (ocrSource != null) savedStateHandle.get<String>("scannedNumbers")?.takeIf { it.isNotBlank() } else null
@@ -267,7 +271,9 @@ class ManualEntryViewModel(
             is ManualEntryUiAction.SheetNameDraftChanged -> onSheetNameDraftChanged(action.text)
             ManualEntryUiAction.SheetNameEditStarted -> onSheetNameEditStarted()
             ManualEntryUiAction.SheetNameEditCommitted -> commitSheetNameEdit()
-            is ManualEntryUiAction.PlayDateChanged -> _state.update { it.copy(playedAtMillis = action.millis) }
+            is ManualEntryUiAction.PlayDateChanged -> _state.update {
+                it.copy(playedAtMillis = action.millis, sheetNameError = null)
+            }
             ManualEntryUiAction.DeletePressed -> deleteCurrent()
             ManualEntryUiAction.NextPressed -> moveToNext()
             is ManualEntryUiAction.SaveAndPlayClicked -> saveAndPlay(action.losNumber, action.serialNumber)
@@ -496,8 +502,8 @@ class ManualEntryViewModel(
             sheetNameTouchedByUser = true
             val current = _state.value
             val normalized = text.ifEmpty { "" }
-            if (normalized == current.sheetNameDraft) return
-            _state.update { it.copy(sheetNameDraft = normalized) }
+            if (normalized == current.sheetNameDraft && current.sheetNameError == null) return
+            _state.update { it.copy(sheetNameDraft = normalized, sheetNameError = null) }
             logRenameState("draft_changed")
         } catch (e: Exception) {
             logRenameState("draft_changed", e)
@@ -596,18 +602,9 @@ class ManualEntryViewModel(
                     return@launch
                 }
             }
-            val ticketId = TicketRepository.saveManualTicket(
-                sheetName = effectiveSheetName(),
-                playedAtMillis = st.playedAtMillis,
-                cells = st.cells.map { it.copy(isSelected = false) },
-                ocrSource = ocrSource,
-                ocrConfidence = ocrConfidence,
-                originalOcrNumbers = originalOcrNumbers,
-                losNumber = los,
-                serialNumber = ser,
-            )
+            val ticketId = saveManualTicketOrReject(st, los, ser) ?: return@launch
             markSaveCompleted()
-            _state.update { it.copy(isRoomPickerOpen = true, pendingTicketId = ticketId) }
+            _state.update { it.copy(isRoomPickerOpen = true, pendingTicketId = ticketId, sheetNameError = null) }
         }
     }
 
@@ -666,16 +663,7 @@ class ManualEntryViewModel(
                     return@launch
                 }
             }
-            val ticketId = TicketRepository.saveManualTicket(
-                sheetName = effectiveSheetName(),
-                playedAtMillis = st.playedAtMillis,
-                cells = st.cells.map { it.copy(isSelected = false) },
-                ocrSource = ocrSource,
-                ocrConfidence = ocrConfidence,
-                originalOcrNumbers = originalOcrNumbers,
-                losNumber = los,
-                serialNumber = ser,
-            )
+            val ticketId = saveManualTicketOrReject(st, los, ser) ?: return@launch
             markSaveCompleted()
             val targetRoomId = roomId
             if (targetRoomId != null) {
@@ -699,6 +687,35 @@ class ManualEntryViewModel(
     private fun navigateBack() {
         Log.d("ManualEntry", "navigate back triggered (emitting NavigateBack)")
         viewModelScope.launch { _events.emit(ManualEntryUiEvent.NavigateBack) }
+    }
+
+    private suspend fun saveManualTicketOrReject(
+        st: ManualEntryUiState,
+        los: String?,
+        ser: String?,
+    ): String? {
+        return try {
+            TicketRepository.saveManualTicket(
+                sheetName = effectiveSheetName(),
+                playedAtMillis = st.playedAtMillis,
+                cells = st.cells.map { it.copy(isSelected = false) },
+                ocrSource = ocrSource,
+                ocrConfidence = ocrConfidence,
+                originalOcrNumbers = originalOcrNumbers,
+                losNumber = los,
+                serialNumber = ser,
+                excludeTicketId = editingTicketId,
+            )
+        } catch (_: DuplicateWeeklySheetNameException) {
+            _state.update {
+                it.copy(
+                    sheetNameError = getApplication<Application>().getString(
+                        R.string.manual_entry_duplicate_sheet_name_week,
+                    ),
+                )
+            }
+            null
+        }
     }
 
     fun dismissSheetDuplicate() {

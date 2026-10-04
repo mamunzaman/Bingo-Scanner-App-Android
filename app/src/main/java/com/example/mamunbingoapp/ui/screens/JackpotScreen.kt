@@ -56,6 +56,7 @@ fun JackpotScreen(
     onTabSelected: (AppTab) -> Unit,
     onStartResumeLive: () -> Unit,
     onLaunchCamera: (BingoScanType) -> Unit = {},
+    onAddFromGallery: () -> Unit = {},
     onManualEntry: () -> Unit,
     onHistory: () -> Unit,
     onGoLivePlay: () -> Unit,
@@ -120,6 +121,10 @@ fun JackpotScreen(
             onScanTypeSelected = { type ->
                 showScanTypeSheet = false
                 onLaunchCamera(type)
+            },
+            onAddFromGallery = {
+                showScanTypeSheet = false
+                onAddFromGallery()
             },
         )
     }

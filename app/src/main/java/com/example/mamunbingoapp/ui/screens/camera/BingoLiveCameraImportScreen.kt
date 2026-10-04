@@ -32,7 +32,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,11 +40,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,7 +55,6 @@ import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.FlashOff
 import androidx.compose.material.icons.outlined.FlashOn
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -62,17 +62,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,24 +82,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
-import com.example.mamunbingoapp.theme.PrimaryPressed
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -115,7 +110,9 @@ import androidx.core.content.FileProvider
 import com.example.mamunbingoapp.scanner.ImportTicketQrPreOcr
 import com.example.mamunbingoapp.scanner.tryDecodeBingoQrFromInputImage
 import com.example.mamunbingoapp.domain.model.BingoScanType
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.ui.screens.scan.rememberScanAnimationsEnabled
 import com.example.mamunbingoapp.viewmodel.finalUiGridRowMajor
 import com.google.mlkit.vision.common.InputImage
 import java.io.File
@@ -138,15 +135,27 @@ private const val FRAME_PULSE_MIN = 0.97f
 
 /** Must match [BingoCameraQrViewfinder] (green window). */
 private const val VIEWFINDER_FRAME_SIZE_MIN_SIDE = 0.64f
-private const val VIEWFINDER_TOP_FRACTION = 0.26f
+private const val VIEWFINDER_USABLE_TOP_FRACTION = 0.11f
+private const val VIEWFINDER_USABLE_BOTTOM_FRACTION = 0.26f
+private const val SCAN_LINE_PASS_MS = 2000
+private const val SCAN_LINE_STATIC_PROGRESS = 0.5f
+private const val SCAN_LINE_FADE_PORTION = 0.14f
 
 private const val DECODE_MAX_DIM = 4096
+
+private fun viewfinderFrameTop(viewH: Float, frameSize: Float): Float {
+    if (viewH <= 0f) return 0f
+    val usableTop = viewH * VIEWFINDER_USABLE_TOP_FRACTION
+    val usableBottom = viewH * (1f - VIEWFINDER_USABLE_BOTTOM_FRACTION)
+    val centered = usableTop + ((usableBottom - usableTop) - frameSize) / 2f
+    return centered.coerceIn(0f, (viewH - frameSize).coerceAtLeast(0f))
+}
 
 private fun computeViewfinderFrameRectF(viewW: Float, viewH: Float): RectF {
     val minS = minOf(viewW, viewH)
     val fw = minS * VIEWFINDER_FRAME_SIZE_MIN_SIDE
     val left = (viewW - fw) * 0.5f
-    val top = viewH * VIEWFINDER_TOP_FRACTION
+    val top = viewfinderFrameTop(viewH, fw)
     return RectF(left, top, left + fw, top + fw)
 }
 
@@ -267,239 +276,150 @@ private fun tryCropToViewfinderFrame(
     }
 }
 
-@Composable
-private fun BingoCameraQrViewfinder() {
-    val labelColor = Color.White.copy(alpha = 0.96f)
-    val borderColor = MaterialTheme.colorScheme.primary
-    val density = LocalDensity.current
-    val corner = Dimens.radiusXL
-    val scanTransition = rememberInfiniteTransition(label = "scanLine")
-    val scanProgress by scanTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "scanLineProgress",
+private fun scanLineVisibility(progress: Float): Float {
+    val edge = SCAN_LINE_FADE_PORTION
+    val fadeIn = (progress / edge).coerceIn(0f, 1f)
+    val fadeOut = ((1f - progress) / edge).coerceIn(0f, 1f)
+    return minOf(fadeIn, fadeOut)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSharedCornerBrackets(
+    frame: RectF,
+    cornerRadius: Float,
+    cornerLength: Float,
+    strokeWidth: Float,
+    color: Color,
+) {
+    val clipPad = strokeWidth
+    val origins = listOf(
+        frame.left to frame.top,
+        frame.right - cornerLength to frame.top,
+        frame.right - cornerLength to frame.bottom - cornerLength,
+        frame.left to frame.bottom - cornerLength,
     )
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val minSide = minOf(maxWidth, maxHeight)
-        val frameSize = minSide * VIEWFINDER_FRAME_SIZE_MIN_SIDE
-        val wPx = with(density) { maxWidth.toPx() }
-        val hPx = with(density) { maxHeight.toPx() }
-        val frameWpx = with(density) { frameSize.toPx() }
-        val frameHpx = frameWpx
-        val left = (wPx - frameWpx) / 2f
-        val top = hPx * VIEWFINDER_TOP_FRACTION
-        val rPx = with(density) { corner.toPx() }
-        val cornerLenPx = with(density) { (Dimens.spacing32 + Dimens.spacing12).toPx() }
-        val cornerRadiusPx = with(density) { Dimens.radiusCard.toPx() }
-        val bracketStroke = with(density) { 4.dp.toPx() }
-        val scrim = Color.Black.copy(alpha = 0.55f)
-        val borderC = borderColor.copy(alpha = 0.92f)
-        val scanY = top + cornerRadiusPx + (frameHpx - 2f * cornerRadiusPx) * scanProgress
-        Canvas(Modifier.fillMaxSize()) {
-            val path = Path().apply {
-                fillType = PathFillType.EvenOdd
-                addRect(Rect(0f, 0f, size.width, size.height))
-                addRoundRect(
-                    RoundRect(
-                        left = left,
-                        top = top,
-                        right = left + frameWpx,
-                        bottom = top + frameHpx,
-                        cornerRadius = CornerRadius(rPx, rPx),
-                    )
-                )
-            }
-            drawPath(path, scrim)
+    origins.forEach { (x, y) ->
+        clipRect(
+            left = x - clipPad,
+            top = y - clipPad,
+            right = x + cornerLength + clipPad,
+            bottom = y + cornerLength + clipPad,
+        ) {
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.035f),
-                topLeft = androidx.compose.ui.geometry.Offset(left, top),
-                size = androidx.compose.ui.geometry.Size(frameWpx, frameHpx),
-                cornerRadius = CornerRadius(rPx, rPx),
-            )
-            // Soft glow under corner brackets.
-            drawArc(
-                color = borderColor.copy(alpha = 0.25f),
-                startAngle = 180f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(left, top),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke * 2f),
-            )
-            drawArc(
-                color = borderColor.copy(alpha = 0.25f),
-                startAngle = 270f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    left + frameWpx - cornerRadiusPx * 2f,
-                    top,
-                ),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke * 2f),
-            )
-            drawArc(
-                color = borderColor.copy(alpha = 0.25f),
-                startAngle = 0f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    left + frameWpx - cornerRadiusPx * 2f,
-                    top + frameHpx - cornerRadiusPx * 2f,
-                ),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke * 2f),
-            )
-            drawArc(
-                color = borderColor.copy(alpha = 0.25f),
-                startAngle = 90f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    left,
-                    top + frameHpx - cornerRadiusPx * 2f,
-                ),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke * 2f),
-            )
-            // Top-left corner bracket.
-            drawArc(
-                color = borderC,
-                startAngle = 180f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(left, top),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke),
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left + cornerRadiusPx, top),
-                end = androidx.compose.ui.geometry.Offset(left + cornerLenPx, top),
-                strokeWidth = bracketStroke,
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left, top + cornerRadiusPx),
-                end = androidx.compose.ui.geometry.Offset(left, top + cornerLenPx),
-                strokeWidth = bracketStroke,
-            )
-            // Top-right corner bracket.
-            drawArc(
-                color = borderC,
-                startAngle = 270f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    left + frameWpx - cornerRadiusPx * 2f,
-                    top,
-                ),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke),
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerLenPx, top),
-                end = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerRadiusPx, top),
-                strokeWidth = bracketStroke,
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left + frameWpx, top + cornerRadiusPx),
-                end = androidx.compose.ui.geometry.Offset(left + frameWpx, top + cornerLenPx),
-                strokeWidth = bracketStroke,
-            )
-            // Bottom-right corner bracket.
-            drawArc(
-                color = borderC,
-                startAngle = 0f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    left + frameWpx - cornerRadiusPx * 2f,
-                    top + frameHpx - cornerRadiusPx * 2f,
-                ),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke),
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left + frameWpx, top + frameHpx - cornerLenPx),
-                end = androidx.compose.ui.geometry.Offset(left + frameWpx, top + frameHpx - cornerRadiusPx),
-                strokeWidth = bracketStroke,
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerLenPx, top + frameHpx),
-                end = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerRadiusPx, top + frameHpx),
-                strokeWidth = bracketStroke,
-            )
-            // Bottom-left corner bracket.
-            drawArc(
-                color = borderC,
-                startAngle = 90f,
-                sweepAngle = 90f,
-                useCenter = false,
-                topLeft = androidx.compose.ui.geometry.Offset(
-                    left,
-                    top + frameHpx - cornerRadiusPx * 2f,
-                ),
-                size = androidx.compose.ui.geometry.Size(cornerRadiusPx * 2f, cornerRadiusPx * 2f),
-                style = Stroke(width = bracketStroke),
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left, top + frameHpx - cornerLenPx),
-                end = androidx.compose.ui.geometry.Offset(left, top + frameHpx - cornerRadiusPx),
-                strokeWidth = bracketStroke,
-            )
-            drawLine(
-                color = borderC,
-                start = androidx.compose.ui.geometry.Offset(left + cornerRadiusPx, top + frameHpx),
-                end = androidx.compose.ui.geometry.Offset(left + cornerLenPx, top + frameHpx),
-                strokeWidth = bracketStroke,
-            )
-            // Subtle animated gradient scan line inside frame.
-            drawLine(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        borderColor.copy(alpha = 0.6f),
-                        Color.Transparent,
-                    ),
-                    startX = left + cornerRadiusPx,
-                    endX = left + frameWpx - cornerRadiusPx,
-                ),
-                start = androidx.compose.ui.geometry.Offset(left + cornerRadiusPx, scanY),
-                end = androidx.compose.ui.geometry.Offset(left + frameWpx - cornerRadiusPx, scanY),
-                strokeWidth = with(density) { 2.dp.toPx() },
+                color = color,
+                topLeft = Offset(frame.left, frame.top),
+                size = Size(frame.width(), frame.height()),
+                cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                style = Stroke(width = strokeWidth),
             )
         }
-        Text(
-            text = stringResource(R.string.camera_viewfinder_hint),
-            style = MaterialTheme.typography.titleSmall.merge(
-                TextStyle(
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.4f),
-                        offset = androidx.compose.ui.geometry.Offset(0f, 2f),
-                        blurRadius = 4f,
-                    ),
-                ),
-            ),
-            color = labelColor,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(y = frameSize * 0.5f - Dimens.spacing4),
-        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BingoCameraQrViewfinder(scanLineActive: Boolean) {
+    val borderColor = MaterialTheme.colorScheme.primary
+    val animationsEnabled = rememberScanAnimationsEnabled()
+    val scanProgress = remember(animationsEnabled) {
+        Animatable(if (animationsEnabled) 0f else SCAN_LINE_STATIC_PROGRESS)
+    }
+    LaunchedEffect(scanLineActive, animationsEnabled) {
+        if (!animationsEnabled) {
+            scanProgress.snapTo(SCAN_LINE_STATIC_PROGRESS)
+            return@LaunchedEffect
+        }
+        if (!scanLineActive) return@LaunchedEffect
+        while (isActive) {
+            val remaining = (1f - scanProgress.value).coerceAtLeast(0f)
+            val duration = (SCAN_LINE_PASS_MS * remaining).toInt().coerceAtLeast(1)
+            scanProgress.animateTo(1f, tween(durationMillis = duration, easing = LinearEasing))
+            scanProgress.snapTo(0f)
+        }
+    }
+    Canvas(Modifier.fillMaxSize()) {
+        val frame = computeViewfinderFrameRectF(size.width, size.height)
+        val cornerRadius = Dimens.radiusCard.toPx()
+        val cornerLength = (Dimens.spacing32 + Dimens.spacing12).toPx()
+        val bracketStroke = 4.dp.toPx()
+        val lineInset = Dimens.spacing8.toPx()
+        val scrim = Color.Black.copy(alpha = 0.34f)
+        val path = Path().apply {
+            fillType = PathFillType.EvenOdd
+            addRect(Rect(0f, 0f, size.width, size.height))
+            addRoundRect(
+                RoundRect(
+                    left = frame.left,
+                    top = frame.top,
+                    right = frame.right,
+                    bottom = frame.bottom,
+                    cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                ),
+            )
+        }
+        drawPath(path, scrim)
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.035f),
+            topLeft = Offset(frame.left, frame.top),
+            size = Size(frame.width(), frame.height()),
+            cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+        )
+        drawSharedCornerBrackets(
+            frame = frame,
+            cornerRadius = cornerRadius,
+            cornerLength = cornerLength,
+            strokeWidth = bracketStroke * 2f,
+            color = borderColor.copy(alpha = 0.25f),
+        )
+        drawSharedCornerBrackets(
+            frame = frame,
+            cornerRadius = cornerRadius,
+            cornerLength = cornerLength,
+            strokeWidth = bracketStroke,
+            color = borderColor.copy(alpha = 0.92f),
+        )
+        val progress = scanProgress.value
+        val lineAlpha = scanLineVisibility(progress) * if (animationsEnabled) 0.92f else 0.7f
+        val showLine = if (animationsEnabled) {
+            lineAlpha > 0.02f && (scanLineActive || progress > 0.02f)
+        } else {
+            true
+        }
+        if (showLine) {
+            val y = frame.top + lineInset + (frame.height() - lineInset * 2f) * progress
+            val startX = frame.left + lineInset
+            val endX = frame.right - lineInset
+            val glow = Brush.horizontalGradient(
+                colorStops = arrayOf(
+                    0f to Color.Transparent,
+                    0.5f to borderColor.copy(alpha = lineAlpha * 0.45f),
+                    1f to Color.Transparent,
+                ),
+                startX = startX,
+                endX = endX,
+            )
+            val core = Brush.horizontalGradient(
+                colorStops = arrayOf(
+                    0f to Color.Transparent,
+                    0.5f to borderColor.copy(alpha = lineAlpha),
+                    1f to Color.Transparent,
+                ),
+                startX = startX,
+                endX = endX,
+            )
+            drawLine(
+                brush = glow,
+                start = Offset(startX, y),
+                end = Offset(endX, y),
+                strokeWidth = 6.dp.toPx(),
+            )
+            drawLine(
+                brush = core,
+                start = Offset(startX, y),
+                end = Offset(endX, y),
+                strokeWidth = 2.dp.toPx(),
+            )
+        }
+    }
+}
 @Composable
 fun BingoLiveCameraImportScreen(
     scanType: BingoScanType,
@@ -682,6 +602,12 @@ fun BingoLiveCameraImportScreen(
     }
     val captureActionEnabled = cameraSessionReady && !fullTicketImportLocked
     val isScanBusy = capturing || fullTicketImportLocked
+    var previewInForeground by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        previewInForeground = true
+        onPauseOrDispose { previewInForeground = false }
+    }
+    val scanLineActive = cameraSessionReady && previewInForeground && !capturing && !fullTicketImportLocked
     androidx.compose.runtime.LaunchedEffect(isScanBusy) {
         onScanBusyChanged(isScanBusy)
     }
@@ -694,7 +620,7 @@ fun BingoLiveCameraImportScreen(
             val controller = WindowCompat.getInsetsController(window, view)
             val previousStatusBarColor = window.statusBarColor
             val previousLightStatusBarIcons = controller.isAppearanceLightStatusBars
-            window.statusBarColor = PrimaryPressed.toArgb()
+            window.statusBarColor = Color.Transparent.toArgb()
             controller.isAppearanceLightStatusBars = false
             onDispose {
                 window.statusBarColor = previousStatusBarColor
@@ -722,55 +648,8 @@ fun BingoLiveCameraImportScreen(
                 factory = { previewView },
                 modifier = Modifier.fillMaxSize()
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.42f)),
-            )
-            // Very light edge darkening to add depth without affecting framing logic.
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.26f),
-                            ),
-                        ),
-                    ),
-            )
-            BingoCameraQrViewfinder()
+            BingoCameraQrViewfinder(scanLineActive = scanLineActive)
         }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(Dimens.spacing32 * 5)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.52f),
-                            Color.Transparent,
-                        ),
-                    ),
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(Dimens.spacing32 * 5)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.76f),
-                        ),
-                    ),
-                ),
-        )
         BingoCameraImportTopHeader(
             modifier = Modifier.align(Alignment.TopCenter),
             onBack = onBack,
@@ -780,11 +659,11 @@ fun BingoLiveCameraImportScreen(
             onTorchToggle = { torchEnabled = !torchEnabled },
             flashControlEnabled = captureActionEnabled && !capturing && !isScanBusy,
         )
+        val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -795,42 +674,50 @@ fun BingoLiveCameraImportScreen(
                     ),
                 )
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.spacing16, bottom = Dimens.spacing32),
+                .padding(top = Dimens.spacing12, bottom = Dimens.spacing12 + navigationBottom),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(Dimens.radiusXL),
-                    color = Color.Black.copy(alpha = 0.52f),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
-                    ),
-                    shadowElevation = 0.dp,
-                    tonalElevation = 0.dp,
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(Dimens.radiusLarge),
+                color = Color.Black.copy(alpha = 0.46f),
+                border = BorderStroke(
+                    width = Dimens.cardBorderDefault,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                ),
+                shadowElevation = 0.dp,
+                tonalElevation = 0.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing12),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Dimens.spacing16, vertical = Dimens.spacing16),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
                     ) {
                         Text(
                             text = stringResource(R.string.camera_qr_scan_hint),
-                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White.copy(alpha = 0.96f),
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
                         )
-                        Spacer(Modifier.height(Dimens.spacing4))
                         Text(
                             text = stringResource(R.string.camera_capture_full_ticket_hint),
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.58f),
+                            color = Color.White.copy(alpha = 0.78f),
+                            textAlign = TextAlign.Center,
                         )
                     }
-                }
-                val buttonInteraction = remember { MutableInteractionSource() }
-                val buttonPressed by buttonInteraction.collectIsPressedAsState()
-                Button(
+                    Spacer(Modifier.height(Dimens.spacing16))
+                    val buttonInteraction = remember { MutableInteractionSource() }
+                    val buttonPressed by buttonInteraction.collectIsPressedAsState()
+                    Button(
                     onClick = {
                         if (handled.get() || fullTicketImportLocked || !captureActionEnabled) return@Button
                         if (capturing) return@Button
@@ -922,17 +809,18 @@ fun BingoLiveCameraImportScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
+                        .height(Dimens.buttonHeight)
                         .graphicsLayer {
                             val s = if (buttonPressed) 0.96f else 1f
                             scaleX = s
                             scaleY = s
                         },
                     interactionSource = buttonInteraction,
-                    shape = RoundedCornerShape(Dimens.radiusXL),
+                    shape = RoundedCornerShape(Dimens.radiusCard),
+                    contentPadding = PaddingValues(horizontal = Dimens.spacing12, vertical = 0.dp),
                     elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 12.dp,
-                        pressedElevation = 16.dp,
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp,
                         disabledElevation = 0.dp,
                     ),
                     colors = ButtonDefaults.buttonColors(
@@ -940,8 +828,8 @@ fun BingoLiveCameraImportScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                     enabled = captureActionEnabled && !capturing,
-                ) {
-                    Box(
+                    ) {
+                        Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
@@ -951,7 +839,7 @@ fun BingoLiveCameraImportScreen(
                                         lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.24f),
                                     ),
                                 ),
-                                shape = RoundedCornerShape(Dimens.radiusXL),
+                                shape = RoundedCornerShape(Dimens.radiusCard),
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -974,6 +862,7 @@ fun BingoLiveCameraImportScreen(
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
+                        }
                     }
                 }
             }
@@ -990,8 +879,7 @@ fun BingoLiveCameraImportScreen(
     }
 }
 
-/** Green import-camera header: status-bar band + toolbar row (edge-to-edge safe). */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Camera-surface header: back, title, and flash sit on a short scrim. */
 @Composable
 private fun BingoCameraImportTopHeader(
     onBack: () -> Unit,
@@ -1002,70 +890,76 @@ private fun BingoCameraImportTopHeader(
     flashControlEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val toolbarGreen = MaterialTheme.colorScheme.primary
-    val statusBarGreen = PrimaryPressed
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(toolbarGreen),
-    ) {
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .height(statusBarTop)
-                .background(statusBarGreen),
-        )
-        Box(Modifier.fillMaxWidth()) {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.camera_qr_title),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack, enabled = !navigationBlocked) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            stringResource(R.string.common_back),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.55f),
+                        Color.Transparent,
+                    ),
                 ),
             )
-            if (hasFlashUnit) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = Dimens.screenHorizontalPadding)
-                        .size(44.dp),
-                    shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.35f),
-                    shadowElevation = 4.dp,
+            .statusBarsPadding()
+            .padding(horizontal = Dimens.screenHorizontalPadding)
+            .height(Dimens.buttonHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onBack,
+            enabled = !navigationBlocked,
+            modifier = Modifier.requiredSize(Dimens.buttonHeight),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                stringResource(R.string.common_back),
+                tint = Color.White,
+            )
+        }
+        Text(
+            text = stringResource(R.string.camera_qr_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = Dimens.spacing8),
+        )
+        if (hasFlashUnit) {
+            Surface(
+                modifier = Modifier.requiredSize(Dimens.buttonHeight),
+                shape = CircleShape,
+                color = if (torchEnabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    Color.White.copy(alpha = 0.16f)
+                },
+                border = if (torchEnabled) {
+                    null
+                } else {
+                    BorderStroke(Dimens.cardBorderDefault, Color.White.copy(alpha = 0.45f))
+                },
+                shadowElevation = 0.dp,
+            ) {
+                IconButton(
+                    onClick = onTorchToggle,
+                    enabled = flashControlEnabled,
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    IconButton(
-                        onClick = onTorchToggle,
-                        enabled = flashControlEnabled,
-                    ) {
-                        Icon(
-                            imageVector = if (torchEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
-                            contentDescription = stringResource(
-                                if (torchEnabled) R.string.camera_flash_on_cd else R.string.camera_flash_off_cd,
-                            ),
-                            tint = if (torchEnabled) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                Color.White.copy(alpha = 0.92f)
-                            },
-                        )
-                    }
+                    Icon(
+                        imageVector = if (torchEnabled) Icons.Outlined.FlashOn else Icons.Outlined.FlashOff,
+                        contentDescription = stringResource(
+                            if (torchEnabled) R.string.camera_flash_on_cd else R.string.camera_flash_off_cd,
+                        ),
+                        tint = if (torchEnabled) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            Color.White
+                        },
+                    )
                 }
             }
         }

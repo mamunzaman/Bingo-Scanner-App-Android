@@ -137,11 +137,11 @@
     <string name="live_nav_sunday_live_now">Live now</string>
     <string name="live_nav_sunday_starts_in">Starts in %1$s</string>
     <string name="live_nav_countdown_starts_in_label">STARTS IN</string>
-    <string name="live_nav_countdown_ends_in_label">Live will end in</string>
-    <string name="live_nav_countdown_day">DAY</string>
-    <string name="live_nav_countdown_hr">HR</string>
-    <string name="live_nav_countdown_min">MIN</string>
-    <string name="live_nav_countdown_sec">SEC</string>
+    <string name="live_nav_countdown_ends_in_label">CLOSES IN</string>
+    <string name="live_nav_countdown_day">DAYS</string>
+    <string name="live_nav_countdown_hr">HRS</string>
+    <string name="live_nav_countdown_min">MINS</string>
+    <string name="live_nav_countdown_sec">SECS</string>
     <string name="live_nav_join_room">Join Room</string>
     <string name="live_nav_most_active">MOST ACTIVE</string>
     <string name="live_nav_hero_tickets">%1$d Tickets</string>
@@ -399,6 +399,7 @@
     <string name="history_detail_test_date_loading">Loading draw for test date…</string>
     <string name="history_detail_test_date_clear">Clear test date</string>
     <string name="history_detail_test_date_ok">OK</string>
+    <string name="history_detail_meta_manual_id">manual id</string>
     <string name="history_detail_copy_ticket_cd">Copy ticket id</string>
     <string name="history_detail_show_qr_cd">Show QR</string>
     <string name="history_detail_leave_live_cd">Leave live</string>

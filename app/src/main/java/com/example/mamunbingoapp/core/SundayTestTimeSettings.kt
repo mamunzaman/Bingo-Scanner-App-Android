@@ -5,7 +5,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-/** Dev/test only. Production window stays Sun 17:00–18:05 Berlin. */
+/** Dev/test only. Production window stays Sun 17:00–18:00 Berlin. */
 data class SundayTestTimeSettings(
     val enabled: Boolean = false,
     val startInMinutes: Int = DEFAULT_START_IN_MINUTES,
@@ -24,7 +24,7 @@ data class SundayTestTimeSettings(
         const val MIN_START_IN_MINUTES = 1
         const val MAX_START_IN_MINUTES = 10
         val PRODUCTION_START: LocalTime = LocalTime.of(17, 0)
-        val PRODUCTION_END: LocalTime = LocalTime.of(18, 5)
+        val PRODUCTION_END: LocalTime = LocalTime.of(18, 0)
 
         fun coerceStartInMinutes(value: Int): Int =
             value.coerceIn(MIN_START_IN_MINUTES, MAX_START_IN_MINUTES)

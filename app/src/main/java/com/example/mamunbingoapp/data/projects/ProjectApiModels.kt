@@ -15,10 +15,8 @@ data class ProjectApiDto(
     val summary: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
     @SerialName("source_url") val sourceUrl: String? = null,
-    val location: String? = null,
+    val region: String? = null,
     @SerialName("project_year") val projectYear: Int? = null,
-    @SerialName("funding_amount") val fundingAmount: Double? = null,
-    @SerialName("published_at") val publishedAt: String? = null,
-    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("funding_amount_eur") val fundingAmountEur: Double? = null,
     @SerialName("is_featured") val isFeatured: Boolean = false,
 )

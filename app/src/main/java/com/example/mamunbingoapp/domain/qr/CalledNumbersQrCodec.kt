@@ -17,10 +17,18 @@ object CalledNumbersQrCodec {
         prettyPrint = false
     }
 
+    fun normalize(calledNumbers: List<Int>): List<Int> {
+        val seen = LinkedHashSet<Int>()
+        for (number in calledNumbers) {
+            if (number in 1..75) seen.add(number)
+        }
+        return seen.toList()
+    }
+
     fun encode(calledNumbers: List<Int>): String {
         val payload = CalledNumbersQrPayload(
             type = PAYLOAD_TYPE,
-            numbers = calledNumbers,
+            numbers = normalize(calledNumbers),
         )
         return json.encodeToString(CalledNumbersQrPayload.serializer(), payload)
     }

@@ -62,3 +62,7 @@ val LiveTopBarGreenEnd = Color(0xFFD4E8D0)
 val TicketPaperTop = Color(0xFFFFFEF9)
 val TicketPaperCell = Color(0xFFFCFCFC)
 val TicketPaperBorder = Color(0xFFE2E2E2)
+
+/** Premium ticket gold accent — BINGO header border, marked cell border, star separator. */
+val TicketGold = Color(0xFFD4AF37)
+val TicketGoldBorder = Color(0xFFB8960C)

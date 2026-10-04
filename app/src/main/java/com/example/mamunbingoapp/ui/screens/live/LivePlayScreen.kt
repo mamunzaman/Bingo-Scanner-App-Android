@@ -91,6 +91,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -163,20 +164,30 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.mamunbingoapp.domain.model.BingoScanType
 import com.example.mamunbingoapp.domain.model.QrTicketPayload
 import com.example.mamunbingoapp.domain.qr.QrTicketCodec
 import com.example.mamunbingoapp.domain.qr.QrTicketImageGenerator
 import com.example.mamunbingoapp.ui.components.qr.TicketQrDialog
 import com.example.mamunbingoapp.ui.components.qr.cellsToQrGrid5x5
+import android.content.ClipData
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
+import com.example.mamunbingoapp.scanner.CalledNumbersQrImport
+import com.example.mamunbingoapp.scanner.CalledNumbersQrImportAction
+import com.example.mamunbingoapp.scanner.CalledNumbersQrImportPlan
 import com.example.mamunbingoapp.ui.components.createCalledNumbersShareBitmap
 import java.io.File
 import java.io.FileOutputStream
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.mamunbingoapp.theme.Dimens
+import com.example.mamunbingoapp.theme.TicketGold
 import com.example.mamunbingoapp.theme.Warning
 import com.example.mamunbingoapp.theme.WarningBorder
 import com.example.mamunbingoapp.theme.WarningContainer
@@ -192,7 +203,9 @@ import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.LiveRoomTopBar
 import com.example.mamunbingoapp.ui.components.CalledHistoryPanel
 import com.example.mamunbingoapp.ui.components.CalledNumbersDetailSheet
+import com.example.mamunbingoapp.ui.components.CalledNumbersQrActionSheet
 import com.example.mamunbingoapp.ui.components.CalledNumbersQrDisplaySheet
+import com.example.mamunbingoapp.ui.components.CalledNumbersQrImportPreviewSheet
 import com.example.mamunbingoapp.ui.components.CalledNumbersSheet
 import com.example.mamunbingoapp.ui.core.interaction.appClickable
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
@@ -200,6 +213,7 @@ import com.example.mamunbingoapp.core.BingoWinChecker
 import com.example.mamunbingoapp.core.BingoPlayableNumbers
 import com.example.mamunbingoapp.ui.components.BingoCardGrid
 import com.example.mamunbingoapp.ui.components.BingoGridMode
+
 import com.example.mamunbingoapp.ui.components.AlmostBingoAlertRowV2
 import com.example.mamunbingoapp.ui.components.BingoWinBanner
 import com.example.mamunbingoapp.ui.components.LivePlayCallKeypad
@@ -211,14 +225,13 @@ import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCompactSheetPreview
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketListSheetPreview
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketLosSerieRow
-import com.example.mamunbingoapp.ui.components.home.BingoSheetTicketCard
-import com.example.mamunbingoapp.ui.components.home.LiveSheetTicketGridStyleClosed
-import com.example.mamunbingoapp.ui.components.home.LiveSheetTicketGridStyleOpen
+import com.example.mamunbingoapp.ui.components.home.PremiumLiveTicketCard
 import com.example.mamunbingoapp.ui.components.home.bingoGridCellsToActiveTicketCellStates
 import com.example.mamunbingoapp.data.HistoryRepository
 import com.example.mamunbingoapp.data.SettingsRepository
 import com.example.mamunbingoapp.ui.components.common.bingoLetter
 import com.example.mamunbingoapp.ui.components.iosElevatedShadow
+import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import com.example.mamunbingoapp.ui.model.BingoCellUi
 import com.example.mamunbingoapp.data.RoomRepository
 import com.example.mamunbingoapp.data.RoomSettings
@@ -227,6 +240,7 @@ import com.example.mamunbingoapp.theme.MamunBingoTheme
 import com.example.mamunbingoapp.core.MAX_LIVE_CALLS
 import com.example.mamunbingoapp.core.SundayBingoSchedule
 import com.example.mamunbingoapp.core.SundayTestTimeSettings
+import java.time.Clock
 import java.time.ZonedDateTime
 import com.example.mamunbingoapp.ui.model.RoomStatus
 import com.example.mamunbingoapp.viewmodel.CalledNumbersViewModel
@@ -317,7 +331,8 @@ fun LivePlayScreen(
     onCallCompleteDismiss: () -> Unit = {},
     onOpenSheetDetail: (String) -> Unit = {},
     onNavigateToManualEntry: () -> Unit = {},
-    onNavigateToImportTicket: () -> Unit = {},
+    onLaunchCamera: (BingoScanType) -> Unit = {},
+    onAddFromGallery: () -> Unit = {},
     onCallNumber: (Int, (Boolean) -> Unit) -> Unit = { _, _ -> },
     onCallRandomNumber: () -> Unit = {},
     onGoLive: (String) -> Unit = {},
@@ -340,6 +355,11 @@ fun LivePlayScreen(
     onNavigateToCalledNumbersQrScan: () -> Unit = {},
     qrScanResultMessage: String? = null,
     onQrScanResultConsumed: () -> Unit = {},
+    pendingQrImportNumbers: List<Int> = emptyList(),
+    pendingQrImportRejectedCount: Int = 0,
+    pendingQrImportDuplicateCount: Int = 0,
+    onPendingQrImportConsumed: () -> Unit = {},
+    clock: Clock = Clock.system(SundayBingoSchedule.berlinZone),
 ) {
     var selectedView by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
@@ -352,6 +372,11 @@ fun LivePlayScreen(
     var selectedSheetTicketIndex by remember { mutableStateOf<Int?>(null) }
     var showCalledNumbersSheet by rememberSaveable { mutableStateOf(false) }
     var showCalledNumbersQrDisplay by remember { mutableStateOf(false) }
+    var showCalledNumbersQrActions by remember { mutableStateOf(false) }
+    var pendingQrImport by remember { mutableStateOf<List<Int>?>(null) }
+    var pendingQrImportRejected by remember { mutableStateOf(0) }
+    var pendingQrImportDuplicates by remember { mutableStateOf(0) }
+    var showScanTypeSheet by remember { mutableStateOf(false) }
     var showNumberKeypad by rememberSaveable { mutableStateOf(true) }
     var listSelectionMode by rememberSaveable { mutableStateOf(false) }
     var selectedTicketIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -379,6 +404,21 @@ fun LivePlayScreen(
         snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
         onQrScanResultConsumed()
     }
+    LaunchedEffect(pendingQrImportNumbers) {
+        if (pendingQrImportNumbers.isEmpty()) return@LaunchedEffect
+        pendingQrImport = pendingQrImportNumbers
+        pendingQrImportRejected = pendingQrImportRejectedCount
+        pendingQrImportDuplicates = pendingQrImportDuplicateCount
+        onPendingQrImportConsumed()
+    }
+    val onOpenCalledNumbersQrTools: () -> Unit = {
+        showCalledNumbersQrActions = true
+    }
+    val qrSaveSuccessMessage = stringResource(R.string.called_numbers_qr_save_success)
+    val qrSaveErrorMessage = stringResource(R.string.called_numbers_qr_save_error)
+    val qrAppliedMessage = stringResource(R.string.called_numbers_qr_applied)
+    val qrNothingAddedMessage = stringResource(R.string.called_numbers_qr_nothing_added)
+    val qrInvalidMessage = stringResource(R.string.called_numbers_qr_invalid)
     val onShareCalledNumbers: () -> Unit = {
         if (calledNumbers.isEmpty()) {
             scope.launch {
@@ -441,21 +481,39 @@ fun LivePlayScreen(
     val isSundayRoom = room?.name?.let { SundayBingoSchedule.isSundayFeaturedRoom(it, sundayFeaturedTitle) } == true
     val sundayTestTimeSettings by SettingsRepository.sundayTestTimeSettingsFlow
         .collectAsState(initial = SundayTestTimeSettings())
-    var sundayCallingUnlocked by remember(isSundayRoom, sundayTestTimeSettings) {
-        val now = ZonedDateTime.now(SundayBingoSchedule.berlinZone)
+    var sundayCallingUnlocked by remember(isSundayRoom, sundayTestTimeSettings, clock) {
         mutableStateOf(
-            !isSundayRoom || SundayBingoSchedule.isLiveCallingUnlocked(now, sundayTestTimeSettings),
+            SundayBingoSchedule.isSundayGameplayEnabled(
+                isSundayRoom,
+                ZonedDateTime.now(clock),
+                sundayTestTimeSettings,
+            ),
         )
     }
-    LaunchedEffect(isSundayRoom, sundayTestTimeSettings) {
+    var sundayScheduleResumed by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(isSundayRoom, sundayTestTimeSettings, clock) {
+        sundayScheduleResumed = true
+        sundayCallingUnlocked = SundayBingoSchedule.isSundayGameplayEnabled(
+            isSundayRoom,
+            ZonedDateTime.now(clock),
+            sundayTestTimeSettings,
+        )
+        onPauseOrDispose { sundayScheduleResumed = false }
+    }
+    LaunchedEffect(isSundayRoom, sundayTestTimeSettings, clock, sundayScheduleResumed) {
         if (!isSundayRoom) {
             sundayCallingUnlocked = true
             return@LaunchedEffect
         }
+        if (!sundayScheduleResumed) return@LaunchedEffect
         while (true) {
-            val now = ZonedDateTime.now(SundayBingoSchedule.berlinZone)
-            sundayCallingUnlocked = SundayBingoSchedule.isLiveCallingUnlocked(now, sundayTestTimeSettings)
-            delay(1_000L)
+            sundayCallingUnlocked = SundayBingoSchedule.isSundayGameplayEnabled(
+                true,
+                ZonedDateTime.now(clock),
+                sundayTestTimeSettings,
+            )
+            val delayMillis = 1_000L - Math.floorMod(clock.millis(), 1_000L)
+            delay(delayMillis.coerceAtLeast(1L))
         }
     }
     val callingLocked = isSundayRoom && !sundayCallingUnlocked
@@ -750,7 +808,7 @@ fun LivePlayScreen(
             },
             onCreateTicket = {
                 isMyTicketsSheetOpen = false
-                onNavigateToImportTicket()
+                showScanTypeSheet = true
             },
             onBulkDeleteTickets = { ids ->
                 com.example.mamunbingoapp.data.HistoryRepository.deleteSessions(ids)
@@ -1012,31 +1070,41 @@ fun LivePlayScreen(
                     showNumberKeypad = true
                 },
                 onShareCalledNumbers = onShareCalledNumbers,
-                onShowQrCode = {
-                    if (calledNumbers.isEmpty()) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                shareCalledNumbersEmptyMessage,
-                                duration = SnackbarDuration.Short,
-                            )
-                        }
-                    } else {
-                        showCalledNumbersQrDisplay = true
-                    }
-                },
-                onScanQr = {
-                    showCalledNumbersSheet = false
-                    calledNumbersVm.clearSelection()
-                    onNavigateToCalledNumbersQrScan()
-                },
+                onQrToolsClick = onOpenCalledNumbersQrTools,
             )
         } else {
             CalledNumbersDetailSheet(
                 onDismiss = { showCalledNumbersSheet = false },
                 calledNumbers = calledNumbers,
                 onShareCalledNumbers = onShareCalledNumbers,
+                onQrToolsClick = onOpenCalledNumbersQrTools,
             )
         }
+    }
+    if (showCalledNumbersQrActions) {
+        CalledNumbersQrActionSheet(
+            canShare = calledNumbers.isNotEmpty(),
+            onDismiss = { showCalledNumbersQrActions = false },
+            onShareCalledNumbers = {
+                showCalledNumbersQrActions = false
+                if (calledNumbers.isEmpty()) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            shareCalledNumbersEmptyMessage,
+                            duration = SnackbarDuration.Short,
+                        )
+                    }
+                } else {
+                    showCalledNumbersQrDisplay = true
+                }
+            },
+            onReadQrCode = {
+                showCalledNumbersQrActions = false
+                showCalledNumbersSheet = false
+                calledNumbersVm.clearSelection()
+                onNavigateToCalledNumbersQrScan()
+            },
+        )
     }
     if (showCalledNumbersQrDisplay && calledNumbers.isNotEmpty()) {
         CalledNumbersQrDisplaySheet(
@@ -1044,6 +1112,82 @@ fun LivePlayScreen(
             onDismiss = { showCalledNumbersQrDisplay = false },
             onShareQrImage = { bitmap ->
                 shareCalledNumbersQrImage(context, bitmap)
+            },
+            onSaveQrImage = { bitmap ->
+                scope.launch {
+                    val ok = withContext(Dispatchers.IO) {
+                        saveCalledNumbersQrToPhotos(context, bitmap)
+                    }
+                    snackbarHostState.showSnackbar(
+                        if (ok) qrSaveSuccessMessage else qrSaveErrorMessage,
+                        duration = SnackbarDuration.Short,
+                    )
+                }
+            },
+        )
+    }
+    pendingQrImport?.let { imported ->
+        CalledNumbersQrImportPreviewSheet(
+            numbers = imported,
+            rejectedCount = pendingQrImportRejected,
+            duplicateCount = pendingQrImportDuplicates,
+            onReplace = {
+                val plan = CalledNumbersQrImport.plan(
+                    CalledNumbersQrImportAction.REPLACE,
+                    calledNumbers,
+                    imported,
+                )
+                pendingQrImport = null
+                scope.launch {
+                    val message = when (plan) {
+                        is CalledNumbersQrImportPlan.Replace -> {
+                            val ok = RoomRepository.replaceAllCalledNumbers(roomId, plan.numbers)
+                            if (ok) qrAppliedMessage else qrInvalidMessage
+                        }
+                        else -> qrInvalidMessage
+                    }
+                    snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+                }
+            },
+            onAddMissing = {
+                val plan = CalledNumbersQrImport.plan(
+                    CalledNumbersQrImportAction.ADD_MISSING,
+                    calledNumbers,
+                    imported,
+                )
+                pendingQrImport = null
+                scope.launch {
+                    val message = when (plan) {
+                        is CalledNumbersQrImportPlan.Append -> {
+                            val added = RoomRepository.appendCalledNumbers(roomId, plan.numbers)
+                            if (added > 0) qrAppliedMessage else qrNothingAddedMessage
+                        }
+                        CalledNumbersQrImportPlan.NothingAdded -> qrNothingAddedMessage
+                        else -> qrInvalidMessage
+                    }
+                    snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+                }
+            },
+            onDismiss = {
+                CalledNumbersQrImport.plan(
+                    CalledNumbersQrImportAction.CANCEL,
+                    calledNumbers,
+                    imported,
+                )
+                pendingQrImport = null
+            },
+        )
+    }
+    if (showScanTypeSheet) {
+        ScanTypeSelectionSheet(
+            onDismiss = { showScanTypeSheet = false },
+            onScanTypeSelected = { type ->
+                showScanTypeSheet = false
+                onLaunchCamera(type)
+            },
+            onAddFromGallery = {
+                showScanTypeSheet = false
+                onAddFromGallery()
             },
         )
     }
@@ -1216,7 +1360,7 @@ private fun LivePlayBottomArea(
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth(),
             thickness = Dimens.cardBorderDefault,
-            color = scheme.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha),
+            color = TicketGold.copy(alpha = 0.22f),
         )
         LivePlayCallKeypad(
             latestCalled = calledNumbers.lastOrNull(),
@@ -2177,52 +2321,15 @@ private fun SheetCard(
     val markedSet = gridCells.take(25).mapIndexed { i, c -> i.takeIf { c.isMarked } }.filterNotNull().toSet()
     val winResult = BingoWinChecker.check(markedSet)
     val isWin = winResult.isWin
-    val cs = MaterialTheme.colorScheme
-    val cardBorder = if (isWin) WarningBorder else cs.primary.copy(alpha = 0.45f)
-    val cardShape = RoundedCornerShape(Dimens.radiusCard)
-    val liveLosLabelStyle = MaterialTheme.typography.labelSmall.copy(
-        fontSize = 11.sp,
-        lineHeight = 12.sp,
-        fontWeight = FontWeight.Medium,
-    )
-    val liveLosValueStyle = MaterialTheme.typography.labelLarge.copy(
-        fontSize = 16.sp,
-        lineHeight = 17.sp,
-        fontWeight = FontWeight.Bold,
-    )
-    BingoSheetTicketCard(
+    PremiumLiveTicketCard(
         sheetName = sheet.title,
         losNumber = sheet.losNumber,
         serieNumber = sheet.serialNumber,
         cellStates = cellStates,
-        neutralGrid = false,
         onClick = onClick,
-        gridStyle = if (keypadExpanded) {
-            LiveSheetTicketGridStyleOpen
-        } else {
-            LiveSheetTicketGridStyleClosed
-        },
+        keypadExpanded = keypadExpanded,
         modifier = modifier,
-        shape = cardShape,
-        borderColor = cardBorder,
-        shadowElevation = if (isWin) 8.dp else 5.dp,
-        contentPadding = PaddingValues(
-            start = Dimens.spacing12,
-            end = Dimens.spacing12,
-            top = 14.dp,
-            bottom = 14.dp,
-        ),
-        headerContent = {
-            ActiveTicketLosSerieRow(
-                losNumber = sheet.losNumber,
-                serieNumber = sheet.serialNumber,
-                modifier = Modifier.fillMaxWidth(),
-                labelStyle = liveLosLabelStyle,
-                valueStyle = liveLosValueStyle,
-            )
-        },
         winningCells = winResult.winningCells,
-        liveWinStyling = true,
         winLineCount = if (isWin) winResult.winningLines.size else 0,
     )
 }
@@ -3109,11 +3216,48 @@ private fun shareCalledNumbersQrImage(
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
+        clipData = ClipData.newUri(context.contentResolver, "called_numbers_qr", uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(
-        Intent.createChooser(intent, context.getString(R.string.called_numbers_qr_share_chooser)),
-    )
+    val chooser = Intent.createChooser(intent, context.getString(R.string.called_numbers_qr_share_chooser))
+    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    context.startActivity(chooser)
+}
+
+private fun saveCalledNumbersQrToPhotos(
+    context: android.content.Context,
+    bitmap: Bitmap,
+): Boolean {
+    val filename = "called_numbers_qr_${
+        SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    }.png"
+    val values = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MamunBingo")
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+    }
+    val resolver = context.contentResolver
+    val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return false
+    return try {
+        val stream = resolver.openOutputStream(uri) ?: return false
+        stream.use { out ->
+            if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
+                error("compress failed")
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+        }
+        true
+    } catch (_: Exception) {
+        runCatching { resolver.delete(uri, null, null) }
+        false
+    }
 }
 
 private fun shareCalledNumbersImage(

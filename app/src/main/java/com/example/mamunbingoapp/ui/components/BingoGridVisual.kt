@@ -7,6 +7,8 @@ enum class BingoGridVisualVariant {
     Default,
     /** Manual Entry: empty-cell tint + stronger active cell; default header/grid shape. */
     ManualEntrySheet,
+    /** Premium live/sheet ticket: cream cell background, warm border, gold marked-cell border. */
+    PremiumTicket,
 }
 
 val LocalBingoGridVisualVariant = compositionLocalOf { BingoGridVisualVariant.Default }

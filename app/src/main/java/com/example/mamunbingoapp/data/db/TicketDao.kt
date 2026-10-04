@@ -57,6 +57,25 @@ interface TicketDao {
         windowStartMillis: Long,
         windowEndExclusiveMillis: Long,
     ): String?
+
+    @Query(
+        """
+        SELECT ticketId, sheetName, playedAtMillis FROM tickets
+        WHERE isDeleted = 0
+        AND playedAtMillis >= :windowStartMillis
+        AND playedAtMillis < :windowEndExclusiveMillis
+        """
+    )
+    suspend fun listActiveSheetNamesInWindow(
+        windowStartMillis: Long,
+        windowEndExclusiveMillis: Long,
+    ): List<TicketSheetNameRow>
 }
+
+data class TicketSheetNameRow(
+    val ticketId: String,
+    val sheetName: String,
+    val playedAtMillis: Long,
+)
 
 data class TicketMarkedCount(val ticketId: String, val markedCount: Long)
