@@ -365,6 +365,7 @@ fun ManualEntryBingoCard(
     sheetTitleFocusRequester: FocusRequester,
     sheetNameFieldLabel: String? = null,
     sheetNameRenameHelper: String? = null,
+    sheetNameError: String? = null,
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
     compactGreenHeader: Boolean = false
@@ -626,6 +627,15 @@ fun ManualEntryBingoCard(
                             text = sheetNameRenameHelper,
                             style = MaterialTheme.typography.labelSmall,
                             color = greenHeaderLabelColor.copy(alpha = 0.92f),
+                        )
+                    }
+                    if (!sheetNameError.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(Dimens.spacing4))
+                        Text(
+                            text = sheetNameError,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFFFE4E1),
                         )
                     }
                 }

@@ -1,6 +1,8 @@
 package com.example.mamunbingoapp.data
 
 import com.example.mamunbingoapp.core.SundayBingoSchedule
+import com.example.mamunbingoapp.core.WeeklySheetName
+import java.time.ZoneId
 import com.example.mamunbingoapp.data.db.DatabaseProvider
 import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.data.db.TicketEntity
@@ -11,6 +13,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.UUID
+
+class DuplicateWeeklySheetNameException(
+    val existingTicketId: String,
+) : IllegalStateException("Duplicate sheet name in the current week: $existingTicketId")
 
 object TicketRepository {
     private fun ticketDao() = DatabaseProvider.db.ticketDao()
@@ -46,6 +52,32 @@ object TicketRepository {
         )
     }
 
+    /**
+     * Active ticket in the local Monday–Monday week whose normalized sheet name matches.
+     * [excludeTicketId] is skipped so editing the current ticket is not a self-duplicate.
+     */
+    suspend fun findDuplicateSheetNameInWeek(
+        sheetName: String,
+        playedAtMillis: Long,
+        excludeTicketId: String? = null,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String? = withContext(Dispatchers.IO) {
+        val window = WeeklySheetName.weekWindow(playedAtMillis, zone)
+        val rows = ticketDao().listActiveSheetNamesInWindow(
+            windowStartMillis = window.startInclusiveMillis,
+            windowEndExclusiveMillis = window.endExclusiveMillis,
+        )
+        WeeklySheetName.findDuplicateTicketId(
+            sheetName = sheetName,
+            playedAtMillis = playedAtMillis,
+            candidates = rows.map {
+                WeeklySheetName.Candidate(it.ticketId, it.sheetName, it.playedAtMillis)
+            },
+            excludeTicketId = excludeTicketId,
+            zone = zone,
+        )
+    }
+
     suspend fun saveManualTicket(
         sheetName: String,
         playedAtMillis: Long,
@@ -55,7 +87,16 @@ object TicketRepository {
         originalOcrNumbers: String? = null,
         losNumber: String? = null,
         serialNumber: String? = null,
+        excludeTicketId: String? = null,
     ): String {
+        val duplicateId = findDuplicateSheetNameInWeek(
+            sheetName = sheetName,
+            playedAtMillis = playedAtMillis,
+            excludeTicketId = excludeTicketId,
+        )
+        if (duplicateId != null) {
+            throw DuplicateWeeklySheetNameException(duplicateId)
+        }
         val ticketId = "manual-${UUID.randomUUID()}"
         val now = System.currentTimeMillis()
         val source = ocrSource?.takeIf { it in listOf("GEMINI", "ML_KIT") } ?: "manual"

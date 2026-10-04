@@ -67,6 +67,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -131,7 +132,9 @@ private fun formatHistoryDetailTimestamp(millis: Long): String =
 
 private val HistoryDetailCardShape = RoundedCornerShape(Dimens.radiusLarge)
 private val HistoryDetailCardPadding = Dimens.spacing16
-private val HistoryDetailStatCardPadding = Dimens.spacing12
+private val HistoryDetailInfoTableShape = RoundedCornerShape(Dimens.radiusLarge)
+private val HistoryDetailInfoRowHorizontalPadding = Dimens.spacing16
+private val HistoryDetailInfoRowVerticalPadding = Dimens.spacing12
 private val HistoryDetailTicketSectionTopPadding = Dimens.spacing12
 private val HistoryDetailTicketSectionBottomPadding = Dimens.spacing16
 private val HistoryDetailTicketDividerToBingoGap = Dimens.spacing12
@@ -572,9 +575,6 @@ fun HistoryDetailScreen(
                         ) {
                             HistoryDetailHeroSection(
                                 sheetName = sessionForDisplay.effectiveSheetName().ifEmpty { unnamedSheetLabel },
-                                ticketId = ticketId,
-                                losNumber = sessionForDisplay.losNumber,
-                                serialNumber = sessionForDisplay.serialNumber,
                                 sheetStatus = displaySheetStatus,
                                 roomAction = roomAction,
                                 showLiveBadge = showLiveBadge,
@@ -586,20 +586,23 @@ fun HistoryDetailScreen(
                                         showRoomPicker = true
                                     }
                                 },
-                                onCopyTicketId = {
-                                    clipboard.setText(AnnotatedString(ticketId))
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(copiedToClipboardMessage)
-                                    }
-                                },
                             )
-                            HistoryDetailStatsRow(
+                            HistoryDetailInfoTableCard(
+                                losNumber = sessionForDisplay.losNumber,
+                                serialNumber = sessionForDisplay.serialNumber,
+                                ticketId = ticketId,
                                 drawDate = formatHistoryDetailDate(
                                     testDateMillis ?: sessionForDisplay.effectivePlayedAtMillis()
                                 ),
                                 sheetsCount = sessionForDisplay.sheetsCount,
                                 calledCount = displayCalledNumbers.size,
                                 markedProgress = playableMarkedProgress,
+                                onCopyTicketId = {
+                                    clipboard.setText(AnnotatedString(ticketId))
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(copiedToClipboardMessage)
+                                    }
+                                },
                             )
                             if (displayAssignedRoomId.isNullOrBlank()) {
                                 HistoryDetailTestDateDebugSection(
@@ -681,16 +684,11 @@ fun HistoryDetailScreen(
 @Composable
 private fun HistoryDetailHeroSection(
     sheetName: String,
-    ticketId: String,
-    losNumber: String?,
-    serialNumber: String?,
     sheetStatus: SheetStatus,
     roomAction: HistoryDetailRoomAction,
     showLiveBadge: Boolean,
     onRoomActionClick: () -> Unit,
-    onCopyTicketId: () -> Unit,
 ) {
-    val truncatedId = if (ticketId.length > 18) ticketId.take(16) + "…" else ticketId
     val isLiveTicket = sheetStatus == SheetStatus.ACTIVE
     val scheme = MaterialTheme.colorScheme
     Column(
@@ -719,52 +717,11 @@ private fun HistoryDetailHeroSection(
                 }
             }
         }
-        HistoryDetailLosSerieChipsRow(
-            losNumber = losNumber,
-            serialNumber = serialNumber,
-            modifier = Modifier.fillMaxWidth(),
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
         ) {
-            Surface(
-                shape = RoundedCornerShape(Dimens.radiusSmall),
-                color = scheme.surfaceContainerHigh,
-                border = BorderStroke(
-                    Dimens.cardBorderDefault,
-                    scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha),
-                ),
-            ) {
-                Row(
-                    modifier = Modifier.padding(
-                        horizontal = Dimens.spacing10,
-                        vertical = Dimens.spacing5,
-                    ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacing4),
-                ) {
-                    Text(
-                        text = truncatedId,
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                        color = scheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    IconButton(
-                        onClick = onCopyTicketId,
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = stringResource(R.string.history_detail_copy_ticket_cd),
-                            modifier = Modifier.size(Dimens.iconCompact),
-                            tint = scheme.primary,
-                        )
-                    }
-                }
-            }
             Spacer(modifier = Modifier.weight(1f))
             HistoryDetailRoomActionButton(
                 action = roomAction,
@@ -773,6 +730,189 @@ private fun HistoryDetailHeroSection(
             if (showLiveBadge) {
                 HistoryDetailLiveBadge()
             }
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailInfoTableCard(
+    losNumber: String?,
+    serialNumber: String?,
+    ticketId: String,
+    drawDate: String,
+    sheetsCount: Int,
+    calledCount: Int,
+    markedProgress: String,
+    onCopyTicketId: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val placeholderDash = stringResource(R.string.common_placeholder_dash)
+    val losValue = losNumber?.trim()?.takeIf { it.isNotEmpty() } ?: placeholderDash
+    val serieValue = serialNumber?.trim()?.takeIf { it.isNotEmpty() } ?: placeholderDash
+    val truncatedId = if (ticketId.length > 22) ticketId.take(20) + "…" else ticketId
+    val labelStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+    val labelColor = scheme.onSurfaceVariant.copy(alpha = 0.72f)
+    val valueStyle = MaterialTheme.typography.bodyMedium.copy(
+        fontWeight = FontWeight.Medium,
+        color = scheme.onSurface,
+    )
+    val dividerColor = scheme.outlineVariant.copy(alpha = 0.32f)
+    val locale = Locale.getDefault()
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = HistoryDetailInfoTableShape,
+        color = scheme.surface,
+        border = BorderStroke(
+            Dimens.cardBorderDefault,
+            scheme.outlineVariant.copy(alpha = 0.42f),
+        ),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.home_active_ticket_los_label).lowercase(locale),
+                value = losValue,
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+            )
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.home_active_ticket_serie_label).lowercase(locale),
+                value = serieValue,
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+            )
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.history_detail_meta_manual_id),
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+                valueContent = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = truncatedId,
+                            style = valueStyle.copy(fontFamily = FontFamily.Monospace),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        IconButton(
+                            onClick = onCopyTicketId,
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.history_detail_copy_ticket_cd),
+                                modifier = Modifier.size(Dimens.iconCompact),
+                                tint = scheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
+            )
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.history_detail_stat_draw_date).lowercase(locale),
+                value = drawDate,
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+            )
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.history_detail_stat_sheets).lowercase(locale),
+                value = sheetsCount.toString(),
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+            )
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.history_detail_stat_called).lowercase(locale),
+                value = calledCount.toString(),
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+            )
+            HistoryDetailInfoTableRow(
+                label = stringResource(R.string.history_detail_stat_marked).lowercase(locale),
+                value = markedProgress,
+                labelStyle = labelStyle,
+                labelColor = labelColor,
+                valueStyle = valueStyle,
+                dividerColor = dividerColor,
+                showDivider = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryDetailInfoTableRow(
+    label: String,
+    labelStyle: TextStyle,
+    labelColor: Color,
+    valueStyle: TextStyle,
+    dividerColor: Color,
+    modifier: Modifier = Modifier,
+    value: String? = null,
+    showDivider: Boolean = true,
+    valueContent: (@Composable () -> Unit)? = null,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = HistoryDetailInfoRowHorizontalPadding,
+                    vertical = HistoryDetailInfoRowVerticalPadding,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacing12),
+        ) {
+            Text(
+                text = label,
+                style = labelStyle,
+                color = labelColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                if (valueContent != null) {
+                    valueContent()
+                } else {
+                    Text(
+                        text = value.orEmpty(),
+                        style = valueStyle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = dividerColor,
+            )
         }
     }
 }
@@ -978,76 +1118,6 @@ private fun HistoryDetailTestDateDebugSection(
 }
 
 @Composable
-private fun HistoryDetailMetaChip(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(Dimens.radiusSmall),
-        color = scheme.surfaceContainerHigh,
-        border = BorderStroke(
-            Dimens.cardBorderDefault,
-            scheme.outlineVariant.copy(alpha = Dimens.outlineBorderAlpha),
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = Dimens.spacing12,
-                vertical = Dimens.spacing10,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spacing4),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = scheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun HistoryDetailLosSerieChipsRow(
-    losNumber: String?,
-    serialNumber: String?,
-    modifier: Modifier = Modifier,
-) {
-    val los = losNumber?.trim()?.takeIf { it.isNotEmpty() }
-    val serial = serialNumber?.trim()?.takeIf { it.isNotEmpty() }
-    if (los == null && serial == null) return
-    val placeholderDash = stringResource(R.string.common_placeholder_dash)
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing8),
-    ) {
-        HistoryDetailMetaChip(
-            label = stringResource(R.string.home_active_ticket_los_label),
-            value = los ?: placeholderDash,
-            modifier = Modifier.weight(1f),
-        )
-        HistoryDetailMetaChip(
-            label = stringResource(R.string.home_active_ticket_serie_label),
-            value = serial ?: placeholderDash,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
 private fun HistoryDetailGridWithMetaStrip(
     losNumber: String?,
     serialNumber: String?,
@@ -1213,84 +1283,6 @@ private fun HistoryDetailTicketMetaColumn(
             color = valueColor,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun HistoryDetailStatsRow(
-    drawDate: String,
-    sheetsCount: Int,
-    calledCount: Int,
-    markedProgress: String,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Max),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spacing10),
-        verticalAlignment = Alignment.Top,
-    ) {
-        HistoryDetailStatCard(
-            label = stringResource(R.string.history_detail_stat_draw_date),
-            value = drawDate,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-        HistoryDetailStatCard(
-            label = stringResource(R.string.history_detail_stat_sheets),
-            value = sheetsCount.toString(),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-        HistoryDetailStatCard(
-            label = stringResource(R.string.history_detail_stat_called),
-            value = calledCount.toString(),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-        HistoryDetailStatCard(
-            label = stringResource(R.string.history_detail_stat_marked),
-            value = markedProgress,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        )
-    }
-}
-
-@Composable
-private fun HistoryDetailStatCard(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    HistoryDetailSectionCard(
-        modifier = modifier,
-        contentPadding = PaddingValues(HistoryDetailStatCardPadding),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Text(
-            text = label.uppercase(Locale.getDefault()),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            lineHeight = 14.sp,
-        )
-        Spacer(modifier = Modifier.height(Dimens.spacing8))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -1526,11 +1518,33 @@ fun HistoryReadOnlyTicketDetailContent(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    HistoryDetailLosSerieChipsRow(
-                        losNumber = losNumber,
-                        serialNumber = serialNumber,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    val archivedLos = losNumber?.trim()?.takeIf { it.isNotEmpty() }
+                    val archivedSerie = serialNumber?.trim()?.takeIf { it.isNotEmpty() }
+                    if (archivedLos != null || archivedSerie != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = buildString {
+                                    append(stringResource(R.string.home_active_ticket_los_label).lowercase(Locale.getDefault()))
+                                    append(": ")
+                                    append(archivedLos ?: stringResource(R.string.common_placeholder_dash))
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = buildString {
+                                    append(stringResource(R.string.home_active_ticket_serie_label).lowercase(Locale.getDefault()))
+                                    append(": ")
+                                    append(archivedSerie ?: stringResource(R.string.common_placeholder_dash))
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     Text(
                         text = stringResource(
                             R.string.archived_game_ticket_detail_session,

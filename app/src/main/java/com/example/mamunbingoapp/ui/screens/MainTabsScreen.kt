@@ -76,6 +76,7 @@ fun MainTabsScreen(
         when (selectedTab) {
             AppTab.Home -> HomeScreen(
                 onLaunchCamera = onNavigateToBingoLiveCamera,
+                onAddFromGallery = onNavigateToGalleryImport,
                 onQuickActionClick = { action ->
                     when (action) {
                         "tickets" -> onNavigateToHistory()
@@ -108,6 +109,7 @@ fun MainTabsScreen(
                 onCreateRoom = onNavigateToLiveRoom,
                 onScanSheet = onJackpotScanSheet,
                 onLaunchCamera = onNavigateToBingoLiveCamera,
+                onAddFromGallery = onNavigateToGalleryImport,
                 onManualEntry = onNavigateToManualEntry,
                 onHistory = onNavigateToHistory,
                 onArchivedGames = onNavigateToArchivedGames,

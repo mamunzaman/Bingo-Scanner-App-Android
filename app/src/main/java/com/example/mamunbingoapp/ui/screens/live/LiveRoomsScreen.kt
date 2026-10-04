@@ -77,15 +77,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.data.SettingsRepository
 import com.example.mamunbingoapp.data.TicketPlayLogRepository
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -171,12 +172,14 @@ fun LiveRoomsScreen(
     onCreateRoom: (String) -> Unit,
     onScanSheet: (BingoScanType) -> Unit,
     onLaunchCamera: (BingoScanType) -> Unit = onScanSheet,
+    onAddFromGallery: () -> Unit = {},
     onManualEntry: () -> Unit,
     onHistory: () -> Unit,
     onArchivedGames: () -> Unit = {},
     onGoLivePlay: () -> Unit,
     onTabSelected: (AppTab) -> Unit = {},
     showBottomBar: Boolean = true,
+    clock: Clock = Clock.system(SundayBingoSchedule.berlinZone),
 ) {
     val viewModel: LiveRoomsViewModel = viewModel()
     val rooms by viewModel.rooms.collectAsState()
@@ -206,7 +209,6 @@ fun LiveRoomsScreen(
     }
     val sundayTestTimeSettings by SettingsRepository.sundayTestTimeSettingsFlow
         .collectAsState(initial = SundayTestTimeSettings())
-    val showDemoData by SettingsRepository.showDemoDataFlow.collectAsState(initial = false)
 
     fun ensureSundayRoom(action: (String) -> Unit) {
         sundayFeaturedRoom?.room?.roomId?.let { roomId ->
@@ -296,7 +298,7 @@ fun LiveRoomsScreen(
                 sundayTitle = sundayTitle,
                 roomWithStats = sundayFeaturedRoom,
                 sundayTestTimeSettings = sundayTestTimeSettings,
-                useDemoEndCountdownFallback = sundayTestTimeSettings.enabled || showDemoData,
+                clock = clock,
                 onAddSheet = { showAddOptionsSheet = true },
                 onOpenRoom = { ensureSundayRoom(onEnterRoom) },
             )
@@ -321,6 +323,10 @@ fun LiveRoomsScreen(
             onScanTypeSelected = { type ->
                 showScanTypeSheet = false
                 onLaunchCamera(type)
+            },
+            onAddFromGallery = {
+                showScanTypeSheet = false
+                onAddFromGallery()
             },
         )
     }
@@ -1042,7 +1048,8 @@ private data class SundayHeroCountdownDigits(
 )
 
 private fun remainingToSundayHeroCountdownDigits(remaining: Duration): SundayHeroCountdownDigits {
-    val totalSeconds = remaining.seconds.coerceAtLeast(0)
+    val remainingMillis = remaining.toMillis().coerceAtLeast(0)
+    val totalSeconds = (remainingMillis + 999L) / 1_000L
     return if (totalSeconds >= 86_400) {
         SundayHeroCountdownDigits(
             first = (totalSeconds / 86_400).toInt().coerceIn(0, 99),
@@ -1061,78 +1068,57 @@ private fun remainingToSundayHeroCountdownDigits(remaining: Duration): SundayHer
 }
 
 private sealed interface SundayHeroCountdownState {
-    data object LiveNow : SundayHeroCountdownState
+    data class LiveNow(val closesIn: SundayHeroCountdownDigits) : SundayHeroCountdownState
     data class StartsIn(val digits: SundayHeroCountdownDigits) : SundayHeroCountdownState
 }
 
 private typealias SundayHeroEndsIn = SundayHeroCountdownDigits
 
-private fun resolveSundayHeroEndsIn(
-    now: ZonedDateTime,
-    test: SundayTestTimeSettings = SundayTestTimeSettings(),
-    useDemoFallback: Boolean = false,
-): SundayHeroEndsIn? {
-    if (SundayBingoSchedule.activeSessionStart(now, test) == null) return null
-    val end = SundayBingoSchedule.heroSessionEndExclusive(now, test, useDemoFallback) ?: return null
-    val remaining = Duration.between(now, end).coerceAtLeast(Duration.ZERO)
-    if (remaining.isZero) return null
-    return remainingToSundayHeroCountdownDigits(remaining)
-}
-
-@Composable
-private fun rememberSundayHeroEndsInState(
-    countdownState: SundayHeroCountdownState,
-    sundayTestTimeSettings: SundayTestTimeSettings,
-    useDemoFallback: Boolean,
-): SundayHeroEndsIn? {
-    if (countdownState !is SundayHeroCountdownState.LiveNow) return null
-    var clockTick by remember { mutableIntStateOf(0) }
-    LaunchedEffect(sundayTestTimeSettings, countdownState, useDemoFallback) {
-        clockTick++
-        while (true) {
-            delay(1_000L)
-            clockTick++
-        }
-    }
-    return remember(sundayTestTimeSettings, countdownState, useDemoFallback, clockTick) {
-        resolveSundayHeroEndsIn(
-            ZonedDateTime.now(berlinZone),
-            sundayTestTimeSettings,
-            useDemoFallback,
-        )
-    }
-}
-
 private fun resolveSundayHeroCountdown(
-    now: ZonedDateTime,
+    clock: Clock,
     test: SundayTestTimeSettings = SundayTestTimeSettings(),
 ): SundayHeroCountdownState {
-    if (SundayBingoSchedule.activeSessionStart(now, test) != null) {
-        return SundayHeroCountdownState.LiveNow
+    return when (val roomState = SundayBingoSchedule.roomState(clock, test)) {
+        is SundayBingoSchedule.RoomState.LiveNow -> {
+            val remaining = Duration.between(roomState.now, roomState.target)
+                .coerceAtLeast(Duration.ZERO)
+            SundayHeroCountdownState.LiveNow(remainingToSundayHeroCountdownDigits(remaining))
+        }
+        is SundayBingoSchedule.RoomState.StartsIn -> {
+            val remaining = Duration.between(roomState.now, roomState.target)
+                .coerceAtLeast(Duration.ZERO)
+            SundayHeroCountdownState.StartsIn(remainingToSundayHeroCountdownDigits(remaining))
+        }
     }
-    val remaining = Duration.between(now, SundayBingoSchedule.nextSessionStartBerlin(now, test))
-        .coerceAtLeast(Duration.ZERO)
-    return SundayHeroCountdownState.StartsIn(remainingToSundayHeroCountdownDigits(remaining))
 }
 
 @Composable
 private fun rememberSundayHeroCountdownState(
     sundayTestTimeSettings: SundayTestTimeSettings,
+    clock: Clock,
 ): SundayHeroCountdownState {
-    var clockTick by remember { mutableIntStateOf(0) }
-    LaunchedEffect(sundayTestTimeSettings) {
-        clockTick++
+    var state by remember(clock, sundayTestTimeSettings) {
+        mutableStateOf(resolveSundayHeroCountdown(clock, sundayTestTimeSettings))
+    }
+    var resumed by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(clock, sundayTestTimeSettings) {
+        resumed = true
+        state = resolveSundayHeroCountdown(clock, sundayTestTimeSettings)
+        onPauseOrDispose { resumed = false }
+    }
+    LaunchedEffect(clock, sundayTestTimeSettings, resumed) {
+        if (!resumed) return@LaunchedEffect
         while (true) {
-            delay(1_000L)
-            clockTick++
+            state = resolveSundayHeroCountdown(clock, sundayTestTimeSettings)
+            val boundaryMillis = when (val current = state) {
+                is SundayHeroCountdownState.LiveNow -> 1_000L
+                is SundayHeroCountdownState.StartsIn -> if (current.digits.showDays) 60_000L else 1_000L
+            }
+            val delayMillis = boundaryMillis - Math.floorMod(clock.millis(), boundaryMillis)
+            delay(delayMillis.coerceAtLeast(1L))
         }
     }
-    return remember(sundayTestTimeSettings, clockTick) {
-        resolveSundayHeroCountdown(
-            ZonedDateTime.now(berlinZone),
-            sundayTestTimeSettings,
-        )
-    }
+    return state
 }
 
 @Composable
@@ -1161,6 +1147,11 @@ private fun SundayHeroCountdownDigitsRow(
     } else {
         R.string.live_nav_countdown_hr
     }
+    val secondLabel = if (digits.showDays) {
+        R.string.live_nav_countdown_hr
+    } else {
+        R.string.live_nav_countdown_min
+    }
     val thirdLabel = if (digits.showDays) {
         R.string.live_nav_countdown_min
     } else {
@@ -1181,7 +1172,7 @@ private fun SundayHeroCountdownDigitsRow(
         SundayHeroCountdownSeparator()
         SundayHeroCountdownSegment(
             value = "%02d".format(digits.second),
-            label = stringResource(R.string.live_nav_countdown_hr),
+            label = stringResource(secondLabel),
             modifier = segmentModifier,
         )
         SundayHeroCountdownSeparator()
@@ -1402,7 +1393,7 @@ private fun SundayFeaturedRoomHero(
     sundayTitle: String,
     roomWithStats: RoomWithStats?,
     sundayTestTimeSettings: SundayTestTimeSettings = SundayTestTimeSettings(),
-    useDemoEndCountdownFallback: Boolean = false,
+    clock: Clock,
     onAddSheet: () -> Unit,
     onOpenRoom: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1412,12 +1403,8 @@ private fun SundayFeaturedRoomHero(
     val progress = if (MAX_LIVE_CALLS > 0) called.toFloat() / MAX_LIVE_CALLS else 0f
     val percent = (progress * 100).toInt()
     val sessionInProgress = called > 0
-    val countdownState = rememberSundayHeroCountdownState(sundayTestTimeSettings)
-    val endsInState = rememberSundayHeroEndsInState(
-        countdownState,
-        sundayTestTimeSettings,
-        useDemoEndCountdownFallback,
-    )
+    val countdownState = rememberSundayHeroCountdownState(sundayTestTimeSettings, clock)
+    val endsInState = (countdownState as? SundayHeroCountdownState.LiveNow)?.closesIn
     val startedAgoLabel = if (sessionInProgress && roomWithStats != null) {
         formatStartedAgo(roomWithStats.room.createdAt)
     } else {
@@ -1431,7 +1418,10 @@ private fun SundayFeaturedRoomHero(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .clickable(onClick = onOpenRoom)
+            .clickable(
+                enabled = SundayBingoSchedule.canOpenSundayRoom(),
+                onClick = onOpenRoom,
+            )
             .background(
                 Brush.verticalGradient(
                     colors = listOf(PrimaryDark, GreenImpactBg),

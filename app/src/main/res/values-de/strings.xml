@@ -252,6 +252,7 @@
     <string name="history_detail_test_date_loading">Ziehung für Testdatum wird geladen…</string>
     <string name="history_detail_test_date_clear">Testdatum löschen</string>
     <string name="history_detail_test_date_ok">OK</string>
+    <string name="history_detail_meta_manual_id">manuelle id</string>
     <string name="history_detail_copy_ticket_cd">Ticket-ID kopieren</string>
     <string name="history_detail_show_qr_cd">QR anzeigen</string>
     <string name="history_detail_leave_live_cd">Live verlassen</string>
@@ -394,11 +395,11 @@
     <string name="live_nav_sunday_live_now">Jetzt live</string>
     <string name="live_nav_sunday_starts_in">Startet in %1$s</string>
     <string name="live_nav_countdown_starts_in_label">STARTET IN</string>
-    <string name="live_nav_countdown_ends_in_label">Live endet in</string>
-    <string name="live_nav_countdown_day">TAG</string>
-    <string name="live_nav_countdown_hr">STD</string>
-    <string name="live_nav_countdown_min">MIN</string>
-    <string name="live_nav_countdown_sec">SEK</string>
+    <string name="live_nav_countdown_ends_in_label">SCHLIESST IN</string>
+    <string name="live_nav_countdown_day">TAGE</string>
+    <string name="live_nav_countdown_hr">STD.</string>
+    <string name="live_nav_countdown_min">MIN.</string>
+    <string name="live_nav_countdown_sec">SEK.</string>
     <string name="live_nav_join_room">Raum beitreten</string>
     <string name="live_nav_most_active">AM AKTIVSTEN</string>
     <string name="live_nav_hero_tickets">%1$d Tickets</string>

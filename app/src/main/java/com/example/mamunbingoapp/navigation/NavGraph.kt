@@ -129,6 +129,9 @@ private const val SCAN_PIPELINE_LOG = "ScanPipelineBusy"
 private const val MAIN_GRAPH_ROUTE = "main"
 private const val MAIN_TABS_ROUTE = "tabs"
 private const val CALLED_NUMBERS_QR_SNACKBAR_KEY = "calledNumbersQrSnackbar"
+private const val CALLED_NUMBERS_QR_IMPORT_KEY = "calledNumbersQrImport"
+private const val CALLED_NUMBERS_QR_IMPORT_REJECTED_KEY = "calledNumbersQrImportRejected"
+private const val CALLED_NUMBERS_QR_IMPORT_DUP_KEY = "calledNumbersQrImportDuplicates"
 
 private fun stagePendingHistoryPhotoImportScanType(
     navController: NavHostController,
@@ -1049,6 +1052,15 @@ fun NavGraph(
             val qrScanSnackbar by backStackEntry.savedStateHandle
                 .getStateFlow<String?>(CALLED_NUMBERS_QR_SNACKBAR_KEY, null)
                 .collectAsState()
+            val pendingQrImport by backStackEntry.savedStateHandle
+                .getStateFlow<IntArray?>(CALLED_NUMBERS_QR_IMPORT_KEY, null)
+                .collectAsState()
+            val pendingQrImportRejected by backStackEntry.savedStateHandle
+                .getStateFlow(CALLED_NUMBERS_QR_IMPORT_REJECTED_KEY, 0)
+                .collectAsState()
+            val pendingQrImportDuplicates by backStackEntry.savedStateHandle
+                .getStateFlow(CALLED_NUMBERS_QR_IMPORT_DUP_KEY, 0)
+                .collectAsState()
             var showCallCompleteDialog by remember { mutableStateOf(false) }
             LaunchedEffect(roomId) { vm.bind(roomId) }
             LaunchedEffect(selectedTicketIdRequest) {
@@ -1099,8 +1111,12 @@ fun NavGraph(
                 onCallCompleteDismiss = { showCallCompleteDialog = false },
                 onOpenSheetDetail = { ticketId -> navController.navigate("liveSheetDetail/$roomId/$ticketId") },
                 onNavigateToManualEntry = { navController.navigate("manualEntryForRoom/$roomId") },
-                onNavigateToImportTicket = {
-                    navController.navigateToTicketImport()
+                onLaunchCamera = { scanType ->
+                    stagePendingHistoryPhotoImportScanType(navController, scanType)
+                    navController.navigate(buildBingoLiveCameraImportRoute(scanType))
+                },
+                onAddFromGallery = {
+                    navController.navigateToTicketImport(pendingGalleryPick = true)
                 },
                 onCallNumber = { n, onResult -> vm.callNumber(n, onResult) },
                 onCallRandomNumber = { vm.callRandomNumber() },
@@ -1131,6 +1147,14 @@ fun NavGraph(
                 onQrScanResultConsumed = {
                     backStackEntry.savedStateHandle[CALLED_NUMBERS_QR_SNACKBAR_KEY] = null
                 },
+                pendingQrImportNumbers = pendingQrImport?.toList().orEmpty(),
+                pendingQrImportRejectedCount = pendingQrImportRejected,
+                pendingQrImportDuplicateCount = pendingQrImportDuplicates,
+                onPendingQrImportConsumed = {
+                    backStackEntry.savedStateHandle[CALLED_NUMBERS_QR_IMPORT_KEY] = null
+                    backStackEntry.savedStateHandle[CALLED_NUMBERS_QR_IMPORT_REJECTED_KEY] = 0
+                    backStackEntry.savedStateHandle[CALLED_NUMBERS_QR_IMPORT_DUP_KEY] = 0
+                },
             )
         }
         composable("calledNumbersQrScan/{roomId}") { backStackEntry ->
@@ -1145,20 +1169,18 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onQrScanned = { raw ->
                     scope.launch {
-                        val parsed = CalledNumbersQrParser.parse(raw)
-                        val message = when {
-                            parsed.isNullOrEmpty() -> context.getString(R.string.called_numbers_qr_invalid)
-                            else -> {
-                                val ok = RoomRepository.replaceAllCalledNumbers(roomId, parsed)
-                                context.getString(
-                                    if (ok) R.string.called_numbers_qr_applied
-                                    else R.string.called_numbers_qr_invalid,
-                                )
-                            }
-                        }
+                        val parsed = CalledNumbersQrParser.parseDetailed(raw)
                         runCatching {
-                            navController.getBackStackEntry("livePlayRoom/$roomId")
-                                .savedStateHandle[CALLED_NUMBERS_QR_SNACKBAR_KEY] = message
+                            val handle = navController.getBackStackEntry("livePlayRoom/$roomId")
+                                .savedStateHandle
+                            if (parsed == null || parsed.numbers.isEmpty()) {
+                                handle[CALLED_NUMBERS_QR_SNACKBAR_KEY] =
+                                    context.getString(R.string.called_numbers_qr_invalid)
+                            } else {
+                                handle[CALLED_NUMBERS_QR_IMPORT_KEY] = parsed.numbers.toIntArray()
+                                handle[CALLED_NUMBERS_QR_IMPORT_REJECTED_KEY] = parsed.rejectedCount
+                                handle[CALLED_NUMBERS_QR_IMPORT_DUP_KEY] = parsed.duplicateCount
+                            }
                         }
                         navController.popBackStack()
                     }
