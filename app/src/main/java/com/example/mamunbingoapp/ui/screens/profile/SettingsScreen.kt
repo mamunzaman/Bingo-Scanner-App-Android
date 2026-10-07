@@ -165,7 +165,7 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = Dimens.screenHorizontalPadding)
-                        .padding(bottom = Dimens.pageContentBottomPadding + AppBottomBarScrollExtraPadding)
+                        .padding(bottom = AppBottomBarScrollExtraPadding)
                 ) {
                     SettingsSection(title = stringResource(R.string.settings_section_data)) {
                 SettingsToggleRow(

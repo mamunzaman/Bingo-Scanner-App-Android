@@ -2,174 +2,168 @@ package com.example.mamunbingoapp.data.remote
 
 import android.util.Log
 import com.example.mamunbingoapp.BuildConfig
-import com.example.mamunbingoapp.data.auth.SupabaseClientProvider
+import com.example.mamunbingoapp.data.bingo.BingoBerlinDates
+import com.example.mamunbingoapp.data.bingo.BingoBlogsCache
+import com.example.mamunbingoapp.data.bingo.BingoCachePolicy
+import com.example.mamunbingoapp.data.bingo.BingoDrawNotFoundException
+import com.example.mamunbingoapp.data.bingo.BingoDrawResult
+import com.example.mamunbingoapp.data.bingo.BingoDrawValidator
+import com.example.mamunbingoapp.data.bingo.BingoHttpOutcome
+import com.example.mamunbingoapp.data.bingo.BingoHttpResponse
+import com.example.mamunbingoapp.data.bingo.BingoRemoteException
+import com.example.mamunbingoapp.data.bingo.BingoStatus
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.http.contentType
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.time.LocalDate
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.temporal.TemporalAdjusters
-
 object BingoRemoteRepository {
-
     private const val TAG = "BingoRemoteRepository"
-
-    /** PostgREST: newest draw_date first; client picks max when batching. */
-    private const val LATEST_DRAWS_FETCH_LIMIT = 32
+    private const val STATUS_URL = "https://blogs.bingo-hub.de/api/bingo/status"
+    private const val DRAWS_URL_PREFIX = "https://blogs.bingo-hub.de/api/bingo/draws/"
+    private val USER_AGENT = "Mozilla/5.0 (Linux; Android) BingoApp/${BuildConfig.VERSION_NAME}"
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
+    private val refreshMutex = Mutex()
+
     private val http: HttpClient by lazy {
         val okHttp = OkHttpClient.Builder()
             .cache(null)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(30, TimeUnit.SECONDS)
             .build()
         HttpClient(OkHttp) {
-            engine {
-                preconfigured = okHttp
-            }
-            install(ContentNegotiation) {
-                json(json)
-            }
+            expectSuccess = false
+            engine { preconfigured = okHttp }
         }
     }
 
-    suspend fun getDrawForWeekContaining(dateMillis: Long): Result<BingoDrawDto> = runCatching {
-        SupabaseClientProvider.requireConfigured()
-        val zone = ZoneId.systemDefault()
-        val selectedDate = Instant.ofEpochMilli(dateMillis).atZone(zone).toLocalDate()
-        val exactDate = selectedDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val weekStart = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        val weekEnd = weekStart.plusDays(6)
-        val weekStartStr = weekStart.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val weekEndStr = weekEnd.format(DateTimeFormatter.ISO_LOCAL_DATE)
+    fun init(context: android.content.Context) {
+        BingoBlogsCache.init(context)
+    }
 
-        val exactMatch: List<BingoDrawDto> = authorizedGet("bingo_draws", "getDrawForWeekExact") {
-            parameter("select", "*")
-            parameter("draw_date", "eq.$exactDate")
-            parameter("limit", "1")
-        }
-        if (exactMatch.isNotEmpty()) return@runCatching exactMatch.first()
+    suspend fun loadCachedStatus(): BingoStatus? = BingoBlogsCache.readStatus()
 
-        val weekMatch: List<BingoDrawDto> = authorizedGet("bingo_draws", "getDrawForWeekRange") {
-            parameter("select", "*")
-            parameter("and", "(draw_date.gte.$weekStartStr,draw_date.lte.$weekEndStr)")
-            parameter("order", "draw_date.desc")
-            parameter("limit", "1")
-        }
-        weekMatch.firstOrNull() ?: throw NoDrawForWeekException()
-    }.fold(
-        onSuccess = { Result.success(it) },
-        onFailure = { error ->
-            Log.w(TAG, "getDrawForWeekContaining failed dateMillis=$dateMillis", error)
-            Result.failure(
-                if (error is NoDrawForWeekException) error
-                else IllegalStateException(mapRemoteError(error)),
-            )
+    suspend fun loadCachedDraw(date: LocalDate): BingoDrawResult? = BingoBlogsCache.readDraw(date)
+
+    suspend fun fetchStatus(): Result<BingoStatus> = successOrMappedFailure(
+        runCatching {
+            val dto = getJson<BingoStatusDto>(STATUS_URL, "fetchStatus", drawNotFoundOn404 = false)
+            val validated = BingoDrawValidator.validateStatus(dto)
+                ?: throw BingoRemoteException.InvalidStatus()
+            val merged = BingoCachePolicy.mergeStatus(BingoBlogsCache.readStatus(), validated)
+            BingoBlogsCache.writeStatus(merged)
+            merged
         },
     )
 
-    suspend fun getLatestDraw(): Result<BingoDrawDto> = runCatching {
-        SupabaseClientProvider.requireConfigured()
-        val rows: List<BingoDrawDto> = authorizedGet("bingo_draws", "getLatestDraw") {
-            parameter("select", "*")
-            // Single-column order avoids Ktor encoding commas in multi-sort values.
-            parameter("order", "draw_date.desc")
-            parameter("limit", LATEST_DRAWS_FETCH_LIMIT.toString())
-        }
-        if (BuildConfig.DEBUG) {
-            Log.d(
-                TAG,
-                "getLatestDraw responseCount=${rows.size} rows=${rows.joinToString { rowSummary(it) }}",
-            )
-        }
-        val draw = pickNewestDraw(rows) ?: error("No bingo draw found.")
-        if (BuildConfig.DEBUG) {
-            Log.d(
-                TAG,
-                "getLatestDraw picked ${rowSummary(draw)}",
-            )
-        }
-        draw
-    }.fold(
-        onSuccess = { Result.success(it) },
-        onFailure = { error ->
-            Log.w(TAG, "getLatestDraw failed", error)
-            Result.failure(IllegalStateException(mapRemoteError(error)))
+    suspend fun fetchDraw(date: LocalDate): Result<BingoDrawResult> = successOrMappedFailure(
+        runCatching {
+            val url = "$DRAWS_URL_PREFIX${BingoBerlinDates.formatIsoDate(date)}"
+            val dto = getJson<BingoDrawResultDto>(url, "fetchDraw", drawNotFoundOn404 = true)
+            val validated = BingoDrawValidator.validateDraw(date, dto)
+                ?: throw BingoRemoteException.InvalidDraw()
+            BingoBlogsCache.writeDraw(validated)
+            validated
         },
     )
 
-    suspend fun getPrizesForDraw(drawId: String): Result<List<BingoPrizeDto>> = runCatching {
-        val id = drawId.trim()
-        if (id.isBlank()) error("Draw id is required.")
-        SupabaseClientProvider.requireConfigured()
-        val prizes: List<BingoPrizeDto> = authorizedGet("bingo_prizes", "getPrizesForDraw") {
-            parameter("select", "*")
-            parameter("draw_id", "eq.$id")
-            parameter("order", "winning_class.asc")
+    suspend fun refreshLatest(): Result<Pair<BingoStatus?, BingoDrawResult?>> =
+        refreshMutex.withLock {
+            val statusResult = fetchStatus()
+            val status = statusResult.getOrNull()
+            val drawDate = status?.latestDrawDate
+            val drawResult = if (drawDate != null) fetchDraw(drawDate) else null
+            when {
+                statusResult.isFailure && drawResult?.isFailure != false &&
+                    BingoBlogsCache.readStatus() == null &&
+                    (drawDate == null || BingoBlogsCache.readDraw(drawDate) == null) ->
+                    Result.failure(statusResult.exceptionOrNull() ?: BingoRemoteException.NetworkUnavailable())
+                else -> Result.success(status to drawResult?.getOrNull())
+            }
         }
-        prizes
-    }.fold(
-        onSuccess = { Result.success(it) },
-        onFailure = { error ->
-            Log.w(TAG, "getPrizesForDraw failed drawId=$drawId", error)
-            Result.failure(IllegalStateException(mapRemoteError(error)))
-        },
-    )
 
-    /** Newest by ISO draw_date, then updated_at (handles out-of-order PostgREST rows). */
-    internal fun pickNewestDraw(rows: List<BingoDrawDto>): BingoDrawDto? =
-        rows.maxWithOrNull(
-            compareBy<BingoDrawDto> { it.drawDate }
-                .thenBy { it.updatedAt.orEmpty() },
+    suspend fun getDrawForWeekContaining(dateMillis: Long): Result<BingoDrawResult> {
+        val sunday = BingoBerlinDates.sundayContainingMillis(dateMillis)
+        BingoBlogsCache.readDraw(sunday)?.let { return Result.success(it) }
+        return fetchDraw(sunday)
+    }
+
+    private inline fun <T> successOrMappedFailure(result: Result<T>): Result<T> =
+        result.fold(
+            onSuccess = { Result.success(it) },
+            onFailure = { error ->
+                Log.w(TAG, "bingo request failed: ${error::class.java.simpleName}")
+                Result.failure(mapError(error))
+            },
         )
 
-    private fun rowSummary(draw: BingoDrawDto): String =
-        "draw_date=${draw.drawDate},jackpot=${draw.jackpot},updated_at=${draw.updatedAt}"
-
-    private suspend inline fun <reified T> authorizedGet(
-        table: String,
+    private suspend inline fun <reified T> getJson(
+        url: String,
         requestTag: String,
-        crossinline block: HttpRequestBuilder.() -> Unit = {},
+        drawNotFoundOn404: Boolean,
     ): T {
-        val anonKey = BuildConfig.SUPABASE_ANON_KEY.trim()
-        val baseUrl = BuildConfig.SUPABASE_URL.trim().trimEnd('/')
-        val response: HttpResponse = http.get("$baseUrl/rest/v1/$table") {
-            header(HttpHeaders.Accept, "application/json")
-            header("apikey", anonKey)
-            header(HttpHeaders.Authorization, "Bearer $anonKey")
-            header(HttpHeaders.CacheControl, "no-cache, no-store")
-            header("Pragma", "no-cache")
-            header(HttpHeaders.Expires, "0")
-            block()
-            if (BuildConfig.DEBUG) {
-                val loggedUrl = url.buildString()
-                    .replace(anonKey, "***")
-                Log.d(TAG, "$requestTag GET $loggedUrl")
+        val response: HttpResponse = try {
+            http.get(url) {
+                header(HttpHeaders.Accept, "application/json")
+                header(HttpHeaders.UserAgent, USER_AGENT)
             }
+        } catch (error: SocketTimeoutException) {
+            throw BingoRemoteException.Timeout()
+        } catch (error: IOException) {
+            throw BingoRemoteException.NetworkUnavailable()
         }
-        return response.body()
+        val statusCode = response.status.value
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "$requestTag status=$statusCode contentType=${response.contentType()}")
+        }
+        val peek = response.bodyAsText()
+        when (
+            BingoHttpResponse.outcome(
+                statusCode = statusCode,
+                contentType = response.contentType()?.withoutParameters()?.toString(),
+                bodyStart = peek.take(32),
+                drawNotFoundOn404 = drawNotFoundOn404,
+            )
+        ) {
+            BingoHttpOutcome.DRAW_NOT_FOUND -> throw BingoDrawNotFoundException()
+            BingoHttpOutcome.HTTP_ERROR -> throw BingoRemoteException.HttpStatus(statusCode)
+            BingoHttpOutcome.REJECT_NON_JSON -> {
+                if (drawNotFoundOn404) throw BingoRemoteException.InvalidDraw()
+                throw BingoRemoteException.InvalidStatus()
+            }
+            BingoHttpOutcome.DECODE_JSON -> Unit
+        }
+        val text = peek
+        return runCatching { json.decodeFromString<T>(text) }.getOrElse {
+            if (T::class == BingoDrawResultDto::class) throw BingoRemoteException.InvalidDraw()
+            throw BingoRemoteException.InvalidStatus()
+        }
     }
 
-    private fun mapRemoteError(error: Throwable): String = when (error) {
-        is IllegalStateException -> error.message.orEmpty().ifBlank { DEFAULT_ERROR }
-        else -> error.message?.takeIf { it.isNotBlank() } ?: DEFAULT_ERROR
+    private fun mapError(error: Throwable): Throwable = when (error) {
+        is BingoRemoteException,
+        is BingoDrawNotFoundException,
+        -> error
+        is SocketTimeoutException -> BingoRemoteException.Timeout()
+        is IOException -> BingoRemoteException.NetworkUnavailable()
+        else -> error
     }
-
-    private const val DEFAULT_ERROR = "Could not load bingo draw data."
 }

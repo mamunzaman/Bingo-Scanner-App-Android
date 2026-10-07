@@ -1,11 +1,15 @@
 ﻿# Next task
 
-**Goal:** Device QA — Projects tab from BingoBlogs (no 403 diagnostic logs).
+**Goal:** Device QA — Play Sheet label + more colorful Play thumbnail.
 
 **Verify:**
-- Projects tab shows the published CMS card (title, Rheinland-Pfalz, €71,680, image).
-- Featured slider only if `is_featured` is true; current live item is Recent.
-- Card tap opens `source_url` in the browser.
-- Pull-to-refresh and airplane-mode still show the last cached list.
+- Sheet says Play Sheet, not Player Sheet.
+- Play thumbnail: red left strip, blue header, 5-column grid.
+- Play / Digital / Master / Gallery still open the same flows.
+- Each type still opens the existing camera route; Gallery keeps the existing picker.
+- Light/dark, 320dp, 1.6× font, TalkBack one action per row.
+- No real ticket IDs in thumbnails.
+- System nav + Home spacing still correct.
+- BingoBlogs, B–I–N–G–O board, cache, n8n unchanged.
 
-**Previous:** Removed 403 bodyPreview/header diagnostics. assembleDebug OK.
+**Previous:** Opaque system nav; tab clearance `72+12`. TicketScanHero + always-on Live Play halo.

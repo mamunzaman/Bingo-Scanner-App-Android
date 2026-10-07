@@ -59,6 +59,7 @@ import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.PrimaryDark
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppHeaderPageLayout
 import com.example.mamunbingoapp.ui.components.AppPrimaryButton
 import com.example.mamunbingoapp.ui.components.AppPullRefresh
@@ -228,7 +229,7 @@ private fun ProjectsList(
             start = Dimens.screenHorizontalPadding,
             end = Dimens.screenHorizontalPadding,
             top = 0.dp,
-            bottom = Dimens.spacing32,
+            bottom = AppBottomBarScrollExtraPadding,
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.spacing20),
     ) {

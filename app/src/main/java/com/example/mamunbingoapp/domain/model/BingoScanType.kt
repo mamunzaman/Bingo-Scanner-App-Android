@@ -11,7 +11,7 @@ enum class BingoScanType {
 
     val title: String
         get() = when (this) {
-            PLAY_PAPER -> "Player Sheet"
+            PLAY_PAPER -> "Play Sheet"
             ONLINE -> "Digital Sheet"
             MAIN_SHEET -> "Master Sheet"
         }

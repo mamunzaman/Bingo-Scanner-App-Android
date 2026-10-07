@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
         com.example.mamunbingoapp.data.AccountRepository.init(applicationContext)
         com.example.mamunbingoapp.data.HistoryTestDateRepository.init(applicationContext)
         com.example.mamunbingoapp.data.projects.ProjectsRepository.init(applicationContext)
+        com.example.mamunbingoapp.data.remote.BingoRemoteRepository.init(applicationContext)
         AuthRepository.startup(applicationContext)
         dispatchIncomingIntent(intent)
         lifecycleScope.launch(Dispatchers.IO) { DemoSeeder.seedIfNeeded() }
@@ -109,7 +110,6 @@ class MainActivity : ComponentActivity() {
                 SideEffect {
                     (context as? ComponentActivity)?.window?.let { w ->
                         w.statusBarColor = AndroidColor.TRANSPARENT
-                        w.navigationBarColor = AndroidColor.TRANSPARENT
                     }
                 }
                 DisposableEffect(darkTheme) {

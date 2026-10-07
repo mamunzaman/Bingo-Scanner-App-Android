@@ -49,6 +49,9 @@ val WarningText = Color(0xFF92400E)
 val WarningSubText = Color(0xFFA16207)
 val Info = Color(0xFF1565C0)
 val GreenImpactBg = Color(0xFF064E3B)
+
+fun opaqueNavigationBarColor(darkTheme: Boolean): Color =
+    if (darkTheme) DarkSurface else Surface
 val EmptyHistoryCardBg = Color(0xFFFAFFF6)
 
 /** Branded chrome: light shell header gradient end (`AppHeaderBackground`, import hero). */

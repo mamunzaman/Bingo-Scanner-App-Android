@@ -20,9 +20,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -47,6 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,11 +55,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.annotation.StringRes
 import android.util.Log
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.OnPrimary
 import com.example.mamunbingoapp.theme.Primary
 import com.example.mamunbingoapp.theme.PrimaryDark
+import com.example.mamunbingoapp.ui.core.interaction.AppMotion
+import com.example.mamunbingoapp.ui.core.interaction.livePlayHaloFrame
+import com.example.mamunbingoapp.ui.core.interaction.rememberAppAnimationsEnabled
 
 enum class AppTab(
     val route: String,
@@ -76,33 +82,32 @@ enum class AppTab(
 }
 
 private val JackpotDiamondSize = 50.dp
+private val JackpotHaloSize = 76.dp
 private val JackpotDiamondDrop = 4.dp
-private val BottomBarHairlineHeight = 1.dp
+val AppBottomBarFadeHeight = AppMotion.BottomBarFadeHeightDp.dp
 private val BottomBarHeight = 72.dp
+val AppBottomBarControlHeight: Dp = BottomBarHeight
+val AppBottomBarContentPeek = 0.dp
 
-/** Bar shell: hairline + tab row ([navigationBarsPadding] not included). */
-val AppBottomBarShellHeight: Dp = BottomBarHairlineHeight + BottomBarHeight
+/** Overlay height: fade + tab row (system nav inset owned by the window / shell). */
+val AppBottomBarShellHeight: Dp = AppBottomBarFadeHeight + BottomBarHeight
 
-/** Jackpot diamond overlap above [AppBottomBarShellHeight]. */
+/** Jackpot diamond overlap above the control row. Decorative; not used in scroll padding. */
 val AppBottomBarDiamondProtrusion: Dp = JackpotDiamondSize / 2 - JackpotDiamondDrop
 
 /**
- * Extra scroll bottom inset when [AppBottomBar] is in scaffold [bottomBar]
- * (scaffold already applies shell height + navigation inset).
+ * One shared scroll-end clearance for main tabs: control row + modest gap.
+ * Does not include fade height, halo diameter, or system navigation inset.
  */
-val AppBottomBarScrollExtraPadding: Dp =
-    AppBottomBarDiamondProtrusion + Dimens.spacing12
+val AppBottomBarScrollExtraPadding: Dp = BottomBarHeight + Dimens.spacing12
 
 /** Space reserved above [AppBottomBar] for Home floating scan FAB. */
 val AppBottomBarFabClearance: Dp =
-    AppBottomBarShellHeight + AppBottomBarDiamondProtrusion + Dimens.spacing16
+    BottomBarHeight + AppBottomBarDiamondProtrusion + Dimens.spacing16
 
-/** Full scroll bottom inset when no scaffold bottom bar inset is applied. */
+/** Same as [AppBottomBarScrollExtraPadding]; system inset is owned by MainShell + the bar. */
 @Composable
-fun appBottomBarTotalScrollBottomPadding(): Dp {
-    val navigationBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    return AppBottomBarShellHeight + navigationBottom + AppBottomBarScrollExtraPadding
-}
+fun appBottomBarTotalScrollBottomPadding(): Dp = AppBottomBarScrollExtraPadding
 
 fun Modifier.appBottomBarScrollExtraPadding(): Modifier =
     padding(bottom = AppBottomBarScrollExtraPadding)
@@ -131,6 +136,29 @@ fun AppBottomBar(
     val cs = MaterialTheme.colorScheme
     val jackpotLabel = stringResource(AppTab.Jackpot.labelResId)
     val jackpotSelected = selectedTab == AppTab.Jackpot
+    val animationsEnabled = rememberAppAnimationsEnabled()
+    val haloPulse = if (animationsEnabled) {
+        val haloTransition = rememberInfiniteTransition(label = "livePlayHalo")
+        haloTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(AppMotion.HaloMs, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "livePlayHaloPulse",
+        ).value
+    } else {
+        0f
+    }
+    val surface = cs.surface
+    val fadeBrush = Brush.verticalGradient(
+        0f to Color.Transparent,
+        0.30f to surface.copy(alpha = AppMotion.BottomBarFadeFirstAlpha),
+        0.65f to surface.copy(alpha = AppMotion.BottomBarFadeMidAlpha),
+        1f to surface.copy(alpha = AppMotion.BottomBarFadeEndAlpha),
+    )
+    val barFill = surface.copy(alpha = AppMotion.BottomBarControlAlpha)
 
     Box(
         modifier = modifier
@@ -141,20 +169,20 @@ fun AppBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .then(if (showTopShadow) Modifier.shadow(Dimens.cardElevationSubtle) else Modifier)
-                .background(cs.surface)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .graphicsLayer { clip = false },
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.dp)
-                    .background(cs.outlineVariant.copy(alpha = Dimens.outlineDividerAlpha)),
+                    .height(AppBottomBarFadeHeight)
+                    .background(fadeBrush),
             )
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(BottomBarHeight)
+                    .background(barFill)
                     .padding(horizontal = Dimens.spacing8),
             ) {
                 val itemWidth = maxWidth / AppTab.entries.size
@@ -197,10 +225,12 @@ fun AppBottomBar(
             label = jackpotLabel,
             onClick = { selectTab(AppTab.Jackpot) },
             tabsEnabled = tabsEnabled,
+            haloPulse = haloPulse,
+            animationsEnabled = animationsEnabled,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .offset(y = -(1.dp + BottomBarHeight - JackpotDiamondSize / 2) + JackpotDiamondDrop)
+                .offset(y = -(BottomBarHeight - JackpotDiamondSize / 2) + JackpotDiamondDrop)
                 .zIndex(1f)
                 .graphicsLayer { clip = false },
         )
@@ -348,18 +378,12 @@ private fun BottomBarJackpotDiamondOverlay(
     label: String,
     onClick: () -> Unit,
     tabsEnabled: Boolean = true,
+    haloPulse: Float,
+    animationsEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val diamondShape = RoundedCornerShape(Dimens.radiusMedium)
-    val diamondScale by animateFloatAsState(
-        targetValue = if (selected) 1.03f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "jackpotDiamondScale",
-    )
     val gradientTop by animateColorAsState(
         targetValue = if (selected) Primary else Primary.copy(alpha = 0.92f),
         animationSpec = tween(durationMillis = 180),
@@ -372,21 +396,25 @@ private fun BottomBarJackpotDiamondOverlay(
     )
     Box(
         modifier = modifier
-            .size(JackpotDiamondSize)
-            .semantics { this[SemanticsProperties.Selected] = selected }
-            .clickable(
-                enabled = tabsEnabled,
-                indication = null,
-                interactionSource = interactionSource,
-                onClick = onClick,
-            ),
+            .size(JackpotHaloSize)
+            .graphicsLayer { clip = false },
         contentAlignment = Alignment.Center,
     ) {
+        LivePlayHalo(
+            selected = selected,
+            pulse = haloPulse,
+            animationsEnabled = animationsEnabled,
+        )
         Box(
             modifier = Modifier
                 .size(JackpotDiamondSize)
-                .scale(diamondScale)
-                .graphicsLayer { clip = false },
+                .semantics { this[SemanticsProperties.Selected] = selected }
+                .clickable(
+                    enabled = tabsEnabled,
+                    indication = null,
+                    interactionSource = interactionSource,
+                    onClick = onClick,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -422,6 +450,30 @@ private fun BottomBarJackpotDiamondOverlay(
             }
         }
     }
+}
+
+@Composable
+private fun LivePlayHalo(
+    selected: Boolean,
+    pulse: Float,
+    animationsEnabled: Boolean,
+) {
+    val frame = livePlayHaloFrame(pulse, selected, animationsEnabled)
+    Box(
+        modifier = Modifier
+            .size(JackpotHaloSize)
+            .clearAndSetSemantics { }
+            .graphicsLayer {
+                scaleX = frame.scale
+                scaleY = frame.scale
+                clip = false
+            }
+            .rotate(45f)
+            .background(
+                color = Primary.copy(alpha = frame.alpha),
+                shape = RoundedCornerShape(Dimens.radiusLarge),
+            ),
+    )
 }
 
 @Preview(showBackground = true)

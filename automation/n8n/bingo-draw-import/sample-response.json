@@ -1,0 +1,157 @@
+{
+  "_comment": "SYNTHETIC test fixture only. Not a live Umweltlotterie payload and not production data.",
+  "bingo": {
+    "currency": {
+      "id": 1,
+      "name": "EUR"
+    },
+    "drawDate": 1772985600000,
+    "lastDataChange": 1773000000000,
+    "jackpotCurrently": 724633.3,
+    "jackpotNew": 1000000,
+    "gameType": {
+      "id": 13,
+      "name": "BINGO"
+    },
+    "drawNumbersCollection": [
+      {
+        "drawIndex": 8,
+        "drawNumber": 54,
+        "id": 91008,
+        "index": 7
+      },
+      {
+        "drawIndex": 1,
+        "drawNumber": 12,
+        "id": 91001,
+        "index": 1
+      },
+      {
+        "drawIndex": 15,
+        "drawNumber": 15,
+        "id": 91015,
+        "index": 11
+      },
+      {
+        "drawIndex": 22,
+        "drawNumber": 50,
+        "id": 91022,
+        "index": 22
+      },
+      {
+        "drawIndex": 4,
+        "drawNumber": 71,
+        "id": 91004,
+        "index": 4
+      },
+      {
+        "drawIndex": 11,
+        "drawNumber": 33,
+        "id": 91011,
+        "index": 11
+      },
+      {
+        "drawIndex": 19,
+        "drawNumber": 19,
+        "id": 91019,
+        "index": 19
+      },
+      {
+        "drawIndex": 6,
+        "drawNumber": 29,
+        "id": 91006,
+        "index": 6
+      },
+      {
+        "drawIndex": 12,
+        "drawNumber": 40,
+        "id": 91012,
+        "index": 7
+      },
+      {
+        "drawIndex": 2,
+        "drawNumber": 45,
+        "id": 91002,
+        "index": 2
+      },
+      {
+        "drawIndex": 17,
+        "drawNumber": 58,
+        "id": 91017,
+        "index": 17
+      },
+      {
+        "drawIndex": 9,
+        "drawNumber": 61,
+        "id": 91009,
+        "index": 9
+      },
+      {
+        "drawIndex": 20,
+        "drawNumber": 41,
+        "id": 91020,
+        "index": 20
+      },
+      {
+        "drawIndex": 5,
+        "drawNumber": 18,
+        "id": 91005,
+        "index": 5
+      },
+      {
+        "drawIndex": 13,
+        "drawNumber": 22,
+        "id": 91013,
+        "index": 13
+      },
+      {
+        "drawIndex": 3,
+        "drawNumber": 3,
+        "id": 91003,
+        "index": 3
+      },
+      {
+        "drawIndex": 16,
+        "drawNumber": 2,
+        "id": 91016,
+        "index": 16
+      },
+      {
+        "drawIndex": 7,
+        "drawNumber": 8,
+        "id": 91007,
+        "index": 7
+      },
+      {
+        "drawIndex": 18,
+        "drawNumber": 74,
+        "id": 91018,
+        "index": 18
+      },
+      {
+        "drawIndex": 10,
+        "drawNumber": 7,
+        "id": 91010,
+        "index": 10
+      },
+      {
+        "drawIndex": 14,
+        "drawNumber": 66,
+        "id": 91014,
+        "index": 14
+      },
+      {
+        "drawIndex": 21,
+        "drawNumber": 27,
+        "id": 91021,
+        "index": 21
+      }
+    ]
+  },
+  "spiel77": {
+    "gameType": {
+      "name": "SPIEL77"
+    },
+    "numbers": "0000000"
+  }
+}

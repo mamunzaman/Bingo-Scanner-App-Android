@@ -57,7 +57,7 @@ object Dimens {
     /** Gap between [com.example.mamunbingoapp.ui.components.AppPageTopBar] and scrollable body on main screens. */
     val pageContentTopPadding = spacing16
 
-    /** Base scroll bottom inset above shell bottom bar; add [com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding] on tab roots. */
+    /** Generic page bottom gap. Main tabs use [com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding] only. */
     val pageContentBottomPadding = spacing16
 
     /**

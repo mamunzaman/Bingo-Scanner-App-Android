@@ -95,16 +95,9 @@ object SupabaseClientProvider {
     suspend fun runDebugNetworkProbes() {
         if (!BuildConfig.DEBUG || !isConfigured()) return
         val baseUrl = BuildConfig.SUPABASE_URL.trim().trimEnd('/')
-        val anonKey = BuildConfig.SUPABASE_ANON_KEY.trim()
         probeGet(
             endpointName = "auth-health",
             url = "$baseUrl/auth/v1/health",
-        )
-        probeGet(
-            endpointName = "rest-bingo-draws",
-            url = "$baseUrl/rest/v1/bingo_draws?select=draw_date&limit=1",
-            apiKeyOnly = true,
-            anonKey = anonKey,
         )
     }
 
