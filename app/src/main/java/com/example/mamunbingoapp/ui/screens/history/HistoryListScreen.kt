@@ -69,6 +69,7 @@ import com.example.mamunbingoapp.viewmodel.HistorySortOption
 import com.example.mamunbingoapp.viewmodel.HistorySourceFilter
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.ui.components.AppBottomBar
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.BulkSelectionActionBar
 import com.example.mamunbingoapp.ui.components.DeleteFromHistoryBulkConfirmDialog
 import com.example.mamunbingoapp.ui.components.LeaveRoomBulkConfirmDialog
@@ -454,7 +455,7 @@ fun HistoryListScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
                                 top = historyHeaderHeight,
-                                bottom = Dimens.pageContentBottomPadding + Dimens.spacing8,
+                                bottom = AppBottomBarScrollExtraPadding,
                             ),
                             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
                         ) {

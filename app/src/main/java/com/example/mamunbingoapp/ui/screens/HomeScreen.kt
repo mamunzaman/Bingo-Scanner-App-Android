@@ -1,5 +1,12 @@
 package com.example.mamunbingoapp.ui.screens
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +47,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mamunbingoapp.data.HistorySession
-import com.example.mamunbingoapp.data.remote.BingoDrawDto
+import com.example.mamunbingoapp.data.bingo.BingoDrawResult
+import com.example.mamunbingoapp.data.bingo.BingoStatus
 import com.example.mamunbingoapp.data.TicketCalledNumbersResolver
 import com.example.mamunbingoapp.viewmodel.HomeActiveTicketCardState
 import com.example.mamunbingoapp.viewmodel.HomeActiveTicketsUiState
@@ -48,6 +56,7 @@ import com.example.mamunbingoapp.viewmodel.HomeViewModel
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
@@ -84,6 +93,8 @@ import com.example.mamunbingoapp.ui.components.home.ActiveTicketCardModel
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import com.example.mamunbingoapp.ui.components.home.CurrentJackpotCard
 import com.example.mamunbingoapp.domain.model.BingoScanType
+import com.example.mamunbingoapp.ui.core.interaction.AppMotion
+import com.example.mamunbingoapp.ui.core.interaction.rememberAppAnimationsEnabled
 import com.example.mamunbingoapp.ui.screens.scan.ScanTypeSelectionSheet
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -99,8 +110,6 @@ private fun dispatchHomeQuickAction(
     runCatching { onQuickActionClick(action) }
 }
 
-private val homeScrollBottomPadding =
-    Dimens.pageContentBottomPadding + AppBottomBarScrollExtraPadding
 private val homeFabBottomPadding = Dimens.spacing24
 
 @Composable
@@ -120,9 +129,11 @@ fun HomeScreen(
     onProfileRefresh: () -> Unit = {},
     homeViewModel: HomeViewModel = viewModel(),
 ) {
+    val bingoStatus by homeViewModel.bingoStatus.collectAsStateWithLifecycle()
     val latestDraw by homeViewModel.latestDraw.collectAsStateWithLifecycle()
     val isRemoteLoading by homeViewModel.isRemoteLoading.collectAsStateWithLifecycle()
     val remoteError by homeViewModel.remoteError.collectAsStateWithLifecycle()
+    val refreshWarning by homeViewModel.refreshWarning.collectAsStateWithLifecycle()
     val activeTicketsUi by homeViewModel.activeTicketsUi.collectAsStateWithLifecycle()
     val defaultPlayerName = stringResource(R.string.home_default_player_name)
     val welcomeName = profileDisplayName?.takeIf { it.isNotBlank() } ?: defaultPlayerName
@@ -159,7 +170,9 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(bottom = homeScrollBottomPadding)
+                .padding(
+                    bottom = AppBottomBarScrollExtraPadding,
+                )
             AppPullRefresh(
                 isRefreshing = isHomeRefreshing,
                 onRefresh = refreshHome,
@@ -171,9 +184,10 @@ fun HomeScreen(
                         onQuickActionClick = onQuickActionClick,
                         onTicketClick = onTicketClick,
                         onViewAllTickets = onViewAllTickets,
+                        bingoStatus = bingoStatus,
                         latestDraw = latestDraw,
                         isRemoteLoading = isRemoteLoading,
-                        remoteError = remoteError,
+                        remoteError = remoteError ?: refreshWarning,
                         activeTicketsUi = activeTicketsUi,
                     )
                 }
@@ -276,7 +290,8 @@ private fun HomeScrollBody(
     onQuickActionClick: (String) -> Unit,
     onTicketClick: (String) -> Unit,
     onViewAllTickets: () -> Unit,
-    latestDraw: BingoDrawDto?,
+    bingoStatus: BingoStatus?,
+    latestDraw: BingoDrawResult?,
     isRemoteLoading: Boolean,
     remoteError: String?,
     activeTicketsUi: HomeActiveTicketsUiState,
@@ -285,6 +300,7 @@ private fun HomeScrollBody(
         var showLatestNumbersSheet by remember { mutableStateOf(false) }
         Column {
             CurrentJackpotCard(
+                status = bingoStatus,
                 latestDraw = latestDraw,
                 isRemoteLoading = isRemoteLoading,
                 remoteError = remoteError,
@@ -586,6 +602,9 @@ private fun GreenImpactCard(
         shadowElevation = 0.dp,
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
+            GreenImpactAmbientBackground(
+                animationsEnabled = rememberAppAnimationsEnabled(),
+            )
             Icon(
                 imageVector = Icons.Filled.Forest,
                 contentDescription = null,
@@ -632,5 +651,70 @@ private fun GreenImpactCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun GreenImpactAmbientBackground(
+    animationsEnabled: Boolean,
+) {
+    val farProgress: Float
+    val nearProgress: Float
+    val alphaProgress: Float
+    if (animationsEnabled) {
+        val transition = rememberInfiniteTransition(label = "greenImpactAmbient")
+        farProgress = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(AppMotion.AmbientFarMs, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "greenImpactFar",
+        ).value
+        nearProgress = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(AppMotion.AmbientNearMs, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "greenImpactNear",
+        ).value
+        alphaProgress = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(AppMotion.AmbientAlphaMs, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "greenImpactAlpha",
+        ).value
+    } else {
+        farProgress = 0.5f
+        nearProgress = 0.5f
+        alphaProgress = 0.5f
+    }
+    val highlight = MaterialTheme.colorScheme.surface
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val farDx = (farProgress - 0.5f) * 2f * AppMotion.AmbientFarDrift.toPx()
+        val nearDy = (nearProgress - 0.5f) * 2f * AppMotion.AmbientNearDrift.toPx()
+        val pulseAlpha = AppMotion.AmbientCircleAlphaMin +
+            (AppMotion.AmbientCircleAlphaMax - AppMotion.AmbientCircleAlphaMin) * alphaProgress
+        drawCircle(
+            color = highlight.copy(alpha = 0.10f),
+            radius = size.maxDimension * 0.42f,
+            center = Offset(size.width * 0.18f + farDx, size.height * 0.22f),
+        )
+        drawCircle(
+            color = highlight.copy(alpha = 0.08f),
+            radius = size.maxDimension * 0.28f,
+            center = Offset(size.width * 0.82f, size.height * 0.18f + nearDy),
+        )
+        drawCircle(
+            color = highlight.copy(alpha = pulseAlpha),
+            radius = size.maxDimension * 0.20f,
+            center = Offset(size.width * 0.62f, size.height * 0.78f + nearDy * 0.4f),
+        )
     }
 }

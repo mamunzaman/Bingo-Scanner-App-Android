@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mamunbingoapp.BuildConfig
 import com.example.mamunbingoapp.R
 import com.example.mamunbingoapp.data.HOME_ACTIVE_TICKET_MAX_AGE_MS
 import com.example.mamunbingoapp.data.HistoryRepository
@@ -16,8 +15,10 @@ import com.example.mamunbingoapp.data.TicketCalledNumbersResolver
 import com.example.mamunbingoapp.data.TicketPlayLogRepository
 import com.example.mamunbingoapp.data.TicketRepository
 import com.example.mamunbingoapp.data.db.TicketCellEntity
-import com.example.mamunbingoapp.data.remote.BingoDrawDto
-import com.example.mamunbingoapp.data.remote.BingoPrizeDto
+import com.example.mamunbingoapp.data.bingo.BingoDrawNotFoundException
+import com.example.mamunbingoapp.data.bingo.BingoDrawResult
+import com.example.mamunbingoapp.data.bingo.BingoRemoteException
+import com.example.mamunbingoapp.data.bingo.BingoStatus
 import com.example.mamunbingoapp.data.remote.BingoRemoteRepository
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -75,17 +76,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         const val TAG = "HomeViewModel"
     }
 
-    private val _latestDraw = MutableStateFlow<BingoDrawDto?>(null)
-    val latestDraw: StateFlow<BingoDrawDto?> = _latestDraw.asStateFlow()
+    private val _bingoStatus = MutableStateFlow<BingoStatus?>(null)
+    val bingoStatus: StateFlow<BingoStatus?> = _bingoStatus.asStateFlow()
 
-    private val _latestPrizes = MutableStateFlow<List<BingoPrizeDto>>(emptyList())
-    val latestPrizes: StateFlow<List<BingoPrizeDto>> = _latestPrizes.asStateFlow()
+    private val _latestDraw = MutableStateFlow<BingoDrawResult?>(null)
+    val latestDraw: StateFlow<BingoDrawResult?> = _latestDraw.asStateFlow()
 
     private val _isRemoteLoading = MutableStateFlow(false)
     val isRemoteLoading: StateFlow<Boolean> = _isRemoteLoading.asStateFlow()
 
     private val _remoteError = MutableStateFlow<String?>(null)
     val remoteError: StateFlow<String?> = _remoteError.asStateFlow()
+
+    private val _refreshWarning = MutableStateFlow<String?>(null)
+    val refreshWarning: StateFlow<String?> = _refreshWarning.asStateFlow()
 
     private val activeTicketsInputFlow = combine(
         combine(
@@ -140,10 +144,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         refreshLatestBingoDraw()
     }
 
-    /** Reload jackpot / draw from Supabase (tab return, pull-to-refresh, cold start). */
+    /** Reload BingoBlogs status + latest draw (tab return, pull-to-refresh, cold start). */
     fun refreshLatestBingoDraw() {
+        if (latestDrawLoadJob?.isActive == true) return
         val requestId = latestDrawRequestId.incrementAndGet()
-        latestDrawLoadJob?.cancel()
         latestDrawLoadJob = viewModelScope.launch {
             loadLatestBingoDraw(requestId)
         }
@@ -187,7 +191,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val activeCalledCount = activeLiveRoomId
             ?.let { input.calledNumbersByRoom[it]?.size }
             ?: 0
-        val drawCache = mutableMapOf<Long, List<Int>?>()
+        val drawCache = mutableMapOf<String, List<Int>?>()
         val previewSessions = displaySessions.ifEmpty { recentSessions }
         val previews = previewSessions.map { session ->
             val ticketId = session.ticketId
@@ -272,53 +276,77 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun loadLatestBingoDraw(requestId: Int) {
+        val app = getApplication<Application>()
+        var snapshot = HomeBingoUiSnapshot(
+            status = _bingoStatus.value,
+            draw = _latestDraw.value,
+        )
+        val cachedStatus = BingoRemoteRepository.loadCachedStatus()
+        val cachedDrawDate = cachedStatus?.latestDrawDate
+        val cachedDraw = cachedDrawDate?.let { BingoRemoteRepository.loadCachedDraw(it) }
+        snapshot = HomeBingoRefreshReducer.applyCached(snapshot, cachedStatus, cachedDraw)
+        publishSnapshot(snapshot)
+        if (!isLatestDrawRequest(requestId)) return
+
         _isRemoteLoading.value = true
-        _remoteError.value = null
         try {
-            BingoRemoteRepository.getLatestDraw()
-                .onSuccess { draw ->
-                    if (!isLatestDrawRequest(requestId)) {
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "Ignoring stale draw response requestId=$requestId")
-                        }
-                        return@onSuccess
-                    }
-                    if (BuildConfig.DEBUG) {
-                        Log.d(
-                            TAG,
-                            "Applying latest draw requestId=$requestId " +
-                                "drawDate=${draw.drawDate} jackpot=${draw.jackpot} " +
-                                "updatedAt=${draw.updatedAt}",
-                        )
-                    }
-                    _latestDraw.value = draw
-                    BingoRemoteRepository.getPrizesForDraw(draw.id)
-                        .onSuccess { prizes ->
-                            if (isLatestDrawRequest(requestId)) {
-                                _latestPrizes.value = prizes
+            BingoRemoteRepository.fetchStatus()
+                .onSuccess { status ->
+                    if (!isLatestDrawRequest(requestId)) return@onSuccess
+                    snapshot = HomeBingoRefreshReducer.applyStatusSuccess(snapshot, status)
+                    publishSnapshot(snapshot)
+                    val drawDate = status.latestDrawDate
+                    if (drawDate != null) {
+                        BingoRemoteRepository.fetchDraw(drawDate)
+                            .onSuccess { draw ->
+                                if (!isLatestDrawRequest(requestId)) return@onSuccess
+                                snapshot = HomeBingoRefreshReducer.applyDrawSuccess(snapshot, draw)
+                                publishSnapshot(snapshot)
                             }
-                        }
-                        .onFailure { error ->
-                            if (!isLatestDrawRequest(requestId)) return@onFailure
-                            Log.w(TAG, "Failed to load prizes", error)
-                            _remoteError.value = getApplication<Application>().getString(
-                                R.string.home_error_load_prizes,
-                            )
-                        }
+                            .onFailure { error ->
+                                if (!isLatestDrawRequest(requestId)) return@onFailure
+                                Log.w(TAG, "Failed to load latest draw", error)
+                                snapshot = HomeBingoRefreshReducer.applyDrawFailure(
+                                    snapshot,
+                                    warning = app.getString(R.string.home_bingo_showing_cached),
+                                    blocking = mapBingoError(error),
+                                )
+                                publishSnapshot(snapshot)
+                            }
+                    }
                 }
                 .onFailure { error ->
                     if (!isLatestDrawRequest(requestId)) return@onFailure
-                    Log.w(TAG, "Failed to load latest draw", error)
-                    _latestDraw.value = null
-                    _latestPrizes.value = emptyList()
-                    _remoteError.value = getApplication<Application>().getString(
-                        R.string.home_error_load_latest_draw,
+                    Log.w(TAG, "Failed to load bingo status", error)
+                    snapshot = HomeBingoRefreshReducer.applyStatusFailure(
+                        snapshot,
+                        warning = app.getString(R.string.home_bingo_showing_cached),
+                        blocking = mapBingoError(error),
                     )
+                    publishSnapshot(snapshot)
                 }
         } finally {
             if (isLatestDrawRequest(requestId)) {
                 _isRemoteLoading.value = false
             }
+        }
+    }
+
+    private fun publishSnapshot(snapshot: HomeBingoUiSnapshot) {
+        _bingoStatus.value = snapshot.status
+        _latestDraw.value = snapshot.draw
+        _remoteError.value = snapshot.blockingError
+        _refreshWarning.value = snapshot.refreshWarning
+    }
+
+    private fun mapBingoError(error: Throwable): String {
+        val app = getApplication<Application>()
+        return when (error) {
+            is BingoDrawNotFoundException -> app.getString(R.string.home_bingo_draw_unavailable)
+            is BingoRemoteException.Timeout,
+            is BingoRemoteException.NetworkUnavailable,
+            -> app.getString(R.string.home_bingo_refresh_failed)
+            else -> app.getString(R.string.home_error_load_latest_draw)
         }
     }
 

@@ -78,7 +78,14 @@ fun MamunBingoTheme(
             val window = (view.context as Activity).window
             @Suppress("DEPRECATION")
             window.statusBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = opaqueNavigationBarColor(darkTheme).toArgb()
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+            }
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
     CompositionLocalProvider(LocalPrimaryBorder provides if (darkTheme) DarkPrimaryBorder else PrimaryBorder) {

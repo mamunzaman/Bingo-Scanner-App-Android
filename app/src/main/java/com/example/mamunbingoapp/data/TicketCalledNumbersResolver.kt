@@ -1,9 +1,12 @@
 package com.example.mamunbingoapp.data
 
+import com.example.mamunbingoapp.data.bingo.BingoBerlinDates
+import com.example.mamunbingoapp.data.bingo.BingoDrawNotFoundException
+import com.example.mamunbingoapp.data.bingo.BingoDrawResult
 import com.example.mamunbingoapp.data.db.TicketCellEntity
 import com.example.mamunbingoapp.data.remote.BingoRemoteRepository
-import com.example.mamunbingoapp.data.remote.NoDrawForWeekException
 import com.example.mamunbingoapp.ui.components.home.ActiveTicketCellState
+import java.time.LocalDate
 
 object TicketCalledNumbersResolver {
 
@@ -40,23 +43,31 @@ object TicketCalledNumbersResolver {
     suspend fun forOfflineTicket(
         testDateMillis: Long?,
         archivedNumbers: List<Int>,
-        drawCache: MutableMap<Long, List<Int>?> = mutableMapOf(),
+        drawCache: MutableMap<String, List<Int>?> = mutableMapOf(),
+        fetchDraw: suspend (LocalDate) -> kotlin.Result<BingoDrawResult> = {
+            BingoRemoteRepository.getDrawForWeekContaining(
+                it.atStartOfDay(BingoBerlinDates.berlinZone).toInstant().toEpochMilli(),
+            )
+        },
+        resolveSunday: (Long) -> LocalDate = BingoBerlinDates::sundayContainingMillis,
     ): Result {
         if (testDateMillis != null) {
-            val cachedNumbers = drawCache[testDateMillis]
+            val sunday = resolveSunday(testDateMillis)
+            val sundayKey = BingoBerlinDates.formatIsoDate(sunday)
+            val cachedNumbers = drawCache[sundayKey]
             if (cachedNumbers == null) {
-                val drawResult = BingoRemoteRepository.getDrawForWeekContaining(testDateMillis)
+                val drawResult = fetchDraw(sunday)
                 val draw = drawResult.getOrNull()
-                drawCache[testDateMillis] = draw?.winningNumbers
+                drawCache[sundayKey] = draw?.winningNumbers
                 if (draw != null && draw.winningNumbers.isNotEmpty()) {
                     return Result(
                         calledNumbers = draw.winningNumbers,
                         source = Source.TEST_DATE,
-                        drawDateLabel = draw.drawDate,
+                        drawDateLabel = BingoBerlinDates.formatIsoDate(draw.drawDate),
                     )
                 }
                 val testDateError = when {
-                    drawResult.isFailure && drawResult.exceptionOrNull() is NoDrawForWeekException ->
+                    drawResult.exceptionOrNull() is BingoDrawNotFoundException ->
                         TestDateError.NO_DRAW
                     drawResult.isFailure -> TestDateError.LOAD_ERROR
                     else -> TestDateError.NO_DRAW
@@ -75,7 +86,7 @@ object TicketCalledNumbersResolver {
                 )
             }
             if (cachedNumbers.isNotEmpty()) {
-                return Result(cachedNumbers, Source.TEST_DATE)
+                return Result(cachedNumbers, Source.TEST_DATE, drawDateLabel = sundayKey)
             }
             if (archivedNumbers.isNotEmpty()) {
                 return Result(archivedNumbers, Source.ARCHIVED)

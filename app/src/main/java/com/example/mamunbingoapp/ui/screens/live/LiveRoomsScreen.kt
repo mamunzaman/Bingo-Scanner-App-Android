@@ -139,6 +139,7 @@ import com.example.mamunbingoapp.ui.components.AppSectionSurface
 import com.example.mamunbingoapp.ui.components.AppSectionTitle
 import com.example.mamunbingoapp.ui.components.AppIconContainer
 import com.example.mamunbingoapp.ui.components.AppIconTile
+import com.example.mamunbingoapp.ui.components.AppBottomBarScrollExtraPadding
 import com.example.mamunbingoapp.ui.components.AppTab
 import com.example.mamunbingoapp.ui.components.AppTextField
 import com.example.mamunbingoapp.ui.components.AppBottomSheetSurface
@@ -291,7 +292,7 @@ fun LiveRoomsScreen(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(bottom = Dimens.pageContentBottomPadding),
+                .padding(bottom = AppBottomBarScrollExtraPadding),
             verticalArrangement = Arrangement.spacedBy(Dimens.spacing16)
         ) {
             SundayFeaturedRoomHero(

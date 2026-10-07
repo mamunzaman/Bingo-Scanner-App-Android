@@ -96,7 +96,7 @@ private data class ScanLayoutMetrics(
 @Composable
 private fun rememberScanLayoutMetrics(screenHeight: Dp): ScanLayoutMetrics {
     val heightScale = (screenHeight / ScanLayoutReferenceHeight).coerceIn(0.62f, 1f)
-    val fabSafePadding = AppBottomBarScrollExtraPadding + Dimens.spacing16
+    val fabSafePadding = AppBottomBarScrollExtraPadding
 
     val heroGap = lerpDp(Dimens.spacing4, Dimens.spacing12, heightScale)
     val manualGap = lerpDp(Dimens.spacing4, Dimens.spacing8, heightScale)
@@ -117,7 +117,7 @@ private fun rememberScanLayoutMetrics(screenHeight: Dp): ScanLayoutMetrics {
         96.dp
 
     val illustrationMaxHeight = (screenHeight - manualBlock - heroBlock).coerceAtLeast(72.dp)
-    val illustrationScale = (illustrationMaxHeight / 160.dp).coerceIn(0.52f, 1f)
+    val illustrationScale = (illustrationMaxHeight / 160.dp).coerceIn(0.78f, 1f)
 
     return ScanLayoutMetrics(
         illustrationScale = illustrationScale,
@@ -310,7 +310,7 @@ private fun ScanAutoSection(
             .padding(bottom = ScanHeroBottomCurveHeight + ScanHeroCurveClearance),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ScanScreenHeroIllustration(
+        TicketScanHero(
             animationsEnabled = animationsEnabled,
             contentScale = metrics.illustrationScale,
             maxIllustrationHeight = metrics.illustrationMaxHeight,

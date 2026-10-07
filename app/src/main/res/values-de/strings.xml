@@ -112,6 +112,9 @@
     <string name="home_active_ticket_serie_label">SERIE</string>
     <string name="home_error_load_prizes">Preise konnten nicht geladen werden.</string>
     <string name="home_error_load_latest_draw">Letzte Ziehung konnte nicht geladen werden.</string>
+    <string name="home_bingo_refresh_failed">Die BINGO!-Daten konnten nicht aktualisiert werden.</string>
+    <string name="home_bingo_draw_unavailable">Die Ziehungsergebnisse sind noch nicht verfügbar.</string>
+    <string name="home_bingo_showing_cached">Die zuletzt gespeicherten Ergebnisse werden angezeigt.</string>
     <string name="home_view_all">Alle anzeigen</string>
     <string name="my_tickets_filter_week">Woche</string>
     <string name="home_green_impact">Dein grüner Impact</string>

@@ -1,6 +1,20 @@
 # Project status
 
-**Last update:** 2026-10-05 - **Projects 403 DEBUG logs removed.** Accept + User-Agent + 2xx check kept. assembleDebug OK.
+**Last update:** 2026-10-07 - **Scan-type polish:** User-facing “Play Sheet” (enum `PLAY_PAPER` unchanged). Play thumbnail is a more colorful Canvas ticket (red strip, blue header, 5-col grid). Digital/Master/gallery/routes unchanged.
+
+**Previous:** 2026-10-07 - **Scan-type sheet redesign:** “What are you scanning?” + Play/Digital/Master rows with Compose-drawn thumbnails; Gallery in a separate section. Existing `BingoScanType` callbacks/routes unchanged. No reference photos shipped.
+
+**Previous:** 2026-10-07 - **System nav + spacing:** Window nav bar is opaque theme surface (not transparent). App tabs are solid; 40dp fade only above them. One scroll clearance `72+12` dp; MainShell owns system inset once. Live Play halo and scanner hero unchanged.
+
+**Previous:** 2026-10-07 - **Chrome correction (device QA):** Rebuilt `TicketScanHero` (ticket + brackets + scan mark, no grid). Nav uses 56dp transparent-to-0.88 fade, no opaque shell inset. Live Play `rememberInfiniteTransition` always runs (selected quieter, not static). First pass failed: 12dp fade under ~92% fill, selected skipped the infinite transition, hero was a faint grid card.
+
+**Previous:** 2026-10-07 - **Home / nav / scanner polish:** Green Impact ambient Canvas drift (clip to card); Live Play decorative halo; translucent `AppBottomBar` + content peek; `TicketScanHero` ticket + scan line. Reduced motion via `rememberAppAnimationsEnabled`. No API/cache/BingoBlogs/n8n/Supabase/camera changes.
+
+**Previous:** 2026-10-07 - **Latest Numbers B–I–N–G–O restored:** Home sheet uses `TvBingoBoard` again; columns keep API-relative order. Preview is first six calls. BingoBlogs feed, cache, n8n package unchanged.
+
+**Previous:** 2026-10-07 - **Home BingoBlogs feed:** Android reads `GET /api/bingo/status` + `GET /api/bingo/draws/{date}`; DataStore cache (status + 60 draws); no runtime `bingo_draws`/`bingo_prizes`. n8n package `automation/n8n/bingo-draw-import` unchanged. Server `scrape-bingo` still present (rollback only).
+
+**Previous:** 2026-10-07 - **n8n Bingo draw import package** added under `automation/n8n/bingo-draw-import/` (inactive export, no secrets).
 
 **Previous:** 2026-09-23 - **Sunday room schedule:** Berlin 17:00–18:00 state, lifecycle-aware ticker, plural countdown labels, Clock/DST tests. Tests + assembleDebug OK.
 

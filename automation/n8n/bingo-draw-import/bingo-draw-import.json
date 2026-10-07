@@ -1,0 +1,517 @@
+{
+  "name": "Bingo draw import",
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Berlin"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodes": [
+    {
+      "id": "11111111-1111-4111-8111-111111111001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111002",
+      "name": "Daily 08:00 Berlin",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111003",
+      "name": "Sunday Draw Checks",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        440
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 17 * * 0"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "25 17 * * 0"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "45 17 * * 0"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "15 18 * * 0"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111004",
+      "name": "Import Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        280,
+        220
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-1",
+              "name": "officialBaseUrl",
+              "value": "https://www.bingo-umweltlotterie.de/api/gewinnzahlen",
+              "type": "string"
+            },
+            {
+              "id": "cfg-2",
+              "name": "cmsImportUrl",
+              "value": "https://blogs.bingo-hub.de/api/import-bingo",
+              "type": "string"
+            },
+            {
+              "id": "cfg-3",
+              "name": "timezone",
+              "value": "Europe/Berlin",
+              "type": "string"
+            },
+            {
+              "id": "cfg-4",
+              "name": "manualDrawDate",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "cfg-5",
+              "name": "dryRun",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "cfg-6",
+              "name": "updateStatusDuringBackfill",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111005",
+      "name": "Select Official Draw Date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        220
+      ],
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\nconst tz = String(cfg.timezone || 'Europe/Berlin');\nconst base = String(cfg.officialBaseUrl || '').replace(/\\/$/, '');\nconst manualRaw = String(cfg.manualDrawDate || '').trim();\nconst now = new Date();\nconst fetchedAt = now.toISOString();\nconst WEEKDAY = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };\n\nfunction berlinParts(date) {\n  const dtf = new Intl.DateTimeFormat('en-GB', {\n    timeZone: tz,\n    weekday: 'short',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hourCycle: 'h23',\n  });\n  const out = {};\n  for (const part of dtf.formatToParts(date)) {\n    if (part.type !== 'literal') out[part.type] = part.value;\n  }\n  return {\n    weekday: WEEKDAY[out.weekday],\n    year: Number(out.year),\n    month: Number(out.month),\n    day: Number(out.day),\n    hour: Number(out.hour),\n    minute: Number(out.minute),\n    ymd: `${out.year}-${out.month}-${out.day}`,\n  };\n}\n\nfunction addDays(ymd, days) {\n  const [y, m, d] = ymd.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d + days));\n  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;\n}\n\nfunction isIsoDate(value) {\n  return /^\\d{4}-\\d{2}-\\d{2}$/.test(value);\n}\n\nfunction isSundayYmd(ymd) {\n  if (!isIsoDate(ymd)) return false;\n  const [y, m, d] = ymd.split('-').map(Number);\n  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay() === 0;\n}\n\nconst berlin = berlinParts(now);\nlet requestedDrawDate;\nlet manualBackfill = false;\nlet selectionError = null;\n\nif (manualRaw) {\n  manualBackfill = true;\n  requestedDrawDate = manualRaw;\n  if (!isIsoDate(manualRaw) || !isSundayYmd(manualRaw)) {\n    selectionError = 'invalid_manual_draw_date';\n  } else if (manualRaw > berlin.ymd) {\n    selectionError = 'future_date_blocked';\n  }\n} else if (berlin.weekday === 0) {\n  requestedDrawDate = berlin.hour < 17 ? addDays(berlin.ymd, -7) : berlin.ymd;\n} else {\n  requestedDrawDate = addDays(berlin.ymd, -berlin.weekday);\n}\n\nif (!selectionError && requestedDrawDate > berlin.ymd) {\n  selectionError = 'future_date_blocked';\n}\n\nreturn [{\n  json: {\n    ...cfg,\n    requestedDrawDate,\n    officialUrl: `${base}/${requestedDrawDate}`,\n    manualBackfill,\n    fetchedAt,\n    berlinNow: berlin.ymd,\n    berlinHour: berlin.hour,\n    selectionError,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111006",
+      "name": "Fetch Official Bingo JSON",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        840,
+        220
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.officialUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "BingoBlogsImport/1.0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111007",
+      "name": "Normalize and Validate Bingo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        220
+      ],
+      "parameters": {
+        "jsCode": "const select = $('Select Official Draw Date').first().json;\nconst cfg = $('Import Configuration').first().json;\nconst http = $input.first().json;\nconst tz = String(select.timezone || 'Europe/Berlin');\nconst WEEKDAY = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };\nconst statusCode = Number(http.statusCode ?? http.status ?? 0);\nlet body = http.body !== undefined ? http.body : http;\nconst validation = {\n  officialStatusCode: statusCode,\n  jackpotSource: null,\n  drawValid: false,\n  drawFailReason: null,\n  numberCount: 0,\n};\n\nfunction isObject(value) {\n  return value !== null && typeof value === 'object' && !Array.isArray(value);\n}\n\nfunction positiveJackpot(value) {\n  if (value === null || value === undefined) return null;\n  if (typeof value === 'string' && value.trim() === '') return null;\n  const n = typeof value === 'number' ? value : Number(value);\n  if (!Number.isFinite(n) || n <= 0) return null;\n  return n;\n}\n\nfunction berlinParts(date) {\n  const dtf = new Intl.DateTimeFormat('en-GB', {\n    timeZone: tz,\n    weekday: 'short',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hourCycle: 'h23',\n  });\n  const out = {};\n  for (const part of dtf.formatToParts(date)) {\n    if (part.type !== 'literal') out[part.type] = part.value;\n  }\n  return {\n    weekday: WEEKDAY[out.weekday],\n    year: Number(out.year),\n    month: Number(out.month),\n    day: Number(out.day),\n    hour: Number(out.hour),\n    minute: Number(out.minute),\n    ymd: `${out.year}-${out.month}-${out.day}`,\n  };\n}\n\nfunction addDays(ymd, days) {\n  const [y, m, d] = ymd.split('-').map(Number);\n  const dt = new Date(Date.UTC(y, m - 1, d + days));\n  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;\n}\n\nfunction berlinWallClockToUtcDate(ymd, hour, minute) {\n  const [year, month, day] = ymd.split('-').map(Number);\n  let guess = Date.UTC(year, month - 1, day, hour, minute, 0);\n  for (let i = 0; i < 12; i++) {\n    const p = berlinParts(new Date(guess));\n    const got = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);\n    const want = Date.UTC(year, month - 1, day, hour, minute);\n    const delta = want - got;\n    if (\n      delta === 0 &&\n      p.year === year &&\n      p.month === month &&\n      p.day === day &&\n      p.hour === hour &&\n      p.minute === minute\n    ) {\n      return new Date(guess);\n    }\n    guess += delta;\n  }\n  return new Date(guess);\n}\n\nlet reason = null;\nif (select.selectionError) {\n  reason = select.selectionError;\n} else if (statusCode === 404) {\n  reason = 'official_draw_not_available';\n} else if (!statusCode) {\n  reason = 'official_transport_failure';\n} else if (statusCode < 200 || statusCode >= 300) {\n  reason = 'official_source_unavailable';\n} else if (typeof body === 'string') {\n  const trimmed = body.trim();\n  if (trimmed.startsWith('<') || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) {\n    reason = 'official_response_not_json';\n  } else {\n    try {\n      body = JSON.parse(trimmed);\n    } catch (error) {\n      reason = 'official_response_not_json';\n    }\n  }\n}\n\nconst bingo = !reason && isObject(body) ? body.bingo : null;\nif (!reason && !isObject(bingo)) {\n  reason = 'official_response_malformed';\n}\n\nconst updateStatus = !select.manualBackfill || cfg.updateStatusDuringBackfill === true;\nlet jackpot = null;\nlet nextDrawAt = null;\nlet draw = null;\n\nif (!reason && updateStatus) {\n  const fromNew = positiveJackpot(bingo.jackpotNew);\n  const fromCurrent = positiveJackpot(bingo.jackpotCurrently);\n  if (fromNew != null) {\n    jackpot = fromNew;\n    validation.jackpotSource = 'jackpotNew';\n  } else if (fromCurrent != null) {\n    jackpot = fromCurrent;\n    validation.jackpotSource = 'jackpotCurrently';\n  }\n}\n\nif (!reason && updateStatus) {\n  const nowParts = berlinParts(new Date());\n  let nextYmd;\n  if (nowParts.weekday === 0 && nowParts.hour < 17) nextYmd = nowParts.ymd;\n  else if (nowParts.weekday === 0) nextYmd = addDays(nowParts.ymd, 7);\n  else nextYmd = addDays(nowParts.ymd, 7 - nowParts.weekday);\n  nextDrawAt = berlinWallClockToUtcDate(nextYmd, 17, 0).toISOString();\n}\n\nif (!reason) {\n  const drawMs = Number(bingo.drawDate);\n  if (!Number.isFinite(drawMs) || drawMs <= 0) {\n    validation.drawFailReason = 'invalid_draw_date';\n  } else {\n    const drawBerlin = berlinParts(new Date(drawMs));\n    if (drawBerlin.weekday !== 0) {\n      validation.drawFailReason = 'draw_date_not_sunday';\n    } else {\n      const collection = Array.isArray(bingo.drawNumbersCollection)\n        ? bingo.drawNumbersCollection.slice()\n        : [];\n      collection.sort((a, b) => Number(a && a.drawIndex) - Number(b && b.drawIndex));\n      const numbers = [];\n      let invalid = false;\n      for (const item of collection) {\n        const n = Number(item && item.drawNumber);\n        if (!Number.isInteger(n) || n < 1 || n > 75) {\n          invalid = true;\n          break;\n        }\n        numbers.push(n);\n      }\n      validation.numberCount = numbers.length;\n      if (invalid) validation.drawFailReason = 'number_out_of_range_or_not_integer';\n      else if (numbers.length !== 22) validation.drawFailReason = 'incorrect_number_count';\n      else if (new Set(numbers).size !== 22) validation.drawFailReason = 'duplicate_draw_number';\n      else {\n        validation.drawValid = true;\n        let sourceUpdatedAt = select.fetchedAt;\n        const lastMs = Number(bingo.lastDataChange);\n        if (Number.isFinite(lastMs) && lastMs > 0) {\n          sourceUpdatedAt = new Date(lastMs).toISOString();\n        }\n        draw = {\n          draw_date: drawBerlin.ymd,\n          winning_numbers: numbers,\n          source_updated_at: sourceUpdatedAt,\n          fetched_at: select.fetchedAt,\n        };\n      }\n    }\n  }\n}\n\nconst importBody = {};\nif (!reason) {\n  if (jackpot != null) importBody.current_jackpot_eur = jackpot;\n  if (nextDrawAt) importBody.next_draw_at = nextDrawAt;\n  if (draw) importBody.draw = draw;\n  if (jackpot == null && !nextDrawAt && !draw) {\n    reason = 'no_safe_importable_data';\n  }\n}\n\nlet route = 'no_op';\nif (!reason) {\n  route = cfg.dryRun === true ? 'dry_run' : 'import';\n}\n\nreturn [{\n  json: {\n    route,\n    reason,\n    requestedDrawDate: select.requestedDrawDate,\n    manualBackfill: select.manualBackfill,\n    dryRun: cfg.dryRun === true,\n    importBody: reason ? null : importBody,\n    validation,\n    fetchedAt: select.fetchedAt,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111008",
+      "name": "Has Importable Data?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1400,
+        220
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw-import",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "import",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "import"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw-dry",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "dry_run",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dry_run"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111009",
+      "name": "Import into BingoBlogs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "BingoBlogs Bingo Import"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Import Configuration').item.json.cmsImportUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.importBody }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111013",
+      "name": "BingoBlogs Accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1960,
+        40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-2xx",
+              "leftValue": "={{ Number($json.statusCode) >= 200 && Number($json.statusCode) < 300 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111010",
+      "name": "Report Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        40
+      ],
+      "parameters": {
+        "jsCode": "const incoming = $input.first().json;\nconst normalized = $('Normalize and Validate Bingo').first().json;\n\nif (incoming.dryRun === true || incoming.route === 'dry_run' || normalized.dryRun === true && incoming.statusCode == null) {\n  return [{\n    json: {\n      status: 'imported',\n      dryRun: true,\n      requestedDrawDate: normalized.requestedDrawDate,\n      payload: normalized.importBody,\n      validation: normalized.validation,\n    },\n  }];\n}\n\nconst statusCode = Number(incoming.statusCode ?? incoming.status ?? 0);\nconst body = normalized.importBody || {};\nreturn [{\n  json: {\n    status: 'imported',\n    requested_draw_date: normalized.requestedDrawDate,\n    jackpot_imported: body.current_jackpot_eur != null,\n    draw_imported: Boolean(body.draw),\n    winning_number_count: body.draw && Array.isArray(body.draw.winning_numbers)\n      ? body.draw.winning_numbers.length\n      : 0,\n    target_status_code: statusCode,\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111011",
+      "name": "Report Safe No-op",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        400
+      ],
+      "parameters": {
+        "jsCode": "const normalized = $input.first().json;\nreturn [{\n  json: {\n    status: 'no_op',\n    requested_draw_date: normalized.requestedDrawDate || null,\n    reason: normalized.reason || 'no_safe_importable_data',\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111012",
+      "name": "Report Import Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        280
+      ],
+      "parameters": {
+        "jsCode": "const http = $input.first().json;\nconst statusCode = Number(http.statusCode ?? http.status ?? 0);\nconst body = http.body;\nlet message = 'BingoBlogs import failed.';\nif (statusCode === 401) message = 'Import credential was rejected.';\nelse if (statusCode === 422) message = 'Normalized payload was rejected.';\nelse if (statusCode >= 500) message = 'BingoBlogs server failure.';\nelse if (typeof body === 'string' && body.trim().startsWith('<')) message = 'Invalid BingoBlogs response.';\nelse if (!statusCode) message = 'Import request timed out.';\nreturn [{\n  json: {\n    status: 'failed',\n    stage: 'bingo_blogs_import',\n    status_code: statusCode,\n    message,\n  },\n}];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Import Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 08:00 Berlin": {
+      "main": [
+        [
+          {
+            "node": "Import Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday Draw Checks": {
+      "main": [
+        [
+          {
+            "node": "Import Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import Configuration": {
+      "main": [
+        [
+          {
+            "node": "Select Official Draw Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Official Draw Date": {
+      "main": [
+        [
+          {
+            "node": "Fetch Official Bingo JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Official Bingo JSON": {
+      "main": [
+        [
+          {
+            "node": "Normalize and Validate Bingo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize and Validate Bingo": {
+      "main": [
+        [
+          {
+            "node": "Has Importable Data?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Importable Data?": {
+      "main": [
+        [
+          {
+            "node": "Import into BingoBlogs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report Safe No-op",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import into BingoBlogs": {
+      "main": [
+        [
+          {
+            "node": "BingoBlogs Accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BingoBlogs Accepted?": {
+      "main": [
+        [
+          {
+            "node": "Report Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report Import Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

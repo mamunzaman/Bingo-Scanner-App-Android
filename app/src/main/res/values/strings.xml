@@ -66,6 +66,9 @@
     <string name="home_active_ticket_serie_label">SERIE</string>
     <string name="home_error_load_prizes">Could not load prizes.</string>
     <string name="home_error_load_latest_draw">Could not load latest draw.</string>
+    <string name="home_bingo_refresh_failed">Bingo data could not be refreshed.</string>
+    <string name="home_bingo_draw_unavailable">Draw results are not available yet.</string>
+    <string name="home_bingo_showing_cached">Showing the last saved results.</string>
     <string name="home_view_all">View All</string>
     <string name="my_tickets_filter_week">Week</string>
     <string name="home_green_impact">Your Green Impact</string>

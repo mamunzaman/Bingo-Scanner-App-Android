@@ -51,7 +51,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mamunbingoapp.data.remote.BingoDrawDto
+import com.example.mamunbingoapp.data.bingo.BingoDrawResult
+import com.example.mamunbingoapp.data.bingo.BingoStatus
 import com.example.mamunbingoapp.theme.Dimens
 import com.example.mamunbingoapp.theme.DarkPrimary
 import com.example.mamunbingoapp.theme.Primary
@@ -87,15 +88,16 @@ private val softTextShadow = Shadow(
 
 @Composable
 fun CurrentJackpotCard(
-    latestDraw: BingoDrawDto?,
+    status: BingoStatus?,
+    latestDraw: BingoDrawResult?,
     isRemoteLoading: Boolean,
     remoteError: String?,
     onScanClick: () -> Unit,
     onLatestNumbersClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val countdown = rememberSundayDrawCountdown()
-    val jackpotText = latestDraw?.jackpot?.let(::formatEuroJackpot)
+    val countdown = rememberSundayDrawCountdown(status?.nextDrawAt)
+    val jackpotText = status?.jackpotEur?.let(::formatEuroJackpot)
     val numbers = latestDraw?.winningNumbers.orEmpty()
     val shape = RoundedCornerShape(Dimens.radiusLarge)
 
@@ -293,6 +295,16 @@ fun CurrentJackpotCard(
                     numbers.isNotEmpty() -> {
                         CurrentJackpotNumberChipsPreview(numbers = numbers)
                         Spacer(modifier = Modifier.height(Dimens.spacing4))
+                        if (!remoteError.isNullOrBlank() && !isRemoteLoading) {
+                            GreenCardText(
+                                text = remoteError,
+                                style = MaterialTheme.typography.labelSmall.copy(shadow = softTextShadow),
+                                fontWeight = FontWeight.Normal,
+                                color = Color.White.copy(alpha = 0.9f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                     !remoteError.isNullOrBlank() -> {
                         GreenCardText(
@@ -404,21 +416,33 @@ private fun formatDrawCountdown(remaining: Duration): String {
 }
 
 @Composable
-private fun rememberSundayDrawCountdown(): String {
-    var countdown by remember {
-        mutableStateOf(formatDrawCountdown(Duration.between(ZonedDateTime.now(berlinZone), nextSundayDrawBerlin())))
+private fun rememberSundayDrawCountdown(nextDrawAt: java.time.Instant?): String {
+    var countdown by remember(nextDrawAt) {
+        mutableStateOf(formatDrawCountdown(countdownRemaining(nextDrawAt)))
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(nextDrawAt) {
         while (true) {
-            val now = ZonedDateTime.now(berlinZone)
-            countdown = formatDrawCountdown(Duration.between(now, nextSundayDrawBerlin(now)))
+            countdown = formatDrawCountdown(countdownRemaining(nextDrawAt))
             delay(1_000L)
         }
     }
     return countdown
 }
 
-private fun formatEuroJackpot(amount: Long): String {
+private fun countdownRemaining(nextDrawAt: java.time.Instant?): Duration {
+    val now = ZonedDateTime.now(berlinZone)
+    val apiTarget = nextDrawAt?.atZone(berlinZone)
+    val target = if (apiTarget != null && apiTarget.isAfter(now)) {
+        apiTarget
+    } else {
+        nextSundayDrawBerlin(now)
+    }
+    return Duration.between(now, target).let { remaining ->
+        if (remaining.isNegative) Duration.ZERO else remaining
+    }
+}
+
+private fun formatEuroJackpot(amount: Double): String {
     val formatter = NumberFormat.getCurrencyInstance(Locale.GERMANY)
     formatter.maximumFractionDigits = 0
     return formatter.format(amount)

@@ -93,7 +93,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
-import com.example.mamunbingoapp.ui.components.AppBottomBarShellHeight
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -615,9 +614,12 @@ private fun MainShellScaffold(
     val isGlobalScanBusy by scanPipelineBusyFlow?.collectAsStateWithLifecycle()
         ?: remember { mutableStateOf(false) }
     val highlightedTab = resolveShellHighlightedTab(currentRoute, vmSelectedTab, tabHintRaw)
-    val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val contentBottomInset =
-        if (showBottomBar) AppBottomBarShellHeight + navBarInset else 0.dp
+        if (showBottomBar) {
+            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        } else {
+            0.dp
+        }
     BackHandler(enabled = currentRoute == MAIN_TABS_ROUTE) {
         tabsViewModel?.setSelectedTab(AppTab.Home)
     }
